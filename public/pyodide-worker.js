@@ -6,8 +6,24 @@ self.onmessage = async ({ data }) => {
     let output = "";
     runtime.setStdout({ batched: (text) => { output += text + "\n"; } });
     runtime.setStderr({ batched: (text) => { output += text + "\n"; } });
-    const inputLines = String(data.stdin || "").split(/\r?\n/);
-    runtime.setStdin({ stdin: () => inputLines.length ? inputLines.shift() : null });
+    if (data.mode === "repl_exec") {
+      runtime.globals.set("__pyclasse_command", data.command);
+      await runtime.runPythonAsync(`
+import ast
+_tree = ast.parse(__pyclasse_command, mode="exec")
+if _tree.body and isinstance(_tree.body[-1], ast.Expr):
+    _last = _tree.body.pop()
+    if _tree.body:
+        exec(compile(_tree, "<pyclasse-shell>", "exec"), globals())
+    _value = eval(compile(ast.Expression(_last.value), "<pyclasse-shell>", "eval"), globals())
+    if _value is not None:
+        print(repr(_value))
+else:
+    exec(compile(_tree, "<pyclasse-shell>", "exec"), globals())
+`);
+      self.postMessage({ ok: true, output: output.trim() });
+      return;
+    }
     await runtime.runPythonAsync(data.code);
     if (data.mode === "test") {
       const cases = [

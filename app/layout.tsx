@@ -13,9 +13,9 @@ export const metadata: Metadata = {
   openGraph: {
     title: "PyClasse — Impara Python, insieme",
     description: "Esercizi, grading automatico e progressi per la tua classe.",
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: "PyClasse — Impara Python, insieme" }],
+    images: [{ url: "/og-dracula.png", width: 1200, height: 630, alt: "PyClasse — Impara Python, insieme" }],
   },
-  twitter: { card: "summary_large_image", images: ["/og.png"] },
+  twitter: { card: "summary_large_image", images: ["/og-dracula.png"] },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

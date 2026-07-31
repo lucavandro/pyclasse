@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { python } from "@codemirror/lang-python";
 import { EditorView } from "@codemirror/view";
@@ -30,6 +30,7 @@ const blockClipboard = EditorView.domEventHandlers({
 
 export default function Home() {
   const [view, setView] = useState<View>("home");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [code, setCode] = useState(starter);
   const [output, setOutput] = useState("Pronto per l’esecuzione.");
   const [running, setRunning] = useState(false);
@@ -41,6 +42,18 @@ export default function Home() {
   const [joinCode, setJoinCode] = useState("");
 
   const title = useMemo(() => ({ home: "Buongiorno, Luca", classes: "Le tue classi", tasks: "Esercizi", report: "Report della classe", editor: "Somma dei numeri pari" }[view]), [view]);
+
+  useEffect(() => {
+    setSidebarCollapsed(localStorage.getItem("pyclasse-sidebar") === "collapsed");
+  }, []);
+
+  function toggleSidebar() {
+    setSidebarCollapsed(current => {
+      const next = !current;
+      localStorage.setItem("pyclasse-sidebar", next ? "collapsed" : "expanded");
+      return next;
+    });
+  }
 
   function notify(message: string) {
     setToast(message);
@@ -114,16 +127,17 @@ export default function Home() {
   }
 
   return (
-    <main className="app-shell">
+    <main className={sidebarCollapsed ? "app-shell sidebar-collapsed" : "app-shell"}>
       <aside className="sidebar">
-        <button className="brand" onClick={() => setView("home")} aria-label="Vai alla dashboard">
-          <span className="brand-mark">&gt;_</span><span>PyClasse</span>
-        </button>
-        <nav aria-label="Navigazione principale">
+        <div className="sidebar-head">
+          <button className="brand" onClick={() => setView("home")} aria-label="Vai alla dashboard"><span className="brand-mark">&gt;_</span><span>PyClasse</span></button>
+          <button className="hamburger" onClick={toggleSidebar} aria-expanded={!sidebarCollapsed} aria-controls="primary-navigation" aria-label={sidebarCollapsed ? "Espandi menu" : "Riduci menu"}><span /><span /><span /></button>
+        </div>
+        <nav id="primary-navigation" aria-label="Navigazione principale">
           {([
             ["home", "⌂", "Panoramica"], ["classes", "▦", "Classi"], ["tasks", "◇", "Esercizi"], ["report", "▥", "Report"],
           ] as [View, string, string][]).map(([key, icon, label]) => (
-            <button key={key} className={view === key ? "nav-item active" : "nav-item"} onClick={() => setView(key)}><span>{icon}</span>{label}</button>
+            <button key={key} className={view === key ? "nav-item active" : "nav-item"} onClick={() => setView(key)} title={sidebarCollapsed ? label : undefined}><span>{icon}</span><b>{label}</b></button>
           ))}
         </nav>
         <div className="sidebar-bottom">

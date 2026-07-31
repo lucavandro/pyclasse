@@ -33,6 +33,8 @@ export default function Home() {
   const [code, setCode] = useState(starter);
   const [output, setOutput] = useState("Pronto per l’esecuzione.");
   const [running, setRunning] = useState(false);
+  const [standardInput, setStandardInput] = useState("");
+  const [testResult, setTestResult] = useState({ passed: 0, total: 5, testedCode: "" });
   const [toast, setToast] = useState("");
   const [joinCode, setJoinCode] = useState("");
 
@@ -43,19 +45,31 @@ export default function Home() {
     window.setTimeout(() => setToast(""), 2600);
   }
 
-  async function runCode() {
+  function updateCode(value: string) {
+    setCode(value);
+    setTestResult(current => ({ ...current, passed: 0, testedCode: "" }));
+  }
+
+  async function runCode(mode: "run" | "test") {
     setRunning(true);
-    setOutput("Caricamento dell’ambiente Python…");
+    setOutput(mode === "test" ? "Esecuzione dei test automatici…" : "Caricamento dell’ambiente Python…");
     try {
       const worker = new Worker("/pyodide-worker.js");
       const timer = window.setTimeout(() => { worker.terminate(); setOutput("Esecuzione interrotta: limite di 8 secondi superato."); setRunning(false); }, 8000);
       worker.onmessage = (event) => {
         window.clearTimeout(timer);
-        setOutput(event.data.ok ? `${event.data.output || "(nessun output)"}\n\n✓ 5 test su 5 superati` : `Errore:\n${event.data.error}`);
+        if (event.data.ok && mode === "test") {
+          const passed = event.data.tests?.passed ?? 0;
+          const total = event.data.tests?.total ?? 5;
+          setTestResult({ passed, total, testedCode: code });
+          setOutput(`Test completati\n\n${passed} test su ${total} superati${passed === total ? "\n\n✓ Soluzione pronta per la consegna" : "\n\nCorreggi il codice e riprova."}`);
+        } else {
+          setOutput(event.data.ok ? event.data.output || "(nessun output)" : `Errore:\n${event.data.error}`);
+        }
         setRunning(false);
         worker.terminate();
       };
-      worker.postMessage({ code });
+      worker.postMessage({ code, stdin: standardInput, mode });
     } catch {
       setOutput("L’ambiente Python non è disponibile in questa anteprima. Il codice è stato salvato.");
       setRunning(false);
@@ -90,7 +104,7 @@ export default function Home() {
         {view === "classes" && <Classes joinCode={joinCode} setJoinCode={setJoinCode} notify={notify} />}
         {view === "tasks" && <Tasks openEditor={() => setView("editor")} />}
         {view === "report" && <Report />}
-        {view === "editor" && <Editor code={code} setCode={setCode} output={output} running={running} runCode={runCode} notify={notify} />}
+        {view === "editor" && <Editor code={code} setCode={updateCode} output={output} running={running} runCode={runCode} standardInput={standardInput} setStandardInput={setStandardInput} testResult={testResult} notify={notify} />}
       </section>
       {toast && <div className="toast" role="status">✓ {toast}</div>}
     </main>
@@ -123,4 +137,7 @@ function Classes({ joinCode, setJoinCode, notify }: { joinCode: string; setJoinC
 function Tasks({ openEditor }: { openEditor: () => void }) { return <section className="panel full-panel"><div className="panel-head"><div><p className="eyebrow">12 ESERCIZI</p><h3>Programma del corso</h3></div><div className="filters"><button className="selected">Tutti</button><button>Da completare</button><button>Completati</button></div></div>{assignments.concat([{ title: "Input e output", detail: "4 test automatici · 60 punti", due: "Completato", progress: 100, color: "green" }]).map(a => <Assignment key={a.title} {...a} onClick={openEditor} />)}</section>; }
 function Report() { return <section className="panel full-panel"><div className="panel-head"><div><p className="eyebrow">4ESA · INFORMATICA</p><h3>Completamento esercizi</h3></div><button className="secondary" onClick={() => alert("Il report CSV sarà generato dal backend Supabase.")}>↓ Esporta CSV</button></div><div className="report-summary"><Stat label="Completamento" value="72%" delta="138 consegne" icon="✓" /><Stat label="Media punteggio" value="84%" delta="su 24 studenti" icon="↗" /><Stat label="Da recuperare" value="3" delta="studenti sotto il 60%" icon="!" /></div><div className="table"><div className="table-row table-head"><span>Studente</span><span>Completati</span><span>Ultimo invio</span><span>Stato</span><span>Punteggio</span></div>{students.map(s => <div className="table-row" key={s.name}><span className="student-inline"><span className={`avatar ${s.tone}`}>{s.initials}</span><strong>{s.name}</strong></span><span>{s.done}/8</span><span>31 lug, 15:{20 + s.done}</span><span><i className={`status ${s.tone}`}>{s.status}</i></span><strong>{s.score}%</strong></div>)}</div></section>; }
 
-function Editor({ code, setCode, output, running, runCode, notify }: { code: string; setCode: (v: string) => void; output: string; running: boolean; runCode: () => void; notify: (v: string) => void }) { return <div className="editor-layout"><section className="brief"><button className="back" onClick={() => history.back()}>← Esercizi</button><span className="pill coral-pill">IN SCADENZA OGGI</span><h2>Somma dei numeri pari</h2><p>Scrivi una funzione <code>somma_pari(numeri)</code> che restituisca la somma di tutti i numeri pari presenti nella lista.</p><h4>Esempio</h4><pre>somma_pari([1, 2, 3, 4]) → 6</pre><h4>Vincoli</h4><ul><li>La lista contiene da 1 a 100 numeri.</li><li>Ogni numero è compreso tra −1000 e 1000.</li></ul><div className="test-count"><strong>5</strong><span>test automatici<br />100 punti totali</span></div></section><section className="workspace"><div className="editor-toolbar"><span>main.py</span><span>Copia e incolla disabilitati · Python 3.12</span></div><CodeMirror value={code} height="390px" extensions={[python(), blockClipboard]} onChange={setCode} theme="dark" basicSetup={{ lineNumbers: true, foldGutter: false }} /><div className="console"><div className="console-head"><strong>Console</strong><button onClick={() => setCode(starter)}>Ripristina</button></div><pre>{output}</pre></div><div className="runbar"><button className="secondary" onClick={runCode} disabled={running}>{running ? "Avvio…" : "▷ Esegui"}</button><button className="primary" onClick={() => notify("Soluzione consegnata: 100/100")}>Consegna soluzione</button></div></section></div>; }
+function Editor({ code, setCode, output, running, runCode, standardInput, setStandardInput, testResult, notify }: { code: string; setCode: (v: string) => void; output: string; running: boolean; runCode: (mode: "run" | "test") => void; standardInput: string; setStandardInput: (v: string) => void; testResult: { passed: number; total: number; testedCode: string }; notify: (v: string) => void }) {
+  const canSubmit = testResult.passed === testResult.total && testResult.testedCode === code;
+  return <div className="editor-layout"><section className="brief"><button className="back" onClick={() => history.back()}>← Esercizi</button><span className="pill coral-pill">IN SCADENZA OGGI</span><h2>Somma dei numeri pari</h2><p>Scrivi una funzione <code>somma_pari(numeri)</code> che restituisca la somma di tutti i numeri pari presenti nella lista.</p><h4>Esempio</h4><pre>somma_pari([1, 2, 3, 4]) → 6</pre><h4>Vincoli</h4><ul><li>La lista contiene da 1 a 100 numeri.</li><li>Ogni numero è compreso tra −1000 e 1000.</li></ul><div className="test-count"><strong>5</strong><span>test automatici<br />100 punti totali</span></div></section><section className="workspace"><div className="editor-toolbar"><span>main.py</span><span>Copia e incolla disabilitati · Python 3.12</span></div><CodeMirror value={code} height="350px" extensions={[python(), blockClipboard]} onChange={setCode} theme="dark" basicSetup={{ lineNumbers: true, foldGutter: false }} /><div className="terminal-grid"><label className="stdin"><span>Input standard</span><textarea value={standardInput} onChange={e => setStandardInput(e.target.value)} placeholder="Un valore per riga, come nel terminale…" /></label><div className="console"><div className="console-head"><strong>Output</strong><button onClick={() => setCode(starter)}>Ripristina codice</button></div><pre aria-live="polite">{output}</pre></div></div><div className="runbar"><span className={canSubmit ? "test-ready" : "test-waiting"}>{canSubmit ? `✓ ${testResult.total}/${testResult.total} test superati` : "Supera tutti i test per consegnare"}</span><button className="secondary" onClick={() => runCode("run")} disabled={running}>{running ? "Attendi…" : "▷ Esegui"}</button><button className="secondary test-button" onClick={() => runCode("test")} disabled={running}>Test</button><button className="primary" disabled={!canSubmit || running} onClick={() => notify("Soluzione inviata al docente: 100/100")}>Consegna soluzione</button></div></section></div>;
+}

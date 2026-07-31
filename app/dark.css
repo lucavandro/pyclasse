@@ -73,5 +73,22 @@ button:focus-visible, input:focus-visible, .cm-editor:focus-within { outline: 3p
 .cm-editor { font-size: 15px; }
 .console { background: #080d0c; }
 .console pre { font-size: 13px; color: #b3e4ce; }
-.runbar { background: #111b19; border-top: 1px solid #2b3a37; }
+.terminal-grid { display: grid; grid-template-columns: minmax(180px, .7fr) 1.3fr; min-height: 150px; border-top: 1px solid #2b3a37; }
+.stdin { display: flex; flex-direction: column; background: #0b1211; border-right: 1px solid #2b3a37; }
+.stdin > span { height: 37px; display: flex; align-items: center; padding: 0 17px; border-bottom: 1px solid #2b3a37; color: #d6e1df; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; }
+.stdin textarea { flex: 1; min-height: 110px; resize: none; border: 0; background: #080d0c; color: #e7efed; padding: 14px 16px; font: 13px/1.55 var(--font-mono), monospace; }
+.stdin textarea::placeholder { color: #73837f; }
+.console { border-top: 0; }
+.runbar { background: #111b19; border-top: 1px solid #2b3a37; align-items: center; flex-wrap: wrap; }
+.runbar > span { margin-right: auto; font-size: 12px; font-weight: 650; }
+.test-ready { color: #9fe2ad; }
+.test-waiting { color: #a7b5b2; }
+.test-button { border-color: #5b8f88; color: #bcece5; }
+.primary:disabled, .secondary:disabled { cursor: not-allowed; opacity: .45; box-shadow: none; }
 .toast { background: #dff7f3; color: #0b2b27; font-weight: 700; }
+
+@media (max-width: 760px) {
+  .terminal-grid { grid-template-columns: 1fr; }
+  .stdin { border-right: 0; border-bottom: 1px solid #2b3a37; }
+  .runbar > span { width: 100%; margin-bottom: 4px; }
+}

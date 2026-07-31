@@ -13,6 +13,18 @@ create table public.profiles (
   created_at timestamptz not null default now()
 );
 
+-- Configurazione privata: una sola riga e una sola email docente.
+-- Sostituire l'indirizzo di esempio prima di abilitare gli accessi reali.
+create table public.app_settings (
+  singleton boolean primary key default true check (singleton),
+  teacher_email text not null unique
+);
+insert into public.app_settings (singleton, teacher_email)
+values (true, 'docente@scuola.it');
+
+create unique index profiles_single_teacher_idx
+on public.profiles ((role)) where role = 'teacher';
+
 create table public.classes (
   id uuid primary key default gen_random_uuid(),
   teacher_id uuid not null references public.profiles(id) on delete cascade,
@@ -79,13 +91,32 @@ create index submissions_assignment_idx on public.submissions(assignment_id);
 -- Crea automaticamente il profilo al primo login Google.
 create or replace function public.handle_new_user() returns trigger
 language plpgsql security definer set search_path = public as $$
+declare assigned_role public.user_role;
 begin
-  insert into public.profiles (id, email, full_name, avatar_url)
-  values (new.id, new.email, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url');
+  select case
+    when lower(new.email) = lower(s.teacher_email) then 'teacher'::public.user_role
+    else 'student'::public.user_role
+  end into assigned_role
+  from public.app_settings s where s.singleton = true;
+
+  insert into public.profiles (id, email, full_name, avatar_url, role)
+  values (new.id, new.email, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url', coalesce(assigned_role, 'student'));
   return new;
 end; $$;
 create trigger on_auth_user_created after insert on auth.users
 for each row execute procedure public.handle_new_user();
+
+-- Un utente autenticato non può promuoversi modificando il proprio profilo.
+create or replace function public.prevent_role_change() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  if new.role <> old.role and auth.role() = 'authenticated' then
+    raise exception 'Il ruolo può essere modificato solo dall’amministratore';
+  end if;
+  return new;
+end; $$;
+create trigger prevent_profile_role_change before update of role on public.profiles
+for each row execute procedure public.prevent_role_change();
 
 -- Iscrizione atomica: il codice non espone l'elenco delle classi.
 create or replace function public.join_class(code text) returns uuid
@@ -101,6 +132,7 @@ revoke all on function public.join_class(text) from public;
 grant execute on function public.join_class(text) to authenticated;
 
 alter table public.profiles enable row level security;
+alter table public.app_settings enable row level security;
 alter table public.classes enable row level security;
 alter table public.class_members enable row level security;
 alter table public.assignments enable row level security;

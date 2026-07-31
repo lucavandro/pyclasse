@@ -23,6 +23,21 @@ I test eseguiti nel browser non sono realmente segreti. La RLS impedisce comunqu
 ## Attivazione Supabase
 
 1. Creare un progetto Supabase e incollare `supabase/schema.sql` nel SQL Editor.
-2. Abilitare Google in Authentication → Providers e configurare client ID/secret.
-3. Copiare `.env.example` in `.env.local` e inserire URL e anon key.
-4. Aggiungere fra i redirect autorizzati l’URL locale e quello di produzione.
+2. Nello script, sostituire `docente@scuola.it` con l'email Google dell'unico docente. La tabella `app_settings` non è leggibile dal browser e un indice garantisce che esista al massimo un profilo docente.
+3. Abilitare Google in Authentication → Providers e configurare client ID/secret.
+4. Copiare `.env.example` in `.env.local` e inserire URL e anon key.
+5. Aggiungere fra i redirect autorizzati l’URL locale e quello di produzione.
+
+### Cambiare successivamente l'email del docente
+
+Eseguire nel SQL Editor di Supabase, sostituendo l'indirizzo:
+
+```sql
+begin;
+update public.profiles set role = 'student' where role = 'teacher';
+update public.app_settings set teacher_email = lower('nuovo-docente@scuola.it') where singleton = true;
+update public.profiles set role = 'teacher' where lower(email) = lower('nuovo-docente@scuola.it');
+commit;
+```
+
+Gli utenti normali non possono modificare `role`: il controllo è applicato nel database, non nell'interfaccia.

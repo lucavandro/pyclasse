@@ -6,22 +6,36 @@ self.onmessage = async ({ data }) => {
     let output = "";
     runtime.setStdout({ batched: (text) => { output += text + "\n"; } });
     runtime.setStderr({ batched: (text) => { output += text + "\n"; } });
-    if (data.mode === "repl_exec") {
-      runtime.globals.set("__pyclasse_command", data.command);
-      await runtime.runPythonAsync(`
-import ast
-_tree = ast.parse(__pyclasse_command, mode="exec")
-if _tree.body and isinstance(_tree.body[-1], ast.Expr):
-    _last = _tree.body.pop()
-    if _tree.body:
-        exec(compile(_tree, "<pyclasse-shell>", "exec"), globals())
-    _value = eval(compile(ast.Expression(_last.value), "<pyclasse-shell>", "eval"), globals())
-    if _value is not None:
-        print(repr(_value))
-else:
-    exec(compile(_tree, "<pyclasse-shell>", "exec"), globals())
-`);
-      self.postMessage({ ok: true, output: output.trim() });
+    if (data.mode === "run_interactive") {
+      const encodedInputs = JSON.stringify(JSON.stringify(data.inputs || []));
+      const interactiveCode = `
+import builtins, json
+__pyclasse_inputs = json.loads(${encodedInputs})
+__pyclasse_input_index = 0
+def __pyclasse_input(prompt=""):
+    global __pyclasse_input_index
+    if __pyclasse_input_index >= len(__pyclasse_inputs):
+        raise RuntimeError("__PYCLASSE_INPUT__" + str(prompt))
+    value = __pyclasse_inputs[__pyclasse_input_index]
+    __pyclasse_input_index += 1
+    print(str(prompt) + value)
+    return value
+builtins.input = __pyclasse_input
+` + data.code;
+      try {
+        await runtime.runPythonAsync(interactiveCode);
+        self.postMessage({ ok: true, output: output.trim(), inputRequired: false });
+      } catch (error) {
+        const message = String(error);
+        const marker = "__PYCLASSE_INPUT__";
+        const markerIndex = message.lastIndexOf(marker);
+        if (markerIndex >= 0) {
+          const prompt = message.slice(markerIndex + marker.length).split("\n")[0].trim();
+          self.postMessage({ ok: true, output: output.trim(), inputRequired: true, prompt });
+        } else {
+          throw error;
+        }
+      }
       return;
     }
     await runtime.runPythonAsync(data.code);

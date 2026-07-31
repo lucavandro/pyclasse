@@ -1,6 +1,6 @@
 # PyClasse — specifiche di prodotto e conformità
 
-Versione: 1.0  
+Versione: 1.1  
 Ultimo aggiornamento: 31 luglio 2026  
 Stato del documento: fonte unica di verità del progetto
 
@@ -77,18 +77,17 @@ La schermata studente presenta esattamente tre azioni principali.
 
 ### 6.1 Esegui
 
-- Avvia una Python Shell/REPL persistente nel browser.
-- Il codice presente nell’editor inizializza la sessione.
-- Dopo l’avvio, lo studente invia comandi usando il prompt `>>>`.
-- Invio esegue il comando; `Shift+Invio` permette comandi multilinea.
-- Variabili, import e funzioni persistono tra i comandi della stessa sessione.
-- Modificare il codice dell’editor termina e invalida la sessione corrente.
-- Il comando “Riavvia Shell” ricrea la sessione dal codice aggiornato.
-- Output, risultati delle espressioni ed errori devono apparire nel terminale.
+- Esegue dall’inizio alla fine il codice presente nell’editor, come un normale programma Python.
+- La shell mostra in ordine l’output standard, gli eventuali prompt di `input()` e i valori immessi dallo studente.
+- Quando il programma raggiunge `input()`, l’esecuzione si sospende e la shell presenta un campo per fornire il valore richiesto.
+- Invio o il pulsante “Invia” forniscono il valore e fanno proseguire il programma.
+- Devono essere supportate più chiamate consecutive a `input()` nello stesso programma.
+- Una nuova pressione di “Esegui” riavvia il programma da zero e scarta gli input della sessione precedente.
+- Errori e timeout devono apparire nella shell senza bloccare l’interfaccia.
 
 ### 6.2 Test
 
-- Esegue i test automatici dell’esercizio in un ambiente separato dalla REPL.
+- Esegue i test automatici dell’esercizio in un ambiente separato dall’esecuzione interattiva.
 - Mostra allo studente quanti test sono stati superati sul totale.
 - Gli errori di esecuzione devono essere mostrati senza bloccare l’interfaccia.
 - Nell’MVP i test sono eseguiti lato browser; quindi non possono essere considerati realmente segreti.
@@ -160,7 +159,7 @@ La schermata studente presenta esattamente tre azioni principali.
 - [ ] Lo studente può entrare con il codice e vedere gli esercizi pubblicati.
 - [ ] Il docente può creare e assegnare un esercizio con scadenza e test.
 - [x] L’editor Python blocca copia, taglia e incolla.
-- [x] “Esegui” avvia una REPL persistente con prompt `>>>`.
+- [x] “Esegui” avvia il programma dell’editor e gestisce interattivamente le chiamate a `input()`.
 - [x] “Test” mostra il numero di test superati.
 - [x] “Consegna soluzione” è abilitato soltanto dopo il superamento di tutti i test sul codice corrente.
 - [ ] La consegna viene realmente salvata e appare al docente.
@@ -176,7 +175,7 @@ La schermata studente presenta esattamente tre azioni principali.
 | Tema Dracula e accessibilità visiva | Conforme | Palette e focus definiti in `app/dark.css`; Geist e Geist Mono in `app/layout.tsx`. |
 | Sidebar desktop collassabile | Conforme | Stato, controllo hamburger e persistenza locale in `app/page.tsx`. |
 | CodeMirror e blocco clipboard | Conforme | Handler `copy`, `cut` e `paste` in `app/page.tsx`. |
-| REPL Python persistente | Conforme per MVP | Worker persistente e comandi `repl_start`/`repl_exec` in `app/page.tsx` e `public/pyodide-worker.js`. |
+| Esecuzione interattiva del programma | Conforme per MVP | Il worker esegue il codice completo e richiede dalla shell ogni valore necessario a `input()`. |
 | Test automatici lato browser | Conforme per MVP | Cinque test dimostrativi eseguiti dal worker; i test non sono ancora caricati dal database. |
 | Gate della consegna | Conforme nell’interfaccia | Il pulsante dipende da test superati e hash logico del codice corrente; il salvataggio è ancora simulato. |
 | Schema dati e RLS | Predisposto | Schema completo in `supabase/schema.sql`, non verificabile come applicato a un progetto Supabase reale. |

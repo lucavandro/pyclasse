@@ -141,8 +141,8 @@ body { background: #191a21; }
 .repl-shell { min-height: 190px; background: #191a21; border-top: 1px solid #44475a; color: #f8f8f2; }
 .repl-shell pre { min-height: 105px; max-height: 220px; overflow: auto; margin: 0; padding: 15px 17px; white-space: pre-wrap; font: 13px/1.6 var(--font-mono), monospace; color: #f8f8f2; }
 .repl-prompt { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: start; padding: 10px 14px; border-top: 1px solid #44475a; background: #21222c; }
-.repl-prompt > span { padding-top: 8px; color: #50fa7b; font: 700 14px var(--font-mono), monospace; }
-.repl-prompt textarea { resize: vertical; min-height: 36px; max-height: 110px; border: 0; border-radius: 6px; background: #282a36; color: #f8f8f2; padding: 8px 10px; font: 13px/1.5 var(--font-mono), monospace; }
+.repl-prompt > label { padding-top: 8px; color: #50fa7b; font: 700 13px var(--font-mono), monospace; }
+.repl-prompt input { min-height: 36px; border: 0; border-radius: 6px; background: #282a36; color: #f8f8f2; padding: 8px 10px; font: 13px/1.5 var(--font-mono), monospace; }
 .repl-prompt button { border: 1px solid #6272a4; border-radius: 6px; background: #44475a; color: #f8f8f2; padding: 8px 12px; cursor: pointer; }
 .repl-prompt button:disabled { opacity: .45; cursor: not-allowed; }
 

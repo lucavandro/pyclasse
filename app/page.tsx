@@ -34,10 +34,12 @@ export default function Home() {
   const [code, setCode] = useState(starter);
   const [output, setOutput] = useState("Pronto per l’esecuzione.");
   const [running, setRunning] = useState(false);
-  const [replActive, setReplActive] = useState(false);
-  const [replCommand, setReplCommand] = useState("");
+  const [inputRequested, setInputRequested] = useState(false);
+  const [inputPrompt, setInputPrompt] = useState("");
+  const [programInput, setProgramInput] = useState("");
+  const [collectedInputs, setCollectedInputs] = useState<string[]>([]);
   const [testResult, setTestResult] = useState({ passed: 0, total: 5, testedCode: "" });
-  const replWorker = useRef<Worker | null>(null);
+  const programWorker = useRef<Worker | null>(null);
   const [toast, setToast] = useState("");
   const [joinCode, setJoinCode] = useState("");
 
@@ -62,42 +64,56 @@ export default function Home() {
 
   function updateCode(value: string) {
     setCode(value);
-    replWorker.current?.terminate();
-    replWorker.current = null;
-    setReplActive(false);
+    programWorker.current?.terminate();
+    programWorker.current = null;
+    setInputRequested(false);
     setTestResult(current => ({ ...current, passed: 0, testedCode: "" }));
   }
 
-  function startRepl() {
-    replWorker.current?.terminate();
-    const worker = new Worker("/pyodide-worker.js");
-    replWorker.current = worker;
+  function executeProgram(inputs: string[], restartWorker = false) {
+    if (restartWorker) {
+      programWorker.current?.terminate();
+      programWorker.current = new Worker("/pyodide-worker.js");
+    }
+    const worker = programWorker.current || new Worker("/pyodide-worker.js");
+    programWorker.current = worker;
     setRunning(true);
-    setOutput("Avvio della Python Shell…");
+    setInputRequested(false);
+    setOutput("Esecuzione del programma…");
+    const timer = window.setTimeout(() => {
+      worker.terminate();
+      setRunning(false);
+      setInputRequested(false);
+      setOutput("Esecuzione interrotta: limite di 8 secondi superato.");
+    }, 8000);
     worker.onmessage = (event) => {
+      window.clearTimeout(timer);
       setRunning(false);
       if (!event.data.ok) {
-        setOutput(current => `${current}\nErrore: ${event.data.error}`);
+        setOutput(`Errore:\n${event.data.error}`);
         return;
       }
-      setReplActive(true);
-      setOutput(`${event.data.output ? `${event.data.output}\n` : ""}Python Shell pronta. Scrivi un comando dopo >>>`);
+      setOutput(event.data.output || "(nessun output)");
+      if (event.data.inputRequired) {
+        setInputPrompt(event.data.prompt || "Input richiesto");
+        setInputRequested(true);
+      }
     };
-    worker.postMessage({ code, mode: "repl_start" });
+    worker.postMessage({ code, inputs, mode: "run_interactive" });
   }
 
-  function submitReplCommand() {
-    const command = replCommand.trim();
-    if (!command || !replWorker.current || running) return;
-    setRunning(true);
-    setReplCommand("");
-    setOutput(current => `${current}\n\n>>> ${command}`);
-    replWorker.current.onmessage = (event) => {
-      setRunning(false);
-      const response = event.data.ok ? event.data.output : `Errore: ${event.data.error}`;
-      if (response) setOutput(current => `${current}\n${response}`);
-    };
-    replWorker.current.postMessage({ command, mode: "repl_exec" });
+  function startProgram() {
+    setCollectedInputs([]);
+    setProgramInput("");
+    executeProgram([], true);
+  }
+
+  function submitProgramInput() {
+    if (!inputRequested || running) return;
+    const nextInputs = [...collectedInputs, programInput];
+    setCollectedInputs(nextInputs);
+    setProgramInput("");
+    executeProgram(nextInputs);
   }
 
   async function runTests() {
@@ -155,7 +171,7 @@ export default function Home() {
         {view === "classes" && <Classes joinCode={joinCode} setJoinCode={setJoinCode} notify={notify} />}
         {view === "tasks" && <Tasks openEditor={() => setView("editor")} />}
         {view === "report" && <Report />}
-        {view === "editor" && <Editor code={code} setCode={updateCode} output={output} running={running} startRepl={startRepl} replActive={replActive} replCommand={replCommand} setReplCommand={setReplCommand} submitReplCommand={submitReplCommand} runTests={runTests} testResult={testResult} notify={notify} />}
+        {view === "editor" && <Editor code={code} setCode={updateCode} output={output} running={running} startProgram={startProgram} inputRequested={inputRequested} inputPrompt={inputPrompt} programInput={programInput} setProgramInput={setProgramInput} submitProgramInput={submitProgramInput} runTests={runTests} testResult={testResult} notify={notify} />}
       </section>
       {toast && <div className="toast" role="status">✓ {toast}</div>}
     </main>
@@ -188,7 +204,7 @@ function Classes({ joinCode, setJoinCode, notify }: { joinCode: string; setJoinC
 function Tasks({ openEditor }: { openEditor: () => void }) { return <section className="panel full-panel"><div className="panel-head"><div><p className="eyebrow">12 ESERCIZI</p><h3>Programma del corso</h3></div><div className="filters"><button className="selected">Tutti</button><button>Da completare</button><button>Completati</button></div></div>{assignments.concat([{ title: "Input e output", detail: "4 test automatici · 60 punti", due: "Completato", progress: 100, color: "green" }]).map(a => <Assignment key={a.title} {...a} onClick={openEditor} />)}</section>; }
 function Report() { return <section className="panel full-panel"><div className="panel-head"><div><p className="eyebrow">4ESA · INFORMATICA</p><h3>Completamento esercizi</h3></div><button className="secondary" onClick={() => alert("Il report CSV sarà generato dal backend Supabase.")}>↓ Esporta CSV</button></div><div className="report-summary"><Stat label="Completamento" value="72%" delta="138 consegne" icon="✓" /><Stat label="Media punteggio" value="84%" delta="su 24 studenti" icon="↗" /><Stat label="Da recuperare" value="3" delta="studenti sotto il 60%" icon="!" /></div><div className="table"><div className="table-row table-head"><span>Studente</span><span>Completati</span><span>Ultimo invio</span><span>Stato</span><span>Punteggio</span></div>{students.map(s => <div className="table-row" key={s.name}><span className="student-inline"><span className={`avatar ${s.tone}`}>{s.initials}</span><strong>{s.name}</strong></span><span>{s.done}/8</span><span>31 lug, 15:{20 + s.done}</span><span><i className={`status ${s.tone}`}>{s.status}</i></span><strong>{s.score}%</strong></div>)}</div></section>; }
 
-function Editor({ code, setCode, output, running, startRepl, replActive, replCommand, setReplCommand, submitReplCommand, runTests, testResult, notify }: { code: string; setCode: (v: string) => void; output: string; running: boolean; startRepl: () => void; replActive: boolean; replCommand: string; setReplCommand: (v: string) => void; submitReplCommand: () => void; runTests: () => void; testResult: { passed: number; total: number; testedCode: string }; notify: (v: string) => void }) {
+function Editor({ code, setCode, output, running, startProgram, inputRequested, inputPrompt, programInput, setProgramInput, submitProgramInput, runTests, testResult, notify }: { code: string; setCode: (v: string) => void; output: string; running: boolean; startProgram: () => void; inputRequested: boolean; inputPrompt: string; programInput: string; setProgramInput: (v: string) => void; submitProgramInput: () => void; runTests: () => void; testResult: { passed: number; total: number; testedCode: string }; notify: (v: string) => void }) {
   const canSubmit = testResult.passed === testResult.total && testResult.testedCode === code;
-  return <div className="editor-layout"><section className="brief"><button className="back" onClick={() => history.back()}>← Esercizi</button><span className="pill coral-pill">IN SCADENZA OGGI</span><h2>Somma dei numeri pari</h2><p>Scrivi una funzione <code>somma_pari(numeri)</code> che restituisca la somma di tutti i numeri pari presenti nella lista.</p><h4>Esempio</h4><pre>somma_pari([1, 2, 3, 4]) → 6</pre><h4>Vincoli</h4><ul><li>La lista contiene da 1 a 100 numeri.</li><li>Ogni numero è compreso tra −1000 e 1000.</li></ul><div className="test-count"><strong>5</strong><span>test automatici<br />100 punti totali</span></div></section><section className="workspace"><div className="editor-toolbar"><span>main.py</span><span>Copia e incolla disabilitati · Python 3.12</span></div><CodeMirror value={code} height="350px" extensions={[python(), blockClipboard]} onChange={setCode} theme="dark" basicSetup={{ lineNumbers: true, foldGutter: false }} /><div className="repl-shell"><div className="console-head"><strong>Python Shell</strong><button onClick={() => setCode(starter)}>Ripristina codice</button></div><pre aria-live="polite">{output}</pre>{replActive && <div className="repl-prompt"><span>&gt;&gt;&gt;</span><textarea aria-label="Comando Python" rows={1} value={replCommand} onChange={e => setReplCommand(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitReplCommand(); } }} placeholder="Scrivi un comando Python…" disabled={running} /><button onClick={submitReplCommand} disabled={running || !replCommand.trim()}>Invia</button></div>}</div><div className="runbar"><span className={canSubmit ? "test-ready" : "test-waiting"}>{canSubmit ? `✓ ${testResult.total}/${testResult.total} test superati` : "Supera tutti i test per consegnare"}</span><button className="secondary" onClick={startRepl} disabled={running}>{running ? "Attendi…" : replActive ? "↻ Riavvia Shell" : "▷ Esegui"}</button><button className="secondary test-button" onClick={runTests} disabled={running}>Test</button><button className="primary" disabled={!canSubmit || running} onClick={() => notify("Soluzione inviata al docente: 100/100")}>Consegna soluzione</button></div></section></div>;
+  return <div className="editor-layout"><section className="brief"><button className="back" onClick={() => history.back()}>← Esercizi</button><span className="pill coral-pill">IN SCADENZA OGGI</span><h2>Somma dei numeri pari</h2><p>Scrivi una funzione <code>somma_pari(numeri)</code> che restituisca la somma di tutti i numeri pari presenti nella lista.</p><h4>Esempio</h4><pre>somma_pari([1, 2, 3, 4]) → 6</pre><h4>Vincoli</h4><ul><li>La lista contiene da 1 a 100 numeri.</li><li>Ogni numero è compreso tra −1000 e 1000.</li></ul><div className="test-count"><strong>5</strong><span>test automatici<br />100 punti totali</span></div></section><section className="workspace"><div className="editor-toolbar"><span>main.py</span><span>Copia e incolla disabilitati · Python 3.12</span></div><CodeMirror value={code} height="350px" extensions={[python(), blockClipboard]} onChange={setCode} theme="dark" basicSetup={{ lineNumbers: true, foldGutter: false }} /><div className="repl-shell"><div className="console-head"><strong>Programma Python</strong><button onClick={() => setCode(starter)}>Ripristina codice</button></div><pre aria-live="polite">{output}</pre>{inputRequested && <div className="repl-prompt"><label htmlFor="program-input">{inputPrompt || "Input"}</label><input id="program-input" autoFocus value={programInput} onChange={e => setProgramInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); submitProgramInput(); } }} placeholder="Inserisci un valore…" disabled={running} /><button onClick={submitProgramInput} disabled={running}>Invia</button></div>}</div><div className="runbar"><span className={canSubmit ? "test-ready" : "test-waiting"}>{canSubmit ? `✓ ${testResult.total}/${testResult.total} test superati` : "Supera tutti i test per consegnare"}</span><button className="secondary" onClick={startProgram} disabled={running}>{running ? "In esecuzione…" : "▷ Esegui"}</button><button className="secondary test-button" onClick={runTests} disabled={running}>Test</button><button className="primary" disabled={!canSubmit || running} onClick={() => notify("Soluzione inviata al docente: 100/100")}>Consegna soluzione</button></div></section></div>;
 }

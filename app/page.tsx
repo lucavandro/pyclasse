@@ -7,7 +7,7 @@ import { EditorView } from "@codemirror/view";
 import { generateExerciseWithAi, getPedagogicalFeedback, verifySolutionWithAi, type GeneratedExercise } from "../lib/ai-feedback";
 import { signOut } from "../lib/supabase";
 
-type View = "home" | "classes" | "tasks" | "report" | "settings" | "editor";
+type View = "home" | "classes" | "tasks" | "report" | "settings" | "editor" | "exercise-form";
 type VerificationMode = "tests" | "ai";
 type Exercise = GeneratedExercise & { id: number; verificationMode: VerificationMode; assignments: { className: string; deadline: string }[]; updatedAt: string };
 
@@ -43,12 +43,11 @@ const blockClipboard = EditorView.domEventHandlers({
 });
 
 export default function Home() {
-  const [view, setView] = useState<View>("home");
+  const [view, setViewState] = useState<View>("home");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [code, setCode] = useState(starter);
   const [draftStatus, setDraftStatus] = useState("Bozza caricata");
   const [schoolName, setSchoolName] = useState("Liceo Galilei");
-  const [showExerciseForm, setShowExerciseForm] = useState(false);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
   const [verificationMode, setVerificationMode] = useState<VerificationMode>("tests");
@@ -66,7 +65,23 @@ export default function Home() {
   const [signedOut, setSignedOut] = useState(false);
   const [joinCode, setJoinCode] = useState("");
 
-  const title = useMemo(() => ({ home: "Buongiorno, Luca", classes: "Le tue classi", tasks: "Esercizi", report: "Report della classe", settings: "Impostazioni", editor: "Somma dei numeri pari" }[view]), [view]);
+  const title = useMemo(() => ({ home: "Buongiorno, Luca", classes: "Le tue classi", tasks: "Repository esercizi", report: "Report della classe", settings: "Impostazioni", editor: "Somma dei numeri pari", "exercise-form": editingExercise ? "Modifica esercizio" : "Nuovo esercizio" }[view]), [view, editingExercise]);
+
+  function routeFor(target: View) {
+    return ({ home: "/", classes: "/classes", tasks: "/exercises", report: "/reports", settings: "/settings", editor: "/exercises/1", "exercise-form": "/exercises/new" } as Record<View, string>)[target];
+  }
+
+  function setView(target: View) {
+    window.history.pushState({}, "", routeFor(target));
+    setViewState(target);
+  }
+
+  function openExerciseForm(exercise: Exercise | null) {
+    setEditingExercise(exercise);
+    setVerificationMode(exercise?.verificationMode || "tests");
+    window.history.pushState({}, "", exercise ? `/exercises/${exercise.id}/edit` : "/exercises/new");
+    setViewState("exercise-form");
+  }
 
   useEffect(() => {
     setSidebarCollapsed(localStorage.getItem("pyclasse-sidebar") === "collapsed");
@@ -75,6 +90,25 @@ export default function Home() {
     if (savedDraft) {
       try { setCode(JSON.parse(savedDraft).code || starter); } catch { /* bozza non valida */ }
     }
+    const syncRoute = () => {
+      const path = window.location.pathname.replace(/\/$/, "") || "/";
+      const editMatch = path.match(/^\/exercises\/(\d+)\/edit$/);
+      if (editMatch) {
+        const selected = initialExercises.find(item => item.id === Number(editMatch[1])) || null;
+        setEditingExercise(selected);
+        setVerificationMode(selected?.verificationMode || "tests");
+        setViewState("exercise-form");
+      } else if (path === "/exercises/new") setViewState("exercise-form");
+      else if (path === "/classes") setViewState("classes");
+      else if (path === "/exercises") setViewState("tasks");
+      else if (path === "/reports") setViewState("report");
+      else if (path === "/settings") setViewState("settings");
+      else if (/^\/exercises\/\d+$/.test(path)) setViewState("editor");
+      else setViewState("home");
+    };
+    syncRoute();
+    window.addEventListener("popstate", syncRoute);
+    return () => window.removeEventListener("popstate", syncRoute);
   }, []);
 
   useEffect(() => {
@@ -233,7 +267,7 @@ export default function Home() {
           {([
             ["home", "dashboard", "Panoramica"], ["classes", "groups", "Classi"], ["tasks", "code_blocks", "Esercizi"], ["report", "analytics", "Report"], ["settings", "settings", "Impostazioni"],
           ] as [View, string, string][]).map(([key, icon, label]) => (
-            <button key={key} className={view === key ? "nav-item active" : "nav-item"} onClick={() => setView(key)} title={sidebarCollapsed ? label : undefined}><Icon name={icon} /><b>{label}</b></button>
+            <button key={key} className={view === key || (key === "tasks" && (view === "exercise-form" || view === "editor")) ? "nav-item active" : "nav-item"} onClick={() => setView(key)} title={sidebarCollapsed ? label : undefined}><Icon name={icon} /><b>{label}</b></button>
           ))}
         </nav>
         <div className="sidebar-bottom">
@@ -244,17 +278,17 @@ export default function Home() {
       <section className="content">
         <header className="topbar">
           <div><p className="eyebrow">{schoolName} · Informatica</p><h1>{title}</h1></div>
-          <div className="top-actions"><button className="icon-button" aria-label="Notifiche"><Icon name="notifications" /><span className="notification" /></button><button className="primary" onClick={() => { setEditingExercise(null); setVerificationMode("tests"); setShowExerciseForm(true); }}><Icon name="add" /> Nuovo esercizio</button></div>
+          <div className="top-actions"><button className="icon-button" aria-label="Notifiche"><Icon name="notifications" /><span className="notification" /></button>{view !== "exercise-form" && <button className="primary" onClick={() => openExerciseForm(null)}><Icon name="add" /> Nuovo esercizio</button>}</div>
         </header>
 
         {view === "home" && <Dashboard setView={setView} />}
         {view === "classes" && <Classes joinCode={joinCode} setJoinCode={setJoinCode} notify={notify} />}
-        {view === "tasks" && <Tasks exercises={exercises} openEditor={() => setView("editor")} editExercise={exercise => { setEditingExercise(exercise); setVerificationMode(exercise.verificationMode); setShowExerciseForm(true); }} />}
+        {view === "tasks" && <Tasks exercises={exercises} openEditor={() => setView("editor")} editExercise={openExerciseForm} />}
         {view === "report" && <Report />}
         {view === "settings" && <Settings schoolName={schoolName} onSave={saveSchoolName} />}
         {view === "editor" && <Editor code={code} setCode={updateCode} output={output} running={running} startProgram={startProgram} inputRequested={inputRequested} inputPrompt={inputPrompt} programInput={programInput} setProgramInput={setProgramInput} submitProgramInput={submitProgramInput} runTests={runTests} testResult={testResult} aiFeedback={aiFeedback} feedbackLoading={feedbackLoading} draftStatus={draftStatus} verificationMode={verificationMode} notify={notify} />}
+        {view === "exercise-form" && <ExerciseForm mode={verificationMode} setMode={setVerificationMode} exercise={editingExercise} onClose={() => { if (window.history.state) window.history.back(); else setView("tasks"); }} onSave={draft => { setExercises(current => editingExercise ? current.map(item => item.id === editingExercise.id ? { ...draft, id: item.id, updatedAt: "Adesso" } : item) : [{ ...draft, id: Date.now(), updatedAt: "Adesso" }, ...current]); setEditingExercise(null); window.history.pushState({}, "", "/exercises"); setViewState("tasks"); notify(editingExercise ? "Esercizio aggiornato in tutte le classi" : "Esercizio aggiunto alla libreria"); }} />}
       </section>
-      {showExerciseForm && <ExerciseForm mode={verificationMode} setMode={setVerificationMode} exercise={editingExercise} onClose={() => { setShowExerciseForm(false); setEditingExercise(null); }} onSave={draft => { setExercises(current => editingExercise ? current.map(item => item.id === editingExercise.id ? { ...draft, id: item.id, updatedAt: "Adesso" } : item) : [{ ...draft, id: Date.now(), updatedAt: "Adesso" }, ...current]); setShowExerciseForm(false); setEditingExercise(null); setView("tasks"); notify(editingExercise ? "Esercizio aggiornato in tutte le classi" : "Esercizio aggiunto alla libreria"); }} />}
       {toast && <div className="toast" role="status">✓ {toast}</div>}
     </main>
   );
@@ -303,7 +337,7 @@ function ExerciseForm({ mode, setMode, exercise, onClose, onSave }: { mode: Veri
   const setField = <K extends keyof GeneratedExercise>(key: K, value: GeneratedExercise[K]) => setDraft(current => ({ ...current, [key]: value }));
   async function generate() { if (!prompt.trim()) return; setGenerating(true); const result = await generateExerciseWithAi(prompt); setDraft(result); setMode("tests"); setGenerating(false); }
   function toggleClass(className: string) { setLinks(current => current.some(link => link.className === className) ? current.filter(link => link.className !== className) : [...current, { className, deadline: "2026-08-10T23:59" }]); }
-  return <div className="modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}><section className="exercise-modal exercise-editor" role="dialog" aria-modal="true" aria-labelledby="exercise-title"><div className="modal-head"><div><p className="eyebrow">{exercise ? "MODIFICA CENTRALIZZATA" : "LIBRERIA ESERCIZI"}</p><h2 id="exercise-title">{exercise ? "Modifica esercizio" : "Crea un esercizio"}</h2></div><button className="icon-button" onClick={onClose} aria-label="Chiudi"><Icon name="close" /></button></div>{!exercise && <div className="ai-generator"><div><Icon name="auto_awesome" /><span><strong>Genera da prompt IA</strong><small>L'IA prepara consegna, codice iniziale e test. Potrai modificare tutto prima del salvataggio.</small></span></div><textarea value={prompt} onChange={event => setPrompt(event.target.value)} placeholder="Es. Crea un esercizio sulle liste per una classe terza, difficoltà media…" /><button className="secondary" onClick={generate} disabled={generating || !prompt.trim()}><Icon name="wand_stars" /> {generating ? "Generazione…" : "Genera esercizio e test"}</button></div>}<div className="exercise-fields"><label>Titolo<input value={draft.title} onChange={event => setField("title", event.target.value)} /></label><label>Punti<input type="number" value={draft.maxPoints} onChange={event => setField("maxPoints", Number(event.target.value))} /></label><label className="wide">Consegna<textarea value={draft.description} onChange={event => setField("description", event.target.value)} /></label><label className="wide">Vincoli<textarea value={draft.constraints} onChange={event => setField("constraints", event.target.value)} /></label><label className="wide">Codice iniziale<textarea className="code-field" value={draft.starterCode} onChange={event => setField("starterCode", event.target.value)} /></label></div><fieldset><legend>Modalità di verifica</legend><button type="button" className={mode === "tests" ? "verification-card selected" : "verification-card"} onClick={() => setMode("tests")}><Icon name="science" /><span><strong>Test automatici</strong><small>{draft.tests.length} casi di prova configurati.</small></span></button><button type="button" className={mode === "ai" ? "verification-card selected" : "verification-card"} onClick={() => setMode("ai")}><Icon name="smart_toy" /><span><strong>Verifica con IA</strong><small>Valuta semanticamente rispetto alla consegna.</small></span></button></fieldset>{mode === "tests" && <div className="generated-tests"><div><strong>Test dell'esercizio</strong><button onClick={() => setField("tests", [...draft.tests, { input: "", expected: "" }])}><Icon name="add" /> Aggiungi</button></div>{draft.tests.map((test, index) => <div className="test-edit" key={index}><span>{index + 1}</span><input aria-label={`Input test ${index + 1}`} value={test.input} onChange={event => setField("tests", draft.tests.map((item, i) => i === index ? { ...item, input: event.target.value } : item))} placeholder="Input o chiamata" /><input aria-label={`Output test ${index + 1}`} value={test.expected} onChange={event => setField("tests", draft.tests.map((item, i) => i === index ? { ...item, expected: event.target.value } : item))} placeholder="Output atteso" /></div>)}</div>}<div className="class-assignments"><strong>Assegna alle classi</strong>{["4ESA · Informatica", "3BSA · Informatica"].map(className => { const link = links.find(item => item.className === className); return <div key={className}><label><input type="checkbox" checked={!!link} onChange={() => toggleClass(className)} /> {className}</label><input type="datetime-local" disabled={!link} value={link?.deadline || ""} onChange={event => setLinks(current => current.map(item => item.className === className ? { ...item, deadline: event.target.value } : item))} aria-label={`Scadenza ${className}`} /></div>; })}<small>Ogni classe mantiene una scadenza indipendente.</small></div><div className="modal-actions"><button className="secondary" onClick={onClose}>Annulla</button><button className="primary" disabled={!draft.title.trim() || !draft.description.trim()} onClick={() => onSave({ ...draft, verificationMode: mode, assignments: links })}><Icon name="save" /> {exercise ? "Salva per tutte le classi" : "Salva nella libreria"}</button></div></section></div>;
+  return <section className="exercise-page" aria-labelledby="exercise-title"><button className="back page-back" onClick={onClose}><Icon name="arrow_back" /> Torna alla libreria</button><div className="exercise-modal exercise-editor"><div className="modal-head"><div><p className="eyebrow">{exercise ? "MODIFICA CENTRALIZZATA" : "LIBRERIA ESERCIZI"}</p><h2 id="exercise-title">{exercise ? "Modifica esercizio" : "Crea un esercizio"}</h2><p>Le modifiche al contenuto si applicano a tutte le classi collegate.</p></div></div>{!exercise && <div className="ai-generator"><div><Icon name="auto_awesome" /><span><strong>Genera da prompt IA</strong><small>L'IA prepara consegna, codice iniziale e test. Potrai modificare tutto prima del salvataggio.</small></span></div><textarea value={prompt} onChange={event => setPrompt(event.target.value)} placeholder="Es. Crea un esercizio sulle liste per una classe terza, difficoltà media…" /><button className="secondary" onClick={generate} disabled={generating || !prompt.trim()}><Icon name="wand_stars" /> {generating ? "Generazione…" : "Genera esercizio e test"}</button></div>}<div className="exercise-fields"><label>Titolo<input value={draft.title} onChange={event => setField("title", event.target.value)} /></label><label>Punti<input type="number" value={draft.maxPoints} onChange={event => setField("maxPoints", Number(event.target.value))} /></label><label className="wide">Consegna<textarea value={draft.description} onChange={event => setField("description", event.target.value)} /></label><label className="wide">Vincoli<textarea value={draft.constraints} onChange={event => setField("constraints", event.target.value)} /></label><label className="wide">Codice iniziale<textarea className="code-field" value={draft.starterCode} onChange={event => setField("starterCode", event.target.value)} /></label></div><fieldset><legend>Modalità di verifica</legend><button type="button" className={mode === "tests" ? "verification-card selected" : "verification-card"} onClick={() => setMode("tests")}><Icon name="science" /><span><strong>Test automatici</strong><small>{draft.tests.length} casi di prova configurati.</small></span></button><button type="button" className={mode === "ai" ? "verification-card selected" : "verification-card"} onClick={() => setMode("ai")}><Icon name="smart_toy" /><span><strong>Verifica con IA</strong><small>Valuta semanticamente rispetto alla consegna.</small></span></button></fieldset>{mode === "tests" && <div className="generated-tests"><div><strong>Test dell'esercizio</strong><button onClick={() => setField("tests", [...draft.tests, { input: "", expected: "" }])}><Icon name="add" /> Aggiungi</button></div>{draft.tests.map((test, index) => <div className="test-edit" key={index}><span>{index + 1}</span><input aria-label={`Input test ${index + 1}`} value={test.input} onChange={event => setField("tests", draft.tests.map((item, i) => i === index ? { ...item, input: event.target.value } : item))} placeholder="Input o chiamata" /><input aria-label={`Output test ${index + 1}`} value={test.expected} onChange={event => setField("tests", draft.tests.map((item, i) => i === index ? { ...item, expected: event.target.value } : item))} placeholder="Output atteso" /></div>)}</div>}<div className="class-assignments"><strong>Assegna alle classi</strong>{["4ESA · Informatica", "3BSA · Informatica"].map(className => { const link = links.find(item => item.className === className); return <div key={className}><label><input type="checkbox" checked={!!link} onChange={() => toggleClass(className)} /> {className}</label><input type="datetime-local" disabled={!link} value={link?.deadline || ""} onChange={event => setLinks(current => current.map(item => item.className === className ? { ...item, deadline: event.target.value } : item))} aria-label={`Scadenza ${className}`} /></div>; })}<small>Ogni classe mantiene una scadenza indipendente.</small></div><div className="modal-actions"><button className="secondary" onClick={onClose}><Icon name="arrow_back" /> Annulla</button><button className="primary" disabled={!draft.title.trim() || !draft.description.trim()} onClick={() => onSave({ ...draft, verificationMode: mode, assignments: links })}><Icon name="save" /> {exercise ? "Salva per tutte le classi" : "Salva nella libreria"}</button></div></div></section>;
 }
 
 function Editor({ code, setCode, output, running, startProgram, inputRequested, inputPrompt, programInput, setProgramInput, submitProgramInput, runTests, testResult, aiFeedback, feedbackLoading, draftStatus, verificationMode, notify }: { code: string; setCode: (v: string) => void; output: string; running: boolean; startProgram: () => void; inputRequested: boolean; inputPrompt: string; programInput: string; setProgramInput: (v: string) => void; submitProgramInput: () => void; runTests: () => void; testResult: { passed: number; total: number; testedCode: string }; aiFeedback: string; feedbackLoading: boolean; draftStatus: string; verificationMode: VerificationMode; notify: (v: string) => void }) {

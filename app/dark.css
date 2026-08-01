@@ -187,8 +187,10 @@ body { background: #191a21; }
 .settings-panel label, .exercise-modal > label, .exercise-modal legend { font-size: 13px; font-weight: 700; color: #e6e6ee; }
 .settings-panel input, .exercise-modal input, .exercise-modal textarea { width: 100%; margin-top: 7px; border: 1px solid #565a70; border-radius: 8px; background: #21222c; color: #f8f8f2; padding: 11px 12px; font: inherit; }
 .settings-panel .primary { width: max-content; margin-top: 6px; }
-.modal-backdrop { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(10, 10, 16, .76); backdrop-filter: blur(5px); }
-.exercise-modal { width: min(620px, 100%); max-height: 92vh; overflow: auto; display: grid; gap: 17px; border: 1px solid #565a70; border-radius: 16px; padding: 24px; background: #282a36; box-shadow: 0 24px 80px rgba(0,0,0,.55); }
+.exercise-page { max-width: 980px; margin: 0 auto; }
+.page-back { padding-bottom: 14px; display: inline-flex; align-items: center; gap: 7px; }
+.exercise-modal { width: 100%; display: grid; gap: 20px; border: 1px solid #565a70; border-radius: 14px; padding: clamp(20px, 3vw, 34px); background: #282a36; box-shadow: 0 12px 32px rgba(0,0,0,.22); }
+.modal-head p:not(.eyebrow) { margin: 8px 0 0; color: var(--muted); }
 .modal-head, .modal-actions { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
 .modal-head h2 { margin: 2px 0 0; }
 .exercise-modal textarea { min-height: 100px; resize: vertical; }

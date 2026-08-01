@@ -1,6 +1,6 @@
 # PyClasse — specifiche di prodotto e conformità
 
-Versione: 1.5
+Versione: 1.6
 Ultimo aggiornamento: 1 agosto 2026  
 Stato del documento: fonte unica di verità del progetto
 
@@ -139,6 +139,14 @@ La schermata studente presenta esattamente tre azioni principali.
 - Contrasto, focus da tastiera, etichette accessibili e stati disabilitati devono essere chiaramente percepibili.
 - Layout responsive per desktop, tablet e smartphone.
 - Tutte le icone funzionali devono provenire in modo coerente dalla collezione Google Material Symbols Rounded; simboli Unicode decorativi non devono essere usati come icone di controllo.
+
+### 9.0 Routing e navigazione
+
+- Ogni sezione principale dispone di un URL persistente e condivisibile: dashboard, classi, libreria esercizi, report, impostazioni ed editor.
+- Creazione e modifica di un esercizio usano pagine dedicate (`/exercises/new` e `/exercises/:id/edit`) e non finestre modali.
+- I comandi avanti e indietro del browser ripristinano la vista corretta senza ricaricare l'applicazione.
+- L'apertura diretta o il ricaricamento di un URL interno deve mostrare la stessa vista, senza ricadere sempre nella dashboard.
+- Le pagine di modifica offrono un comando “Indietro” che rispetta la cronologia; dopo il salvataggio si torna alla libreria esercizi.
 
 ### 9.1 Barra laterale
 

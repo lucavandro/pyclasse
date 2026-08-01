@@ -5,6 +5,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import { python } from "@codemirror/lang-python";
 import { EditorView } from "@codemirror/view";
 import { generateExerciseWithAi, getPedagogicalFeedback, verifySolutionWithAi, type GeneratedExercise } from "../lib/ai-feedback";
+import { signOut } from "../lib/supabase";
 
 type View = "home" | "classes" | "tasks" | "report" | "settings" | "editor";
 type VerificationMode = "tests" | "ai";
@@ -62,6 +63,7 @@ export default function Home() {
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const programWorker = useRef<Worker | null>(null);
   const [toast, setToast] = useState("");
+  const [signedOut, setSignedOut] = useState(false);
   const [joinCode, setJoinCode] = useState("");
 
   const title = useMemo(() => ({ home: "Buongiorno, Luca", classes: "Le tue classi", tasks: "Esercizi", report: "Report della classe", settings: "Impostazioni", editor: "Somma dei numeri pari" }[view]), [view]);
@@ -103,6 +105,11 @@ export default function Home() {
   function notify(message: string) {
     setToast(message);
     window.setTimeout(() => setToast(""), 2600);
+  }
+
+  async function handleLogout() {
+    await signOut();
+    setSignedOut(true);
   }
 
   function updateCode(value: string) {
@@ -213,6 +220,8 @@ export default function Home() {
     }
   }
 
+  if (signedOut) return <main className="logout-screen"><section><span className="brand-mark">&gt;_</span><p className="eyebrow">PYCLASSE</p><h1>Sessione terminata</h1><p>Hai effettuato il logout in sicurezza.</p><button className="primary" onClick={() => setSignedOut(false)}><Icon name="login" /> Torna all’accesso</button></section></main>;
+
   return (
     <main className={sidebarCollapsed ? "app-shell sidebar-collapsed" : "app-shell"}>
       <aside className="sidebar">
@@ -228,7 +237,7 @@ export default function Home() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="profile"><span className="avatar dark">LB</span><div><strong>Luca Bianchi</strong><small>Docente</small></div><button aria-label="Impostazioni">•••</button></div>
+          <div className="profile"><span className="avatar dark">LB</span><div><strong>Luca Bianchi</strong><small>Docente</small></div><button className="logout-button" onClick={handleLogout} aria-label="Esci dall’account" title="Esci"><Icon name="logout" /><span>Esci</span></button></div>
         </div>
       </aside>
 

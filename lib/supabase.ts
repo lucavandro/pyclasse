@@ -9,3 +9,9 @@ export async function signInWithGoogle() {
   if (!supabase) throw new Error("Configura le variabili Supabase prima di attivare il login.");
   return supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${location.origin}/auth/callback` } });
 }
+
+export async function signOut() {
+  if (!supabase) return;
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
+}

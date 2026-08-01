@@ -1,6 +1,6 @@
 # PyClasse — specifiche di prodotto e conformità
 
-Versione: 1.4
+Versione: 1.5
 Ultimo aggiornamento: 1 agosto 2026  
 Stato del documento: fonte unica di verità del progetto
 
@@ -148,6 +148,9 @@ La schermata studente presenta esattamente tre azioni principali.
 - Da collassata mostra le icone e mantiene etichette accessibili e tooltip.
 - La preferenza è memorizzata localmente sul dispositivo.
 - Su mobile rimane la navigazione inferiore compatta.
+- Il riepilogo account non deve contenere controlli privi di funzione.
+- In fondo alla barra è presente un pulsante “Esci” con icona Material, etichetta accessibile e tooltip quando la barra è collassata.
+- Il logout termina la sessione Supabase; nell'anteprima senza backend attivo deve comunque mostrare lo stato disconnesso senza simulare un cambio di ruolo.
 
 ### 9.2 Feedback pedagogico basato su IA
 

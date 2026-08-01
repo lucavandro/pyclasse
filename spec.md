@@ -1,6 +1,6 @@
 # PyClasse — specifiche di prodotto e conformità
 
-Versione: 1.7
+Versione: 1.8
 Ultimo aggiornamento: 1 agosto 2026  
 Stato del documento: fonte unica di verità del progetto
 
@@ -265,3 +265,10 @@ La schermata studente presenta esattamente tre azioni principali.
 4. Salvare bozze e consegne reali, includendo risultati e timestamp.
 5. Alimentare il report con query autorizzate e implementare l’esportazione CSV.
 6. Caricare dinamicamente dal database i test dell’esercizio, mantenendo esplicito il limite di segretezza del grading client-side.
+
+## 15. Qualità, test e documentazione operativa
+
+- `npm test` deve eseguire build e suite automatizzata con il test runner integrato di Node.js.
+- La suite copre almeno: routing interno, accesso diretto alle rotte, gate della consegna, isolamento delle scadenze per classe, aggiornamento canonico degli esercizi, schema SQL/RLS, watchdog, blocco clipboard e vincoli del feedback IA.
+- Un fallimento deve terminare il comando con codice diverso da zero ed essere adatto all'esecuzione in CI.
+- La guida `docs/INSTALLATION_AND_DEPLOYMENT.md` documenta prerequisiti, installazione locale, variabili d'ambiente, Supabase, Google OAuth, email del docente, test, build, deployment, verifica e risoluzione dei problemi.

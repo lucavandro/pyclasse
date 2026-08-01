@@ -6,6 +6,7 @@ import { python } from "@codemirror/lang-python";
 import { EditorView } from "@codemirror/view";
 import { generateExerciseWithAi, getPedagogicalFeedback, verifySolutionWithAi, type GeneratedExercise } from "../lib/ai-feedback";
 import { signOut } from "../lib/supabase";
+import { canSubmitSolution, resolveRoute } from "../lib/domain.mjs";
 
 type View = "home" | "classes" | "class-detail" | "class-form" | "tasks" | "report" | "settings" | "editor" | "exercise-form";
 type VerificationMode = "tests" | "ai";
@@ -121,6 +122,7 @@ export default function Home() {
     }
     const syncRoute = () => {
       const path = window.location.pathname.replace(/\/$/, "") || "/";
+      const resolved = resolveRoute(path);
       const editMatch = path.match(/^\/exercises\/(\d+)\/edit$/);
       const classEditMatch = path.match(/^\/classes\/(\d+)\/edit$/);
       const classMatch = path.match(/^\/classes\/(\d+)$/);
@@ -140,7 +142,7 @@ export default function Home() {
       else if (path === "/reports") setViewState("report");
       else if (path === "/settings") setViewState("settings");
       else if (/^\/exercises\/\d+$/.test(path)) setViewState("editor");
-      else setViewState("home");
+      else setViewState(resolved.view as View);
     };
     syncRoute();
     window.addEventListener("popstate", syncRoute);
@@ -395,7 +397,7 @@ function ExerciseForm({ mode, setMode, exercise, onClose, onSave }: { mode: Veri
 }
 
 function Editor({ code, setCode, output, running, startProgram, inputRequested, inputPrompt, programInput, setProgramInput, submitProgramInput, runTests, testResult, aiFeedback, feedbackLoading, draftStatus, verificationMode, notify }: { code: string; setCode: (v: string) => void; output: string; running: boolean; startProgram: () => void; inputRequested: boolean; inputPrompt: string; programInput: string; setProgramInput: (v: string) => void; submitProgramInput: () => void; runTests: () => void; testResult: { passed: number; total: number; testedCode: string }; aiFeedback: string; feedbackLoading: boolean; draftStatus: string; verificationMode: VerificationMode; notify: (v: string) => void }) {
-  const canSubmit = testResult.passed === testResult.total && testResult.testedCode === code;
+  const canSubmit = canSubmitSolution(testResult, code);
   const verificationLabel = verificationMode === "ai" ? "verifica IA" : "test";
   return <div className="editor-layout"><section className="brief"><button className="back" onClick={() => history.back()}><Icon name="arrow_back" /> Esercizi</button><span className="pill coral-pill">IN SCADENZA OGGI</span><h2>Somma dei numeri pari</h2><p>Scrivi una funzione <code>somma_pari(numeri)</code> che restituisca la somma di tutti i numeri pari presenti nella lista.</p><h4>Esempio</h4><pre>somma_pari([1, 2, 3, 4]) → 6</pre><h4>Vincoli</h4><ul><li>La lista contiene da 1 a 100 numeri.</li><li>Ogni numero è compreso tra −1000 e 1000.</li></ul><div className="test-count"><strong>{verificationMode === "ai" ? "IA" : "5"}</strong><span>{verificationMode === "ai" ? "verifica semantica" : "test automatici"}<br />100 punti totali</span></div></section><section className="workspace"><div className="editor-toolbar"><span>main.py</span><span>Copia e incolla disabilitati · Python 3.12</span><span className="draft-status"><Icon name="cloud_done" /> {draftStatus}</span></div><CodeMirror value={code} height="350px" extensions={[python(), blockClipboard]} onChange={setCode} theme="dark" basicSetup={{ lineNumbers: true, foldGutter: false }} /><div className="repl-shell"><div className="console-head"><strong>Programma Python</strong><button onClick={() => setCode(starter)}><Icon name="restart_alt" /> Ripristina codice</button></div><pre aria-live="polite">{output}</pre>{inputRequested && <div className="repl-prompt"><label htmlFor="program-input">{inputPrompt || "Input"}</label><input id="program-input" autoFocus value={programInput} onChange={e => setProgramInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); submitProgramInput(); } }} placeholder="Inserisci un valore…" disabled={running} /><button onClick={submitProgramInput} disabled={running}><Icon name="keyboard_return" /> Invia</button></div>}</div>{(feedbackLoading || aiFeedback) && <aside className="ai-feedback" aria-live="polite"><div><strong><Icon name="auto_awesome" /> Feedback IA</strong><small>Analisi tramite Puter.js · nessuna API key richiesta</small></div><p>{feedbackLoading ? "Analisi pedagogica in corso…" : aiFeedback}</p></aside>}<div className="runbar"><span className={canSubmit ? "test-ready" : "test-waiting"}>{canSubmit ? <><Icon name="check_circle" /> Soluzione verificata</> : `Completa la ${verificationLabel} per consegnare`}</span><button className="secondary" onClick={startProgram} disabled={running}><Icon name="play_arrow" /> {running ? "In esecuzione…" : "Esegui"}</button><button className="secondary test-button" onClick={runTests} disabled={running}><Icon name={verificationMode === "ai" ? "smart_toy" : "science"} /> {verificationMode === "ai" ? "Verifica con IA" : "Test"}</button><button className="primary" disabled={!canSubmit || running} onClick={() => notify("Soluzione inviata al docente: 100/100")}><Icon name="send" /> Consegna soluzione</button></div></section></div>;
 }

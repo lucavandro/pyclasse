@@ -1,6 +1,6 @@
 # PyClasse — specifiche di prodotto e conformità
 
-Versione: 1.2  
+Versione: 1.3  
 Ultimo aggiornamento: 1 agosto 2026  
 Stato del documento: fonte unica di verità del progetto
 
@@ -62,6 +62,9 @@ PyClasse è una piattaforma web didattica per assegnare, svolgere e correggere a
 - La pubblicazione deve essere esplicita; gli studenti vedono soltanto esercizi pubblicati e assegnati alle loro classi.
 - La UI deve mostrare stato, punteggio, progresso e scadenza.
 - Il sistema deve distinguere consegne entro e oltre la scadenza.
+- In fase di creazione il docente sceglie il metodo di verifica: test automatici oppure “Verifica con IA”.
+- Con “Verifica con IA” la soluzione viene valutata rispetto a testo, vincoli e comportamento richiesto; la risposta deve essere strutturata come esito e feedback pedagogico.
+- L’IA non deve rivelare una soluzione corretta né proporre modifiche puntuali al codice dello studente.
 
 ## 5. Editor Python
 
@@ -73,6 +76,9 @@ PyClasse è una piattaforma web didattica per assegnare, svolgere e correggere a
 - L’output accumulato nel worker deve essere limitato per evitare consumo incontrollato di memoria durante cicli con `print()`.
 - Copia, taglia e incolla devono essere bloccati nell’editor CodeMirror.
 - La limitazione è un deterrente didattico e non una misura di sicurezza assoluta contro gli strumenti di sviluppo del browser.
+- Il codice dell’editor deve essere salvato automaticamente dopo una breve pausa dalla digitazione.
+- Nell’MVP la bozza è ripristinabile sullo stesso dispositivo; con Supabase autenticato deve essere sincronizzata nella riga `submissions` con stato `draft` per consentire la ripresa da altri dispositivi.
+- L’interfaccia mostra chiaramente lo stato “Salvataggio…” oppure l’orario dell’ultimo salvataggio.
 
 ## 6. Flusso di esecuzione dell’esercizio
 
@@ -125,6 +131,7 @@ La schermata studente presenta esattamente tre azioni principali.
 - Testo normale minimo consigliato: 16 px; testo tecnico minimo: 13 px.
 - Contrasto, focus da tastiera, etichette accessibili e stati disabilitati devono essere chiaramente percepibili.
 - Layout responsive per desktop, tablet e smartphone.
+- Tutte le icone funzionali devono provenire in modo coerente dalla collezione Google Material Symbols Rounded; simboli Unicode decorativi non devono essere usati come icone di controllo.
 
 ### 9.1 Barra laterale
 
@@ -144,6 +151,13 @@ La schermata studente presenta esattamente tre azioni principali.
 - Deve essere visibile che il codice viene elaborato dal servizio IA esterno.
 - Se Puter non è disponibile, viene mostrato un feedback locale basato sulla categoria dell’errore.
 - Un feedback contenente istruzioni correttive esplicite o blocchi di codice viene scartato e sostituito con il feedback locale.
+
+### 9.3 Impostazioni docente
+
+- Il pannello docente contiene una sezione “Impostazioni”.
+- Il docente può modificare il nome della scuola senza modificare il codice sorgente.
+- Nell’MVP il valore viene conservato sul dispositivo; con Supabase operativo deve essere persistito in `app_settings` tramite una funzione amministrativa protetta.
+- Il nome configurato sostituisce “Liceo Galilei” nell’intestazione dell’applicazione.
 
 ## 10. Persistenza, sicurezza e RLS
 
@@ -183,6 +197,10 @@ La schermata studente presenta esattamente tre azioni principali.
 - [x] La barra desktop è collassabile e la preferenza viene ricordata.
 - [x] Loop infiniti e test bloccati vengono terminati dal watchdog senza bloccare la pagina.
 - [x] Errori, timeout e test falliti attivano un feedback pedagogico IA con fallback locale.
+- [x] La bozza dello studente viene salvata automaticamente e ripristinata sullo stesso dispositivo.
+- [x] Le icone funzionali usano Google Material Symbols Rounded.
+- [x] Il docente può modificare dal pannello il nome della scuola.
+- [x] La creazione esercizio permette di scegliere tra test e verifica IA.
 - [x] Il progetto produce una build valida per la distribuzione configurata.
 
 ## 13. Matrice di conformità al 31 luglio 2026
@@ -193,6 +211,10 @@ La schermata studente presenta esattamente tre azioni principali.
 | Sidebar desktop collassabile | Conforme | Stato, controllo hamburger e persistenza locale in `app/page.tsx`. |
 | Prevenzione loop infiniti | Conforme | Watchdog a 8 secondi, terminazione dei worker e limite dell’output. |
 | Feedback pedagogico IA | Conforme per MVP | Puter.js senza API key applicativa, filtro anti-soluzione e fallback locale. |
+| Salvataggio automatico bozze | Conforme per MVP locale | Ripristino sullo stesso dispositivo; sincronizzazione Supabase in attesa dell’autenticazione reale. |
+| Icone Material | Conforme | Material Symbols Rounded usato per navigazione, azioni e indicatori. |
+| Nome scuola modificabile | Conforme per MVP locale | Pannello impostazioni e persistenza sul dispositivo; persistenza Supabase ancora da collegare. |
+| Verifica esercizio con IA | Conforme per MVP | Opzione in creazione esercizio e valutazione Puter.js con esito strutturato. |
 | CodeMirror e blocco clipboard | Conforme | Handler `copy`, `cut` e `paste` in `app/page.tsx`. |
 | Esecuzione interattiva del programma | Conforme per MVP | Il worker esegue il codice completo e richiede dalla shell ogni valore necessario a `input()`. |
 | Test automatici lato browser | Conforme per MVP | Cinque test dimostrativi eseguiti dal worker; i test non sono ancora caricati dal database. |

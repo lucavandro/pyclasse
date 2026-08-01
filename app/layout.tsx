@@ -19,5 +19,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="it"><body className={`${geist.variable} ${mono.variable}`}>{children}</body></html>;
+  return <html lang="it"><head><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0,0" /></head><body className={`${geist.variable} ${mono.variable}`}>{children}</body></html>;
 }

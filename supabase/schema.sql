@@ -17,7 +17,8 @@ create table public.profiles (
 -- Sostituire l'indirizzo di esempio prima di abilitare gli accessi reali.
 create table public.app_settings (
   singleton boolean primary key default true check (singleton),
-  teacher_email text not null unique
+  teacher_email text not null unique,
+  school_name text not null default 'Liceo Galilei' check (char_length(school_name) between 2 and 100)
 );
 insert into public.app_settings (singleton, teacher_email)
 values (true, 'docente@scuola.it');
@@ -47,6 +48,8 @@ create table public.assignments (
   title text not null,
   description text not null,
   starter_code text not null default '',
+  verification_mode text not null default 'tests' check (verification_mode in ('tests', 'ai')),
+  ai_evaluation_prompt text,
   deadline timestamptz,
   max_points integer not null default 100 check (max_points > 0),
   published_at timestamptz,

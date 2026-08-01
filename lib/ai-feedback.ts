@@ -52,3 +52,18 @@ export async function getPedagogicalFeedback(kind: FeedbackKind, details: string
     return fallback;
   }
 }
+
+export async function verifySolutionWithAi(problem: string, code: string) {
+  try {
+    const puter = await loadPuter();
+    const prompt = `Valuta una soluzione Python rispetto alla consegna. Rispondi ESCLUSIVAMENTE con JSON valido nel formato {"passed":boolean,"feedback":"testo"}. passed è true soltanto se il codice soddisfa interamente la consegna e i vincoli. Il feedback è in italiano, massimo 70 parole: descrive soltanto la natura di eventuali discrepanze e i concetti da osservare. Non fornire codice, modifiche puntuali, soluzione, output attesi o casi di test segreti.\n\nConsegna:\n${problem.slice(0, 2500)}\n\nCodice:\n${code.slice(0, 5000)}`;
+    const response = await puter.ai.chat(prompt);
+    const raw = extractText(response).trim().replace(/^```json\s*|\s*```$/g, "");
+    const parsed = JSON.parse(raw);
+    const feedback = String(parsed.feedback || "").trim();
+    if (containsDirectSolution(feedback)) return { passed: false, feedback: localFeedback("tests", "Verifica IA non conclusiva") };
+    return { passed: parsed.passed === true, feedback: feedback || localFeedback("tests", "Verifica IA non conclusiva") };
+  } catch {
+    return { passed: false, feedback: "La verifica IA non è disponibile in questo momento. La soluzione non viene considerata superata finché non sarà possibile completare una nuova verifica." };
+  }
+}

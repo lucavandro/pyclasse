@@ -1,6 +1,6 @@
 # PyClasse — specifiche di prodotto e conformità
 
-Versione: 1.6
+Versione: 1.7
 Ultimo aggiornamento: 1 agosto 2026  
 Stato del documento: fonte unica di verità del progetto
 
@@ -54,6 +54,11 @@ PyClasse è una piattaforma web didattica per assegnare, svolgere e correggere a
 - Uno studente entra tramite il codice usando la funzione protetta `join_class(code)`.
 - Il codice non deve consentire di enumerare o leggere classi non accessibili.
 - Il docente può vedere e rimuovere gli iscritti; lo studente può lasciare la classe.
+- La gestione docente usa pagine dedicate: elenco `/classes`, creazione `/classes/new`, dettaglio `/classes/:id` e modifica `/classes/:id/edit`.
+- L'elenco mostra almeno nome, codice, numero di partecipanti, esercizi assegnati e attività recente.
+- Il dettaglio della classe mostra i partecipanti con ultimo accesso, esercizi completati, avanzamento e media.
+- Il docente può aggiungere un partecipante tramite email e rimuoverlo dalla classe con un'azione esplicita.
+- La modifica consente di aggiornare nome e codice della classe e di gestire l'elenco dei partecipanti.
 
 ## 4. Esercizi e assegnazioni
 

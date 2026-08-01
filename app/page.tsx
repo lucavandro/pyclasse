@@ -7,9 +7,11 @@ import { EditorView } from "@codemirror/view";
 import { generateExerciseWithAi, getPedagogicalFeedback, verifySolutionWithAi, type GeneratedExercise } from "../lib/ai-feedback";
 import { signOut } from "../lib/supabase";
 
-type View = "home" | "classes" | "tasks" | "report" | "settings" | "editor" | "exercise-form";
+type View = "home" | "classes" | "class-detail" | "class-form" | "tasks" | "report" | "settings" | "editor" | "exercise-form";
 type VerificationMode = "tests" | "ai";
 type Exercise = GeneratedExercise & { id: number; verificationMode: VerificationMode; assignments: { className: string; deadline: string }[]; updatedAt: string };
+type Participant = { id: number; name: string; email: string; initials: string; lastAccess: string; completed: number; total: number; average: number; tone: string };
+type Classroom = { id: number; name: string; code: string; subject: string; exercises: number; lastActivity: string; participants: Participant[] };
 
 function Icon({ name, className = "" }: { name: string; className?: string }) {
   return <span className={`material-symbols-rounded ${className}`} aria-hidden="true">{name}</span>;
@@ -34,6 +36,19 @@ const initialExercises: Exercise[] = [
   { id: 3, title: "Analisi di un dizionario", description: "Analizza un dizionario di voti e restituisci la media.", starterCode: "def media_voti(voti):\n    pass", constraints: "Il dizionario può essere vuoto.", maxPoints: 80, verificationMode: "ai", tests: [], assignments: [], updatedAt: "30 lug, 12:05" },
 ];
 
+const initialClasses: Classroom[] = [
+  { id: 1, name: "4ESA", code: "4ESA-X7P9", subject: "Informatica", exercises: 12, lastActivity: "Oggi, 10:18", participants: [
+    { id: 1, name: "Giulia Bianchi", email: "giulia.bianchi@scuola.it", initials: "GB", lastAccess: "Oggi, 09:42", completed: 8, total: 8, average: 96, tone: "green" },
+    { id: 2, name: "Marco Rossi", email: "marco.rossi@scuola.it", initials: "MR", lastAccess: "Ieri, 18:15", completed: 7, total: 8, average: 88, tone: "blue" },
+    { id: 3, name: "Sara Esposito", email: "sara.esposito@scuola.it", initials: "SE", lastAccess: "31 lug, 16:20", completed: 6, total: 8, average: 79, tone: "amber" },
+    { id: 4, name: "Davide Romano", email: "davide.romano@scuola.it", initials: "DR", lastAccess: "28 lug, 11:08", completed: 4, total: 8, average: 58, tone: "red" },
+  ] },
+  { id: 2, name: "3BSA", code: "3BSA-K4M8", subject: "Informatica", exercises: 7, lastActivity: "Ieri, 15:36", participants: [
+    { id: 5, name: "Elena Costa", email: "elena.costa@scuola.it", initials: "EC", lastAccess: "Oggi, 08:55", completed: 5, total: 7, average: 83, tone: "blue" },
+    { id: 6, name: "Andrea Greco", email: "andrea.greco@scuola.it", initials: "AG", lastAccess: "30 lug, 14:12", completed: 3, total: 7, average: 71, tone: "amber" },
+  ] },
+];
+
 const starter = `def somma_pari(numeri):\n    """Restituisce la somma dei numeri pari."""\n    totale = 0\n    for numero in numeri:\n        if numero % 2 == 0:\n            totale += numero\n    return totale\n\nprint(somma_pari([1, 2, 3, 4, 5, 6]))`;
 
 const blockClipboard = EditorView.domEventHandlers({
@@ -50,6 +65,8 @@ export default function Home() {
   const [schoolName, setSchoolName] = useState("Liceo Galilei");
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
+  const [classrooms, setClassrooms] = useState<Classroom[]>(initialClasses);
+  const [selectedClass, setSelectedClass] = useState<Classroom | null>(null);
   const [verificationMode, setVerificationMode] = useState<VerificationMode>("tests");
   const [output, setOutput] = useState("Pronto per l’esecuzione.");
   const [running, setRunning] = useState(false);
@@ -65,10 +82,10 @@ export default function Home() {
   const [signedOut, setSignedOut] = useState(false);
   const [joinCode, setJoinCode] = useState("");
 
-  const title = useMemo(() => ({ home: "Buongiorno, Luca", classes: "Le tue classi", tasks: "Repository esercizi", report: "Report della classe", settings: "Impostazioni", editor: "Somma dei numeri pari", "exercise-form": editingExercise ? "Modifica esercizio" : "Nuovo esercizio" }[view]), [view, editingExercise]);
+  const title = useMemo(() => ({ home: "Buongiorno, Luca", classes: "Le tue classi", "class-detail": selectedClass ? `${selectedClass.name} · ${selectedClass.subject}` : "Dettaglio classe", "class-form": selectedClass ? "Modifica classe" : "Nuova classe", tasks: "Repository esercizi", report: "Report della classe", settings: "Impostazioni", editor: "Somma dei numeri pari", "exercise-form": editingExercise ? "Modifica esercizio" : "Nuovo esercizio" }[view]), [view, editingExercise, selectedClass]);
 
   function routeFor(target: View) {
-    return ({ home: "/", classes: "/classes", tasks: "/exercises", report: "/reports", settings: "/settings", editor: "/exercises/1", "exercise-form": "/exercises/new" } as Record<View, string>)[target];
+    return ({ home: "/", classes: "/classes", "class-detail": "/classes/1", "class-form": "/classes/new", tasks: "/exercises", report: "/reports", settings: "/settings", editor: "/exercises/1", "exercise-form": "/exercises/new" } as Record<View, string>)[target];
   }
 
   function setView(target: View) {
@@ -83,6 +100,18 @@ export default function Home() {
     setViewState("exercise-form");
   }
 
+  function openClass(classroom: Classroom, edit = false) {
+    setSelectedClass(classroom);
+    window.history.pushState({}, "", `/classes/${classroom.id}${edit ? "/edit" : ""}`);
+    setViewState(edit ? "class-form" : "class-detail");
+  }
+
+  function newClass() {
+    setSelectedClass(null);
+    window.history.pushState({}, "", "/classes/new");
+    setViewState("class-form");
+  }
+
   useEffect(() => {
     setSidebarCollapsed(localStorage.getItem("pyclasse-sidebar") === "collapsed");
     setSchoolName(localStorage.getItem("pyclasse-school-name") || "Liceo Galilei");
@@ -93,7 +122,14 @@ export default function Home() {
     const syncRoute = () => {
       const path = window.location.pathname.replace(/\/$/, "") || "/";
       const editMatch = path.match(/^\/exercises\/(\d+)\/edit$/);
-      if (editMatch) {
+      const classEditMatch = path.match(/^\/classes\/(\d+)\/edit$/);
+      const classMatch = path.match(/^\/classes\/(\d+)$/);
+      if (classEditMatch || classMatch) {
+        const selected = initialClasses.find(item => item.id === Number((classEditMatch || classMatch)![1])) || null;
+        setSelectedClass(selected);
+        setViewState(classEditMatch ? "class-form" : "class-detail");
+      } else if (path === "/classes/new") { setSelectedClass(null); setViewState("class-form"); }
+      else if (editMatch) {
         const selected = initialExercises.find(item => item.id === Number(editMatch[1])) || null;
         setEditingExercise(selected);
         setVerificationMode(selected?.verificationMode || "tests");
@@ -267,7 +303,7 @@ export default function Home() {
           {([
             ["home", "dashboard", "Panoramica"], ["classes", "groups", "Classi"], ["tasks", "code_blocks", "Esercizi"], ["report", "analytics", "Report"], ["settings", "settings", "Impostazioni"],
           ] as [View, string, string][]).map(([key, icon, label]) => (
-            <button key={key} className={view === key || (key === "tasks" && (view === "exercise-form" || view === "editor")) ? "nav-item active" : "nav-item"} onClick={() => setView(key)} title={sidebarCollapsed ? label : undefined}><Icon name={icon} /><b>{label}</b></button>
+            <button key={key} className={view === key || (key === "tasks" && (view === "exercise-form" || view === "editor")) || (key === "classes" && (view === "class-detail" || view === "class-form")) ? "nav-item active" : "nav-item"} onClick={() => setView(key)} title={sidebarCollapsed ? label : undefined}><Icon name={icon} /><b>{label}</b></button>
           ))}
         </nav>
         <div className="sidebar-bottom">
@@ -278,11 +314,13 @@ export default function Home() {
       <section className="content">
         <header className="topbar">
           <div><p className="eyebrow">{schoolName} · Informatica</p><h1>{title}</h1></div>
-          <div className="top-actions"><button className="icon-button" aria-label="Notifiche"><Icon name="notifications" /><span className="notification" /></button>{view !== "exercise-form" && <button className="primary" onClick={() => openExerciseForm(null)}><Icon name="add" /> Nuovo esercizio</button>}</div>
+          <div className="top-actions"><button className="icon-button" aria-label="Notifiche"><Icon name="notifications" /><span className="notification" /></button>{view === "classes" ? <button className="primary" onClick={newClass}><Icon name="group_add" /> Nuova classe</button> : !["exercise-form", "class-form", "class-detail"].includes(view) && <button className="primary" onClick={() => openExerciseForm(null)}><Icon name="add" /> Nuovo esercizio</button>}</div>
         </header>
 
         {view === "home" && <Dashboard setView={setView} />}
-        {view === "classes" && <Classes joinCode={joinCode} setJoinCode={setJoinCode} notify={notify} />}
+        {view === "classes" && <Classes classrooms={classrooms} openClass={openClass} newClass={newClass} notify={notify} />}
+        {view === "class-detail" && selectedClass && <ClassDetail classroom={selectedClass} onBack={() => setView("classes")} onEdit={() => openClass(selectedClass, true)} onRemove={participantId => { const updated = { ...selectedClass, participants: selectedClass.participants.filter(person => person.id !== participantId) }; setSelectedClass(updated); setClassrooms(current => current.map(item => item.id === updated.id ? updated : item)); notify("Partecipante rimosso dalla classe"); }} />}
+        {view === "class-form" && <ClassForm classroom={selectedClass} onBack={() => window.history.state ? window.history.back() : setView("classes")} onSave={saved => { setClassrooms(current => selectedClass ? current.map(item => item.id === selectedClass.id ? { ...saved, id: item.id } : item) : [{ ...saved, id: Date.now() }, ...current]); setSelectedClass(null); window.history.pushState({}, "", "/classes"); setViewState("classes"); notify(selectedClass ? "Classe aggiornata" : "Classe creata"); }} />}
         {view === "tasks" && <Tasks exercises={exercises} openEditor={() => setView("editor")} editExercise={openExerciseForm} />}
         {view === "report" && <Report />}
         {view === "settings" && <Settings schoolName={schoolName} onSave={saveSchoolName} />}
@@ -316,7 +354,23 @@ function Stat({ label, value, delta, icon }: { label: string; value: string; del
 function Assignment({ title, detail, due, progress, color, onClick }: { title: string; detail: string; due: string; progress: number; color: string; onClick: () => void }) { return <button className="assignment" onClick={onClick}><span className={`assignment-icon ${color}`}><Icon name="code" /></span><span className="assignment-main"><strong>{title}</strong><small>{detail}</small><span className="progress"><i style={{ width: `${progress}%` }} /></span></span><span className="due"><small>SCADENZA</small><strong>{due}</strong></span><Icon name="chevron_right" /></button>; }
 function Student({ name, initials, done, score, status, tone }: typeof students[number]) { return <div className="student"><span className={`avatar ${tone}`}>{initials}</span><span className="student-name"><strong>{name}</strong><small>{done}/8 esercizi</small></span><span className={`status ${tone}`}>{status}</span><strong className="score">{score}%</strong></div>; }
 
-function Classes({ joinCode, setJoinCode, notify }: { joinCode: string; setJoinCode: (v: string) => void; notify: (v: string) => void }) { return <div className="page-grid"><section className="class-card featured"><p className="eyebrow">CLASSE ATTIVA</p><h2>4ESA · Informatica</h2><p>24 studenti · 12 esercizi</p><div className="class-code"><span>CODICE CLASSE</span><strong>4ESA-X7P9</strong><button onClick={() => { navigator.clipboard?.writeText("4ESA-X7P9"); notify("Codice copiato"); }}>Copia</button></div></section><section className="panel join-panel"><p className="eyebrow">ISCRIZIONE</p><h3>Unisciti con un codice</h3><p>Inserisci il codice condiviso dal docente.</p><div className="join-form"><input value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase())} placeholder="4ESA-X7P9" /><button className="primary" onClick={() => notify("Codice verificato")}>Verifica</button></div></section></div>; }
+function Classes({ classrooms, openClass, newClass, notify }: { classrooms: Classroom[]; openClass: (classroom: Classroom, edit?: boolean) => void; newClass: () => void; notify: (value: string) => void }) {
+  return <section className="classes-page"><div className="classes-summary"><Stat label="Classi attive" value={String(classrooms.length)} delta="Anno 2026/27" icon="groups" /><Stat label="Partecipanti" value={String(classrooms.reduce((sum, item) => sum + item.participants.length, 0))} delta="Studenti iscritti" icon="person_check" /><Stat label="Esercizi assegnati" value={String(classrooms.reduce((sum, item) => sum + item.exercises, 0))} delta="In tutte le classi" icon="assignment" /></div><div className="class-grid">{classrooms.map(classroom => <article className="managed-class" key={classroom.id}><div className="class-card-head"><span><Icon name="school" /></span><div><p className="eyebrow">CLASSE ATTIVA</p><h2>{classroom.name} · {classroom.subject}</h2></div></div><div className="class-metrics"><span><strong>{classroom.participants.length}</strong><small>partecipanti</small></span><span><strong>{classroom.exercises}</strong><small>esercizi</small></span><span><strong>{classroom.lastActivity}</strong><small>ultima attività</small></span></div><div className="class-code-row"><span>Codice <strong>{classroom.code}</strong></span><button onClick={() => { navigator.clipboard?.writeText(classroom.code); notify("Codice classe copiato"); }} aria-label={`Copia codice ${classroom.code}`}><Icon name="content_copy" /></button></div><div className="class-card-actions"><button className="secondary" onClick={() => openClass(classroom, true)}><Icon name="edit" /> Modifica</button><button className="primary" onClick={() => openClass(classroom)}><Icon name="visibility" /> Apri classe</button></div></article>)}<button className="new-class-card" onClick={newClass}><Icon name="add_circle" /><strong>Crea una nuova classe</strong><span>Genera un codice e aggiungi partecipanti</span></button></div></section>;
+}
+
+function ClassDetail({ classroom, onBack, onEdit, onRemove }: { classroom: Classroom; onBack: () => void; onEdit: () => void; onRemove: (id: number) => void }) {
+  return <section className="class-detail-page"><button className="back page-back" onClick={onBack}><Icon name="arrow_back" /> Tutte le classi</button><div className="class-detail-hero"><div><p className="eyebrow">CODICE {classroom.code}</p><h2>{classroom.name} · {classroom.subject}</h2><p>{classroom.participants.length} partecipanti · {classroom.exercises} esercizi assegnati</p></div><button className="secondary" onClick={onEdit}><Icon name="edit" /> Modifica classe</button></div><div className="report-summary"><Stat label="Completamento medio" value="76%" delta="su tutti gli esercizi" icon="task_alt" /><Stat label="Media classe" value={`${Math.round(classroom.participants.reduce((sum, p) => sum + p.average, 0) / Math.max(1, classroom.participants.length))}%`} delta="punteggio complessivo" icon="trending_up" /><Stat label="Ultima attività" value="Oggi" delta={classroom.lastActivity} icon="schedule" /></div><section className="panel class-members"><div className="panel-head"><div><p className="eyebrow">PARTECIPANTI</p><h3>Studenti della classe</h3></div><span className="repo-count"><Icon name="group" /> {classroom.participants.length} studenti</span></div><div className="member-table"><div className="member-row member-head"><span>Studente</span><span>Ultimo accesso</span><span>Esercizi</span><span>Avanzamento</span><span>Media</span><span>Azioni</span></div>{classroom.participants.map(person => <div className="member-row" key={person.id}><span className="student-inline"><span className={`avatar ${person.tone}`}>{person.initials}</span><span><strong>{person.name}</strong><small>{person.email}</small></span></span><span>{person.lastAccess}</span><strong>{person.completed}/{person.total}</strong><span className="member-progress"><i style={{ width: `${Math.round(person.completed / person.total * 100)}%` }} /></span><strong>{person.average}%</strong><button className="remove-member" onClick={() => onRemove(person.id)} aria-label={`Rimuovi ${person.name}`}><Icon name="person_remove" /> Rimuovi</button></div>)}</div></section></section>;
+}
+
+function ClassForm({ classroom, onBack, onSave }: { classroom: Classroom | null; onBack: () => void; onSave: (classroom: Omit<Classroom, "id">) => void }) {
+  const [name, setName] = useState(classroom?.name || "");
+  const [subject, setSubject] = useState(classroom?.subject || "Informatica");
+  const [code, setCode] = useState(classroom?.code || `CLASSE-${Math.random().toString(36).slice(2, 6).toUpperCase()}`);
+  const [participants, setParticipants] = useState<Participant[]>(classroom?.participants || []);
+  const [email, setEmail] = useState("");
+  function addParticipant() { const clean = email.trim().toLowerCase(); if (!clean || participants.some(person => person.email === clean)) return; const guessed = clean.split("@")[0].split(/[._-]/).map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(" "); setParticipants(current => [...current, { id: Date.now(), name: guessed, email: clean, initials: guessed.split(" ").map(part => part[0]).join("").slice(0, 2), lastAccess: "Mai", completed: 0, total: classroom?.exercises || 0, average: 0, tone: "blue" }]); setEmail(""); }
+  return <section className="class-form-page"><button className="back page-back" onClick={onBack}><Icon name="arrow_back" /> Torna alle classi</button><div className="panel class-editor"><div><p className="eyebrow">{classroom ? "MODIFICA CLASSE" : "NUOVA CLASSE"}</p><h2>{classroom ? `Gestisci ${classroom.name}` : "Crea una classe"}</h2><p>Configura i dati identificativi e gestisci i partecipanti.</p></div><div className="class-fields"><label>Nome della classe<input value={name} onChange={event => setName(event.target.value)} placeholder="Es. 4ESA" /></label><label>Materia<input value={subject} onChange={event => setSubject(event.target.value)} /></label><label>Codice di iscrizione<input value={code} onChange={event => setCode(event.target.value.toUpperCase())} /></label></div><div className="participant-editor"><div><strong>Partecipanti</strong><small>Aggiungi uno studente tramite email o rimuovilo dall'elenco.</small></div><div className="add-participant"><input type="email" value={email} onChange={event => setEmail(event.target.value)} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); addParticipant(); } }} placeholder="studente@scuola.it" /><button className="secondary" onClick={addParticipant}><Icon name="person_add" /> Aggiungi</button></div>{participants.map(person => <div className="participant-edit-row" key={person.id}><span className={`avatar ${person.tone}`}>{person.initials}</span><span><strong>{person.name}</strong><small>{person.email}</small></span><button onClick={() => setParticipants(current => current.filter(item => item.id !== person.id))} aria-label={`Rimuovi ${person.name}`}><Icon name="delete" /></button></div>)}</div><div className="modal-actions"><button className="secondary" onClick={onBack}>Annulla</button><button className="primary" disabled={!name.trim() || !code.trim()} onClick={() => onSave({ name: name.trim(), subject: subject.trim(), code: code.trim(), exercises: classroom?.exercises || 0, lastActivity: classroom?.lastActivity || "Nessuna attività", participants })}><Icon name="save" /> {classroom ? "Salva modifiche" : "Crea classe"}</button></div></div></section>;
+}
 function Tasks({ exercises, openEditor, editExercise }: { exercises: Exercise[]; openEditor: () => void; editExercise: (exercise: Exercise) => void }) {
   return <section className="panel full-panel repository"><div className="panel-head"><div><p className="eyebrow">LIBRERIA CENTRALIZZATA</p><h3>Repository esercizi</h3><p className="panel-copy">Modifica una sola volta il contenuto: tutte le classi assegnate vedranno la versione aggiornata.</p></div><span className="repo-count"><Icon name="inventory_2" /> {exercises.length} esercizi</span></div><div className="repository-head"><span>Esercizio</span><span>Verifica</span><span>Classi e scadenze</span><span>Aggiornato</span><span>Azioni</span></div>{exercises.map(exercise => <article className="repository-row" key={exercise.id}><button className="repo-title" onClick={openEditor}><span className="assignment-icon violet"><Icon name="code_blocks" /></span><span><strong>{exercise.title}</strong><small>{exercise.tests.length} test · {exercise.maxPoints} punti</small></span></button><span className="verification-chip"><Icon name={exercise.verificationMode === "ai" ? "smart_toy" : "science"} /> {exercise.verificationMode === "ai" ? "IA" : "Test"}</span><div className="deadline-list">{exercise.assignments.length ? exercise.assignments.map(link => <span key={link.className}><strong>{link.className}</strong><small>{new Date(link.deadline).toLocaleDateString("it-IT", { day: "2-digit", month: "short" })}</small></span>) : <em>Non assegnato</em>}</div><small>{exercise.updatedAt}</small><div className="repo-actions"><button className="secondary" onClick={() => editExercise(exercise)}><Icon name="edit" /> Modifica</button></div></article>)}</section>;
 }

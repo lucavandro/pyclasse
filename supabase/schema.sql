@@ -42,7 +42,7 @@ create table public.class_members (
   primary key (class_id, student_id)
 );
 
-create table public.assignments (
+create table public.exercises (
   id uuid primary key default gen_random_uuid(),
   teacher_id uuid not null references public.profiles(id) on delete cascade,
   title text not null,
@@ -50,21 +50,24 @@ create table public.assignments (
   starter_code text not null default '',
   verification_mode text not null default 'tests' check (verification_mode in ('tests', 'ai')),
   ai_evaluation_prompt text,
-  deadline timestamptz,
   max_points integer not null default 100 check (max_points > 0),
-  published_at timestamptz,
+  updated_at timestamptz not null default now(),
   created_at timestamptz not null default now()
 );
 
-create table public.assignment_classes (
-  assignment_id uuid not null references public.assignments(id) on delete cascade,
+create table public.class_assignments (
+  id uuid primary key default gen_random_uuid(),
+  exercise_id uuid not null references public.exercises(id) on delete cascade,
   class_id uuid not null references public.classes(id) on delete cascade,
-  primary key (assignment_id, class_id)
+  deadline timestamptz,
+  published_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique (exercise_id, class_id)
 );
 
 create table public.tests (
   id uuid primary key default gen_random_uuid(),
-  assignment_id uuid not null references public.assignments(id) on delete cascade,
+  exercise_id uuid not null references public.exercises(id) on delete cascade,
   position integer not null default 0,
   input_data text not null default '',
   expected_output text not null,
@@ -74,7 +77,7 @@ create table public.tests (
 
 create table public.submissions (
   id uuid primary key default gen_random_uuid(),
-  assignment_id uuid not null references public.assignments(id) on delete cascade,
+  class_assignment_id uuid not null references public.class_assignments(id) on delete cascade,
   student_id uuid not null references public.profiles(id) on delete cascade,
   code text not null,
   status public.submission_status not null default 'draft',
@@ -82,14 +85,14 @@ create table public.submissions (
   test_results jsonb not null default '[]'::jsonb,
   submitted_at timestamptz,
   updated_at timestamptz not null default now(),
-  unique (assignment_id, student_id)
+  unique (class_assignment_id, student_id)
 );
 
 create index classes_teacher_idx on public.classes(teacher_id);
 create index class_members_student_idx on public.class_members(student_id);
-create index assignments_teacher_idx on public.assignments(teacher_id);
+create index exercises_teacher_idx on public.exercises(teacher_id);
 create index submissions_student_idx on public.submissions(student_id);
-create index submissions_assignment_idx on public.submissions(assignment_id);
+create index submissions_class_assignment_idx on public.submissions(class_assignment_id);
 
 -- Crea automaticamente il profilo al primo login Google.
 create or replace function public.handle_new_user() returns trigger
@@ -138,8 +141,8 @@ alter table public.profiles enable row level security;
 alter table public.app_settings enable row level security;
 alter table public.classes enable row level security;
 alter table public.class_members enable row level security;
-alter table public.assignments enable row level security;
-alter table public.assignment_classes enable row level security;
+alter table public.exercises enable row level security;
+alter table public.class_assignments enable row level security;
 alter table public.tests enable row level security;
 alter table public.submissions enable row level security;
 
@@ -167,35 +170,38 @@ create policy "teachers remove members" on public.class_members for delete to au
   exists (select 1 from public.classes c where c.id = class_id and c.teacher_id = auth.uid())
 );
 
-create policy "teachers manage assignments" on public.assignments for all to authenticated using (teacher_id = auth.uid()) with check (teacher_id = auth.uid());
-create policy "students read published assignments" on public.assignments for select to authenticated using (
-  published_at is not null and exists (
-    select 1 from public.assignment_classes ac join public.class_members cm on cm.class_id = ac.class_id
-    where ac.assignment_id = assignments.id and cm.student_id = auth.uid()
+create policy "teachers manage exercises" on public.exercises for all to authenticated using (teacher_id = auth.uid()) with check (teacher_id = auth.uid());
+create policy "students read assigned exercises" on public.exercises for select to authenticated using (
+  exists (
+    select 1 from public.class_assignments ca join public.class_members cm on cm.class_id = ca.class_id
+    where ca.exercise_id = exercises.id and ca.published_at is not null and cm.student_id = auth.uid()
   )
 );
 
-create policy "teachers manage assignment links" on public.assignment_classes for all to authenticated using (
-  exists (select 1 from public.assignments a where a.id = assignment_id and a.teacher_id = auth.uid())
+create policy "teachers manage class assignments" on public.class_assignments for all to authenticated using (
+  exists (select 1 from public.exercises e where e.id = exercise_id and e.teacher_id = auth.uid())
 ) with check (
-  exists (select 1 from public.assignments a where a.id = assignment_id and a.teacher_id = auth.uid())
+  exists (select 1 from public.exercises e where e.id = exercise_id and e.teacher_id = auth.uid())
   and exists (select 1 from public.classes c where c.id = class_id and c.teacher_id = auth.uid())
 );
-create policy "students read assignment links" on public.assignment_classes for select to authenticated using (
+create policy "students read class assignments" on public.class_assignments for select to authenticated using (
   exists (select 1 from public.class_members cm where cm.class_id = class_id and cm.student_id = auth.uid())
 );
 
 create policy "teachers manage tests" on public.tests for all to authenticated using (
-  exists (select 1 from public.assignments a where a.id = assignment_id and a.teacher_id = auth.uid())
-) with check (exists (select 1 from public.assignments a where a.id = assignment_id and a.teacher_id = auth.uid()));
+  exists (select 1 from public.exercises e where e.id = exercise_id and e.teacher_id = auth.uid())
+) with check (exists (select 1 from public.exercises e where e.id = exercise_id and e.teacher_id = auth.uid()));
 create policy "students read public tests" on public.tests for select to authenticated using (
   not is_hidden and exists (
-    select 1 from public.assignment_classes ac join public.class_members cm on cm.class_id = ac.class_id
-    where ac.assignment_id = tests.assignment_id and cm.student_id = auth.uid()
+    select 1 from public.class_assignments ca join public.class_members cm on cm.class_id = ca.class_id
+    where ca.exercise_id = tests.exercise_id and ca.published_at is not null and cm.student_id = auth.uid()
   )
 );
 
 create policy "students manage own submissions" on public.submissions for all to authenticated using (student_id = auth.uid()) with check (student_id = auth.uid());
 create policy "teachers read class submissions" on public.submissions for select to authenticated using (
-  exists (select 1 from public.assignments a where a.id = assignment_id and a.teacher_id = auth.uid())
+  exists (
+    select 1 from public.class_assignments ca join public.exercises e on e.id = ca.exercise_id
+    where ca.id = class_assignment_id and e.teacher_id = auth.uid()
+  )
 );

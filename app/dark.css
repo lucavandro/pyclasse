@@ -191,12 +191,51 @@ body { background: #191a21; }
 .verification-card span { display: grid; gap: 4px; }
 .verification-card small { color: var(--muted); line-height: 1.4; }
 .modal-actions { justify-content: flex-end; }
+.panel-copy { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+.repo-count, .verification-chip { display: inline-flex; align-items: center; gap: 6px; color: #cfd0dd; font-size: 13px; }
+.repository-head, .repository-row { display: grid; grid-template-columns: minmax(230px, 1.4fr) .55fr minmax(220px, 1fr) .55fr auto; gap: 16px; align-items: center; }
+.repository-head { padding: 10px 14px; border-radius: 8px; background: #21222c; color: #aeb0c0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.repository-row { min-height: 86px; padding: 13px 14px; border-bottom: 1px solid #44475a; }
+.repo-title { display: flex; gap: 11px; align-items: center; min-width: 0; border: 0; background: transparent; color: #f8f8f2; text-align: left; cursor: pointer; }
+.repo-title > span:last-child { display: grid; min-width: 0; }
+.repo-title strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.repo-title small, .repository-row > small, .deadline-list small { color: var(--muted); }
+.verification-chip { width: max-content; padding: 6px 9px; border-radius: 999px; background: #3d3454; color: #d8c2fa; }
+.verification-chip .material-symbols-rounded { font-size: 16px; }
+.deadline-list { display: grid; gap: 5px; }
+.deadline-list > span { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
+.deadline-list em { color: var(--muted); font-size: 12px; }
+.repo-actions .secondary { padding: 8px 10px; }
+.exercise-editor { width: min(790px, 100%); }
+.ai-generator { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 15px; border: 1px solid #625a87; border-radius: 12px; background: #312e4a; }
+.ai-generator > div { grid-column: 1 / -1; display: flex; gap: 10px; align-items: flex-start; }
+.ai-generator > div > .material-symbols-rounded { color: #ff79c6; }
+.ai-generator span { display: grid; }
+.ai-generator small { color: #c7c8d5; }
+.ai-generator textarea { min-height: 68px; margin: 0; }
+.exercise-fields { display: grid; grid-template-columns: 1fr 130px; gap: 12px; }
+.exercise-fields .wide { grid-column: 1 / -1; }
+.exercise-fields textarea { min-height: 72px; }
+.exercise-fields .code-field { min-height: 96px; font-family: var(--font-mono), monospace; font-size: 13px; }
+.generated-tests, .class-assignments { display: grid; gap: 8px; padding: 13px; border: 1px solid #44475a; border-radius: 10px; background: #21222c; }
+.generated-tests > div:first-child, .class-assignments > div { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.generated-tests button { display: inline-flex; align-items: center; gap: 4px; border: 0; background: transparent; color: #8be9fd; cursor: pointer; }
+.test-edit { display: grid; grid-template-columns: 24px 1fr 1fr; gap: 8px; align-items: center; }
+.test-edit > span { color: #bd93f9; font-size: 12px; font-weight: 700; }
+.test-edit input, .class-assignments input[type="datetime-local"] { min-width: 0; border: 1px solid #565a70; border-radius: 7px; background: #282a36; color: #f8f8f2; padding: 8px; }
+.class-assignments > strong { margin-bottom: 2px; }
+.class-assignments label { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.class-assignments input[type="checkbox"] { accent-color: #bd93f9; }
+.class-assignments > small { color: var(--muted); }
 
 @media (max-width: 950px) and (min-width: 651px) {
   .sidebar-head { flex-direction: column; align-items: center; gap: 12px; }
   .sidebar-head .brand { padding: 0; }
   .sidebar .nav-item b, .sidebar .brand > span:last-child { display: none; }
   .hamburger { display: none; }
+  .repository-head { display: none; }
+  .repository-row { grid-template-columns: 1fr auto; }
+  .deadline-list { grid-column: 1 / -1; }
 }
 
 @media (max-width: 650px) {
@@ -206,4 +245,11 @@ body { background: #191a21; }
   .exercise-modal fieldset { grid-template-columns: 1fr; }
   .editor-toolbar { flex-wrap: wrap; height: auto; gap: 8px; padding-block: 8px; }
   .editor-toolbar .draft-status { width: 100%; margin-left: 0; }
+  .repository-head { display: none; }
+  .repository-row { grid-template-columns: 1fr; gap: 10px; }
+  .exercise-fields, .ai-generator { grid-template-columns: 1fr; }
+  .exercise-fields .wide, .ai-generator > div { grid-column: 1; }
+  .test-edit { grid-template-columns: 20px 1fr; }
+  .test-edit input:last-child { grid-column: 2; }
+  .class-assignments > div { align-items: flex-start; flex-direction: column; }
 }

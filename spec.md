@@ -1,6 +1,6 @@
 # PyClasse — specifiche di prodotto e conformità
 
-Versione: 1.3  
+Versione: 1.4
 Ultimo aggiornamento: 1 agosto 2026  
 Stato del documento: fonte unica di verità del progetto
 
@@ -57,8 +57,15 @@ PyClasse è una piattaforma web didattica per assegnare, svolgere e correggere a
 
 ## 4. Esercizi e assegnazioni
 
-- Il docente può creare un esercizio con titolo, descrizione, codice iniziale, punteggio massimo e scadenza.
-- Un esercizio può essere assegnato a una o più classi.
+- Gli esercizi sono raccolti in una libreria centralizzata indipendente dalle classi.
+- Il docente può creare e modificare nella libreria titolo, descrizione, codice iniziale, punteggio massimo, metodo di verifica e test.
+- Ogni classe riceve un riferimento allo stesso esercizio centrale: una modifica al contenuto si riflette in tutte le classi cui è assegnato, senza duplicare l'esercizio.
+- L'assegnazione è un'entità distinta e collega esercizio e classe; contiene scadenza e stato di pubblicazione specifici per quella classe.
+- Lo stesso esercizio può quindi avere scadenze diverse in classi diverse.
+- Dalla libreria il docente può vedere quante classi usano un esercizio, modificarlo e gestirne le assegnazioni.
+- Il docente può generare una bozza di esercizio a partire da un prompt tramite IA.
+- La generazione IA produce almeno titolo, consegna, codice iniziale, vincoli, punteggio e una batteria di test coerenti.
+- Il risultato generato deve essere mostrato in un'anteprima interamente modificabile e non viene salvato automaticamente senza conferma del docente.
 - La pubblicazione deve essere esplicita; gli studenti vedono soltanto esercizi pubblicati e assegnati alle loro classi.
 - La UI deve mostrare stato, punteggio, progresso e scadenza.
 - Il sistema deve distinguere consegne entro e oltre la scadenza.
@@ -162,7 +169,9 @@ La schermata studente presenta esattamente tre azioni principali.
 ## 10. Persistenza, sicurezza e RLS
 
 - Backend: Supabase Auth e PostgreSQL.
-- Tabelle richieste: `profiles`, `app_settings`, `classes`, `class_members`, `assignments`, `assignment_classes`, `tests`, `submissions`.
+- Tabelle richieste: `profiles`, `app_settings`, `classes`, `class_members`, `exercises`, `class_assignments`, `tests`, `submissions`.
+- `exercises` contiene il contenuto canonico; `class_assignments` contiene `exercise_id`, `class_id`, scadenza e pubblicazione per classe.
+- Ogni bozza o consegna fa riferimento a `class_assignment_id`, così stato e rispetto della scadenza restano univoci anche se lo stesso studente incontra l'esercizio in classi diverse.
 - Tutte le tabelle applicative devono avere RLS attiva.
 - Il docente gestisce soltanto le proprie classi e assegnazioni.
 - Gli studenti leggono soltanto classi, assegnazioni e consegne autorizzate.
@@ -215,6 +224,9 @@ La schermata studente presenta esattamente tre azioni principali.
 | Icone Material | Conforme | Material Symbols Rounded usato per navigazione, azioni e indicatori. |
 | Nome scuola modificabile | Conforme per MVP locale | Pannello impostazioni e persistenza sul dispositivo; persistenza Supabase ancora da collegare. |
 | Verifica esercizio con IA | Conforme per MVP | Opzione in creazione esercizio e valutazione Puter.js con esito strutturato. |
+| Libreria centralizzata esercizi | Conforme per MVP locale | Vista repository con modifica canonica e conteggio delle classi; persistenza Supabase predisposta. |
+| Scadenze per classe | Conforme per MVP locale | Le assegnazioni separano classe ed esercizio e memorizzano una scadenza specifica. |
+| Generazione esercizi e test con IA | Conforme per MVP | Puter.js genera una bozza JSON modificabile prima del salvataggio; fallback dimostrativo in caso di indisponibilità. |
 | CodeMirror e blocco clipboard | Conforme | Handler `copy`, `cut` e `paste` in `app/page.tsx`. |
 | Esecuzione interattiva del programma | Conforme per MVP | Il worker esegue il codice completo e richiede dalla shell ogni valore necessario a `input()`. |
 | Test automatici lato browser | Conforme per MVP | Cinque test dimostrativi eseguiti dal worker; i test non sono ancora caricati dal database. |

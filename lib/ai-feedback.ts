@@ -67,3 +67,45 @@ export async function verifySolutionWithAi(problem: string, code: string) {
     return { passed: false, feedback: "La verifica IA non è disponibile in questo momento. La soluzione non viene considerata superata finché non sarà possibile completare una nuova verifica." };
   }
 }
+
+export type GeneratedExercise = {
+  title: string;
+  description: string;
+  starterCode: string;
+  constraints: string;
+  maxPoints: number;
+  tests: { input: string; expected: string }[];
+};
+
+export async function generateExerciseWithAi(userPrompt: string): Promise<GeneratedExercise> {
+  const fallback: GeneratedExercise = {
+    title: "Conta le parole lunghe",
+    description: "Scrivi una funzione conta_lunghe(parole, n) che restituisca quante parole hanno una lunghezza maggiore di n.",
+    starterCode: "def conta_lunghe(parole, n):\n    # Scrivi qui la tua soluzione\n    pass",
+    constraints: "La lista contiene da 0 a 100 parole; n è un intero non negativo.",
+    maxPoints: 100,
+    tests: [
+      { input: "conta_lunghe(['casa', 'programmazione', 'sole'], 4)", expected: "1" },
+      { input: "conta_lunghe([], 3)", expected: "0" },
+      { input: "conta_lunghe(['uno', 'due'], 3)", expected: "0" },
+    ],
+  };
+  try {
+    const puter = await loadPuter();
+    const prompt = `Genera un esercizio didattico Python a partire dalla richiesta del docente. Rispondi ESCLUSIVAMENTE con JSON valido nel formato {"title":"","description":"","starterCode":"","constraints":"","maxPoints":100,"tests":[{"input":"chiamata o input","expected":"output"}]}. Crea tra 3 e 6 test, includendo casi normali e limite. Non inserire la soluzione nel codice iniziale. Lingua italiana.\n\nRichiesta: ${userPrompt.slice(0, 1800)}`;
+    const response = await puter.ai.chat(prompt);
+    const raw = extractText(response).trim().replace(/^```json\s*|\s*```$/g, "");
+    const parsed = JSON.parse(raw);
+    if (!parsed.title || !parsed.description || !Array.isArray(parsed.tests) || parsed.tests.length < 1) return fallback;
+    return {
+      title: String(parsed.title).slice(0, 120),
+      description: String(parsed.description).slice(0, 2500),
+      starterCode: String(parsed.starterCode || "").slice(0, 5000),
+      constraints: String(parsed.constraints || "").slice(0, 1200),
+      maxPoints: Math.max(1, Math.min(1000, Number(parsed.maxPoints) || 100)),
+      tests: parsed.tests.slice(0, 8).map((test: any) => ({ input: String(test.input || ""), expected: String(test.expected || "") })),
+    };
+  } catch {
+    return fallback;
+  }
+}

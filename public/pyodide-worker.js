@@ -4,8 +4,12 @@ self.onmessage = async ({ data }) => {
   try {
     runtime ||= await self.loadPyodide();
     let output = "";
-    runtime.setStdout({ batched: (text) => { output += text + "\n"; } });
-    runtime.setStderr({ batched: (text) => { output += text + "\n"; } });
+    const appendOutput = (text) => {
+      if (output.length < 50000) output += text + "\n";
+      if (output.length >= 50000 && !output.endsWith("[output limitato]\n")) output = output.slice(0, 50000) + "\n[output limitato]\n";
+    };
+    runtime.setStdout({ batched: appendOutput });
+    runtime.setStderr({ batched: appendOutput });
     if (data.mode === "run_interactive") {
       const encodedInputs = JSON.stringify(JSON.stringify(data.inputs || []));
       const interactiveCode = `

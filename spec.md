@@ -1,7 +1,7 @@
 # PyClasse — specifiche di prodotto e conformità
 
-Versione: 1.1  
-Ultimo aggiornamento: 31 luglio 2026  
+Versione: 1.2  
+Ultimo aggiornamento: 1 agosto 2026  
 Stato del documento: fonte unica di verità del progetto
 
 ## Regola di manutenzione
@@ -68,6 +68,9 @@ PyClasse è una piattaforma web didattica per assegnare, svolgere e correggere a
 - L’editor online usa CodeMirror con sintassi Python e numeri di riga.
 - Il codice Python viene eseguito nel browser con Pyodide in un Web Worker.
 - Un’esecuzione deve essere interrotta dopo 8 secondi.
+- Esecuzione e test devono avvenire in Web Worker separati e un watchdog deve terminarli fisicamente dopo 8 secondi, così anche un loop infinito non può bloccare l’interfaccia.
+- Il watchdog deve distinguere il timeout dagli altri errori e presentarlo come possibile ciclo infinito o elaborazione eccessiva.
+- L’output accumulato nel worker deve essere limitato per evitare consumo incontrollato di memoria durante cicli con `print()`.
 - Copia, taglia e incolla devono essere bloccati nell’editor CodeMirror.
 - La limitazione è un deterrente didattico e non una misura di sicurezza assoluta contro gli strumenti di sviluppo del browser.
 
@@ -126,9 +129,21 @@ La schermata studente presenta esattamente tre azioni principali.
 ### 9.1 Barra laterale
 
 - Su desktop la barra laterale può essere espansa o collassata tramite pulsante hamburger.
+- Quando la barra è aperta, il pulsante hamburger si trova all’estrema sinistra, prima del logo e del titolo.
+- Il pulsante hamburger non ha bordo e ha sfondo trasparente.
 - Da collassata mostra le icone e mantiene etichette accessibili e tooltip.
 - La preferenza è memorizzata localmente sul dispositivo.
 - Su mobile rimane la navigazione inferiore compatta.
+
+### 9.2 Feedback pedagogico basato su IA
+
+- In presenza di un errore di esecuzione, timeout o test non completamente superati, lo studente riceve un feedback in italiano.
+- Il feedback descrive la categoria dell’errore, il significato e gli aspetti del comportamento del programma da osservare.
+- Non deve indicare la modifica da effettuare, fornire codice corretto, rivelare output attesi o suggerire direttamente la soluzione.
+- Il canale principale usa Puter.js, che non richiede API key applicative; il primo utilizzo può richiedere autorizzazione o account Puter allo studente.
+- Deve essere visibile che il codice viene elaborato dal servizio IA esterno.
+- Se Puter non è disponibile, viene mostrato un feedback locale basato sulla categoria dell’errore.
+- Un feedback contenente istruzioni correttive esplicite o blocchi di codice viene scartato e sostituito con il feedback locale.
 
 ## 10. Persistenza, sicurezza e RLS
 
@@ -166,6 +181,8 @@ La schermata studente presenta esattamente tre azioni principali.
 - [ ] Il report usa dati reali e può esportare un CSV reale.
 - [x] Il tema è Dracula, leggibile e responsive.
 - [x] La barra desktop è collassabile e la preferenza viene ricordata.
+- [x] Loop infiniti e test bloccati vengono terminati dal watchdog senza bloccare la pagina.
+- [x] Errori, timeout e test falliti attivano un feedback pedagogico IA con fallback locale.
 - [x] Il progetto produce una build valida per la distribuzione configurata.
 
 ## 13. Matrice di conformità al 31 luglio 2026
@@ -174,6 +191,8 @@ La schermata studente presenta esattamente tre azioni principali.
 |---|---|---|
 | Tema Dracula e accessibilità visiva | Conforme | Palette e focus definiti in `app/dark.css`; Geist e Geist Mono in `app/layout.tsx`. |
 | Sidebar desktop collassabile | Conforme | Stato, controllo hamburger e persistenza locale in `app/page.tsx`. |
+| Prevenzione loop infiniti | Conforme | Watchdog a 8 secondi, terminazione dei worker e limite dell’output. |
+| Feedback pedagogico IA | Conforme per MVP | Puter.js senza API key applicativa, filtro anti-soluzione e fallback locale. |
 | CodeMirror e blocco clipboard | Conforme | Handler `copy`, `cut` e `paste` in `app/page.tsx`. |
 | Esecuzione interattiva del programma | Conforme per MVP | Il worker esegue il codice completo e richiede dalla shell ogni valore necessario a `input()`. |
 | Test automatici lato browser | Conforme per MVP | Cinque test dimostrativi eseguiti dal worker; i test non sono ancora caricati dal database. |

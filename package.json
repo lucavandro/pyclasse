@@ -34,7 +34,7 @@
     "material-symbols": "^0.45.10",
     "next": "^16.2.12",
     "postcss": "^8.5.25",
-    "pyodide": "^0.28.2",
+    "pyodide": "^314.0.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-markdown": "^10.1.0",

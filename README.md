@@ -71,6 +71,6 @@ Il software include misure tecniche di privacy e sicurezza, ma la conformità GD
 
 ## Licenza
 
-Copyright © 2026 Luca Vandro.
+Copyleft © 2026 Luca Vandro.
 
 PyClasse è distribuito con la [PyClasse Source-Available Noncommercial Copyleft License 1.0](LICENSE). Modifiche e ridistribuzioni devono restare gratuite, pubblicare il sorgente, mantenere la stessa licenza e attribuire l'autore originale. La restrizione commerciale rende questa licenza non approvata OSI.

@@ -23,6 +23,42 @@ schermata deve riutilizzare i token CSS esistenti e mantenere coerenza con
 Sono ammesse tonalità derivate solo per hover, trasparenze, ombre e contrasto.
 Il logo Google conserva i colori ufficiali del provider.
 
+## Personalizzare la palette
+
+Tutti gli stili Dracula attivi leggono i colori dal blocco `:root` collocato
+sotto il commento `Dracula-inspired palette` in `app/dark.css`. Per creare una
+variante grafica Ã¨ quindi sufficiente modificare le variabili in quel blocco:
+non bisogna cambiare i singoli selettori o componenti.
+
+I token sono organizzati in tre livelli:
+
+1. `--color-background`, `--color-surface`, `--color-current-line` e
+   `--color-foreground` definiscono sfondi, pannelli, bordi e testo.
+2. `--color-cyan`, `--color-green`, `--color-orange`, `--color-pink`,
+   `--color-purple`, `--color-red` e `--color-yellow` rappresentano la palette
+   Dracula originale.
+3. Le variabili `--color-surface-*`, `--color-text-*`, `--focus-ring`,
+   `--*-shadow` e `--*-surface` sono varianti semantiche per controlli, stati,
+   trasparenze e ombre.
+
+Esempio di personalizzazione minima:
+
+```css
+:root {
+  --color-background: #10131a;
+  --color-surface: #202532;
+  --color-purple: #a78bfa;
+  --color-cyan: #67e8f9;
+}
+```
+
+I vecchi nomi `--ink`, `--muted`, `--cream`, `--panel`, `--line`, `--coral`,
+`--teal` e `--blue` sono alias mantenuti per compatibilitÃ : nei nuovi stili si
+devono usare i token `--color-*`. Quando si aggiunge una tonalitÃ , dichiararla
+nel medesimo blocco e assegnarle un nome basato sul suo ruolo, non sul singolo
+componente. Dopo ogni modifica verificare il contrasto WCAG 2.1 AA, inclusi
+hover, focus, messaggi di errore e opzioni native dei menu a tendina.
+
 ## Gerarchia visiva
 
 - Sfondo pagina `#191a21`, pannelli `#282a36`, superfici interattive
@@ -52,6 +88,9 @@ Il logo Google conserva i colori ufficiali del provider.
   colore per comunicare lo stato.
 - Le opzioni non abilitate, come provider di login opt-in, non devono comparire
   come controlli inattivi.
+- Le opzioni native dei menu a tendina devono dichiarare esplicitamente colore
+  di testo e sfondo Dracula, perché il rendering predefinito varia fra sistemi
+  operativi.
 - Le icone Material Symbols accompagnano un'etichetta nelle azioni importanti;
   icone decorative devono essere nascoste alle tecnologie assistive.
 

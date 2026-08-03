@@ -136,6 +136,48 @@ test("autenticazione supporta password, OTP email e Google", async () => {
   );
 });
 
+test("il branding pubblico del login è personalizzabile senza esporre dati privati", async () => {
+  const [screen, page, migration] = await Promise.all([
+    read("app/auth-screen.tsx"),
+    read("app/page.tsx"),
+    read("supabase/migrations/20260803001000_public_login_branding.sql"),
+  ]);
+  assert.match(screen, /rpc\("get_public_branding"\)/);
+  assert.doesNotMatch(
+    screen,
+    /Controllo in tempo reale|learn_together|verified_user/,
+  );
+  assert.match(page, /login_title_it/);
+  assert.match(page, /login_subtitle_en/);
+  assert.match(migration, /grant execute[^;]+to anon, authenticated/i);
+  assert.doesNotMatch(
+    migration.match(/returns table \([\s\S]*?\)/i)?.[0] ?? "",
+    /teacher_email/i,
+  );
+});
+
+test("il tema Dracula attivo usa token CSS centralizzati", async () => {
+  const css = await read("app/dark.css");
+  const paletteMarker = "/* Dracula-inspired palette */";
+  const paletteStart = css.indexOf(paletteMarker);
+  const consumerStart = css.indexOf("body {", paletteStart);
+  const tokens = css.slice(paletteStart, consumerStart);
+  const consumers = css.slice(consumerStart);
+
+  assert.ok(paletteStart >= 0 && consumerStart > paletteStart);
+  for (const token of [
+    "--color-background:",
+    "--color-surface:",
+    "--color-foreground:",
+    "--color-purple:",
+    "--color-cyan:",
+    "--focus-ring:",
+  ]) {
+    assert.ok(tokens.includes(token), `Token CSS mancante: ${token}`);
+  }
+  assert.doesNotMatch(consumers, /#[0-9a-f]{3,8}\b|rgba?\(/i);
+});
+
 test("le pagine interne hanno un handler server", async () => {
   const catchAll = await read("app/[...route]/page.tsx");
   assert.match(catchAll, /export \{ default \} from "\.\.\/page"/);

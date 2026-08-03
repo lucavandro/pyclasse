@@ -79,6 +79,10 @@ export type Settings = {
   singleton: boolean;
   teacher_email: string | null;
   school_name: string;
+  login_title_it: string;
+  login_subtitle_it: string;
+  login_title_en: string;
+  login_subtitle_en: string;
 };
 export type Workspace = {
   profile: Profile;

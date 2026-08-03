@@ -113,6 +113,10 @@ type Settings = {
   singleton: boolean;
   teacher_email: string | null;
   school_name: string;
+  login_title_it: string;
+  login_subtitle_it: string;
+  login_title_en: string;
+  login_subtitle_en: string;
 };
 type Workspace = {
   profile: Profile;
@@ -181,7 +185,9 @@ async function fetchWorkspace(user: User): Promise<Workspace> {
   ] = await Promise.all([
     supabase
       .from("app_settings")
-      .select("singleton,teacher_email,school_name")
+      .select(
+        "singleton,teacher_email,school_name,login_title_it,login_subtitle_it,login_title_en,login_subtitle_en",
+      )
       .maybeSingle(),
     supabase
       .from("profiles")
@@ -1203,6 +1209,18 @@ function SettingsPanel({
   notify: (v: string) => void;
 }) {
   const [school, setSchool] = useState(data.settings?.school_name || "");
+  const [loginTitleIt, setLoginTitleIt] = useState(
+    data.settings?.login_title_it || "",
+  );
+  const [loginSubtitleIt, setLoginSubtitleIt] = useState(
+    data.settings?.login_subtitle_it || "",
+  );
+  const [loginTitleEn, setLoginTitleEn] = useState(
+    data.settings?.login_title_en || "",
+  );
+  const [loginSubtitleEn, setLoginSubtitleEn] = useState(
+    data.settings?.login_subtitle_en || "",
+  );
   const [ai, setAi] = useState(data.profile.external_ai_enabled);
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -1210,7 +1228,13 @@ function SettingsPanel({
     if (data.profile.role === "teacher") {
       const result = await supabase
         .from("app_settings")
-        .update({ school_name: school.trim() })
+        .update({
+          school_name: school.trim(),
+          login_title_it: loginTitleIt.trim(),
+          login_subtitle_it: loginSubtitleIt.trim(),
+          login_title_en: loginTitleEn.trim(),
+          login_subtitle_en: loginSubtitleEn.trim(),
+        })
         .eq("singleton", true);
       if (result.error) return notify(result.error.message);
     }
@@ -1244,6 +1268,49 @@ function SettingsPanel({
                   required
                 />
               </label>
+              <fieldset className="settings-branding-fields">
+                <legend>Testi della pagina di accesso</legend>
+                <label>
+                  Titolo (italiano)
+                  <input
+                    value={loginTitleIt}
+                    onChange={(event) => setLoginTitleIt(event.target.value)}
+                    minLength={5}
+                    maxLength={120}
+                    required
+                  />
+                </label>
+                <label>
+                  Sottotitolo (italiano)
+                  <textarea
+                    value={loginSubtitleIt}
+                    onChange={(event) => setLoginSubtitleIt(event.target.value)}
+                    minLength={5}
+                    maxLength={240}
+                    required
+                  />
+                </label>
+                <label>
+                  Titolo (inglese)
+                  <input
+                    value={loginTitleEn}
+                    onChange={(event) => setLoginTitleEn(event.target.value)}
+                    minLength={5}
+                    maxLength={120}
+                    required
+                  />
+                </label>
+                <label>
+                  Sottotitolo (inglese)
+                  <textarea
+                    value={loginSubtitleEn}
+                    onChange={(event) => setLoginSubtitleEn(event.target.value)}
+                    minLength={5}
+                    maxLength={240}
+                    required
+                  />
+                </label>
+              </fieldset>
               {supabaseStudioUrl && (
                 <a
                   className="settings-admin-link"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signInWithGoogle, supabase } from "../lib/supabase";
 import { useLocale } from "../lib/i18n";
 
@@ -24,12 +24,6 @@ const copy = {
     sent: "Codice inviato. Controlla la posta e inseriscilo qui.",
     resend: "Usa un’altra email",
     secure: "Accesso protetto da Supabase Auth",
-    sideTitle: "Il laboratorio Python della tua classe.",
-    sideText:
-      "Crea esercizi, segui i progressi e accompagna ogni studente nel suo percorso.",
-    teacherFeature: "Controllo in tempo reale",
-    studentFeature: "Feedback immediato",
-    privacyFeature: "Privacy e sicurezza by design",
     authError: "Non è stato possibile completare l’accesso. Riprova.",
   },
   en: {
@@ -46,15 +40,26 @@ const copy = {
     sent: "Code sent. Check your inbox and enter it here.",
     resend: "Use another email",
     secure: "Authentication protected by Supabase Auth",
-    sideTitle: "The Python lab for your classroom.",
-    sideText:
-      "Create exercises, follow progress and support every student on their path.",
-    teacherFeature: "Real-time monitoring",
-    studentFeature: "Immediate feedback",
-    privacyFeature: "Privacy and security by design",
     authError: "We could not complete sign-in. Please try again.",
   },
 } as const;
+
+const defaultBranding = {
+  login_title_it: "Il laboratorio Python della tua classe.",
+  login_subtitle_it:
+    "Crea esercizi, segui i progressi e accompagna ogni studente nel suo percorso.",
+  login_title_en: "The Python lab for your classroom.",
+  login_subtitle_en:
+    "Create exercises, follow progress and support every student on their path.",
+};
+
+function isBranding(value: unknown): value is typeof defaultBranding {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Record<string, unknown>;
+  return Object.keys(defaultBranding).every(
+    (key) => typeof candidate[key] === "string",
+  );
+}
 
 export function AuthScreenV2() {
   const { locale, setLocale, t } = useLocale();
@@ -69,6 +74,21 @@ export function AuthScreenV2() {
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [branding, setBranding] = useState(defaultBranding);
+
+  useEffect(() => {
+    if (!supabase) return;
+    let active = true;
+    void supabase
+      .rpc("get_public_branding")
+      .single()
+      .then(({ data, error }) => {
+        if (active && !error && isBranding(data)) setBranding(data);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function resetFeedback() {
     setMessage("");
@@ -141,26 +161,16 @@ export function AuthScreenV2() {
         </div>
         <div className="auth-showcase-copy">
           <p className="eyebrow">PYTHON · CLASSROOM · TOGETHER</p>
-          <h1>{text.sideTitle}</h1>
-          <p>{text.sideText}</p>
-          <ul>
-            <li>
-              <span className="material-symbols-rounded">visibility</span>
-              {text.teacherFeature}
-            </li>
-            <li>
-              <span className="material-symbols-rounded">bolt</span>
-              {text.studentFeature}
-            </li>
-            <li>
-              <span className="material-symbols-rounded">verified_user</span>
-              {text.privacyFeature}
-            </li>
-          </ul>
-        </div>
-        <div className="auth-code-art" aria-hidden="true">
-          <span>def learn_together():</span>
-          <span>&nbsp;&nbsp;return progress + curiosity</span>
+          <h1>
+            {locale === "it"
+              ? branding.login_title_it
+              : branding.login_title_en}
+          </h1>
+          <p>
+            {locale === "it"
+              ? branding.login_subtitle_it
+              : branding.login_subtitle_en}
+          </p>
         </div>
       </section>
 

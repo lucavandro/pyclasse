@@ -1,6 +1,6 @@
 begin;
 
-select plan(39);
+select plan(45);
 
 select has_table('public', 'profiles', 'profiles table exists');
 select has_table('public', 'app_settings', 'app_settings table exists');
@@ -70,6 +70,15 @@ select ok(
 );
 select has_column('public', 'class_assignments', 'position', 'assignments store learning-path order');
 select has_column('public', 'submissions', 'score', 'submissions store nullable scores');
+select has_column('public', 'app_settings', 'login_title_it', 'settings store the Italian login title');
+select has_column('public', 'app_settings', 'login_subtitle_it', 'settings store the Italian login subtitle');
+select has_column('public', 'app_settings', 'login_title_en', 'settings store the English login title');
+select has_column('public', 'app_settings', 'login_subtitle_en', 'settings store the English login subtitle');
+select has_function('public', 'get_public_branding', array[]::text[], 'public branding function exists');
+select ok(
+  has_function_privilege('anon', 'public.get_public_branding()', 'EXECUTE'),
+  'anonymous users can read only public login branding through the function'
+);
 select has_index('public', 'exercises', 'exercises_tags_idx', 'exercise tags have a GIN index');
 select has_index('public', 'class_assignments', 'class_assignments_class_position_idx', 'learning-path lookup is indexed');
 select has_function('public', 'student_can_submit_to_assignment', array['uuid'], 'prerequisite submission guard exists');

@@ -4,6 +4,12 @@
 
 Al primo caricamento PyClasse legge la lingua preferita del browser. L'italiano usa il catalogo `it`; tutte le altre lingue usano il catalogo inglese di fallback. Il selettore “Language” permette di cambiare lingua durante la sessione e l'attributo `lang` del documento viene aggiornato per le tecnologie assistive.
 
+Il docente può personalizzare dalle Impostazioni il titolo e il sottotitolo
+della pagina di accesso, separatamente per italiano e inglese. Prima del login
+l'applicazione legge esclusivamente questi quattro testi attraverso la funzione
+Supabase `get_public_branding`; email del docente e altre impostazioni private
+non vengono esposte agli utenti anonimi.
+
 ## Voto opzionale
 
 Quando assegna un esercizio a una classe, il docente sceglie fra **senza voto**

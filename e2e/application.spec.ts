@@ -106,7 +106,23 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     });
     await expect(studioLink).toBeVisible();
     await expect(studioLink).toHaveAttribute("target", "_blank");
+    const loginBranding = page.getByRole("group", {
+      name: "Testi della pagina di accesso",
+    });
+    await loginBranding
+      .getByRole("textbox", { name: "Titolo (italiano)", exact: true })
+      .fill("Impara Python con Classe E2E");
+    await loginBranding
+      .getByRole("textbox", {
+        name: "Sottotitolo (italiano)",
+        exact: true,
+      })
+      .fill("Un ambiente personalizzato dal docente per la propria classe.");
+    await page.getByRole("button", { name: "Salva impostazioni" }).click();
     await page.getByRole("button", { name: "Esci dall'account" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Impara Python con Classe E2E" }),
+    ).toBeVisible();
   });
 
   test("lo studente si iscrive, esegue i test e consegna", async ({ page }) => {

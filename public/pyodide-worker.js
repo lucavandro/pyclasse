@@ -1,8 +1,8 @@
-self.importScripts("https://cdn.jsdelivr.net/pyodide/v0.28.2/full/pyodide.js");
+self.importScripts("/vendor/pyodide/pyodide.js");
 let runtime;
 self.onmessage = async ({ data }) => {
   try {
-    runtime ||= await self.loadPyodide();
+    runtime ||= await self.loadPyodide({ indexURL: "/vendor/pyodide/" });
     let output = "";
     const appendOutput = (text) => {
       if (output.length < 50000) output += text + "\n";
@@ -44,18 +44,12 @@ builtins.input = __pyclasse_input
     }
     await runtime.runPythonAsync(data.code);
     if (data.mode === "test") {
-      const cases = [
-        { input: [], expected: 0 },
-        { input: [1, 2, 3, 4], expected: 6 },
-        { input: [2, 2, 2], expected: 6 },
-        { input: [-4, -3, 5, 8], expected: 4 },
-        { input: [1, 3, 5, 7], expected: 0 },
-      ];
+      const cases = Array.isArray(data.tests) ? data.tests : [];
       let passed = 0;
       for (const test of cases) {
-        const expression = `somma_pari(${JSON.stringify(test.input)})`;
-        const result = await runtime.runPythonAsync(expression);
-        if (result === test.expected) passed += 1;
+        const result = await runtime.runPythonAsync(String(test.input));
+        const normalized = String(result).trim();
+        if (normalized === String(test.expected).trim()) passed += 1;
         if (result && typeof result.destroy === "function") result.destroy();
       }
       self.postMessage({ ok: true, tests: { passed, total: cases.length } });

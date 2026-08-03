@@ -1,43 +1,32 @@
-# PyClasse — architettura MVP
+# Architettura
 
 ## Componenti
 
-- **Interfaccia:** app responsive con dashboard docente/studente, CodeMirror e worker Pyodide.
-- **Autenticazione:** Supabase Auth con provider Google; il trigger SQL crea il profilo.
-- **Dati:** Postgres Supabase con RLS per separare docenti, studenti e classi.
-- **Grading:** il worker esegue Python nel browser, limita il tempo e restituisce stdout/errori. Nell’MVP l’esito viene poi salvato in `submissions`.
-- **Hosting:** frontend statico/edge compatibile con hosting gratuito. Pyodide viene caricato da CDN.
+- **Web app:** React/Next tramite vinext, interfaccia responsive e routing client.
+- **Dati e identità:** Supabase Auth, PostgreSQL, RLS e Realtime.
+- **Editor Python:** CodeMirror caricato su richiesta; Pyodide eseguito in un Web Worker con watchdog di 8 secondi.
+- **Contenuti:** Markdown/GFM senza HTML grezzo; risorse esterne solo HTTPS.
+- **Hosting:** output Cloudflare Worker compatibile con asset Pyodide e icone self-hosted.
 
-## Flussi principali
+## Modello dati
 
-1. Il docente entra con Google, crea una classe e condivide `join_code`.
-2. Lo studente entra con Google e invoca `join_class(code)`.
-3. Il docente crea un esercizio, aggiunge test e lo collega a una classe.
-4. Lo studente modifica la bozza, esegue in Pyodide e consegna.
-5. Il docente legge le consegne e aggrega completamento, punteggio e ritardi.
+`profiles` separa docente e studenti; `classes` e `class_members` gestiscono l'appartenenza; `exercises` contiene la traccia canonica; `class_assignments` aggiunge classe, ordine, scadenza e scala di voto opzionale (`10`, `100` o `NULL`); `tests` contiene i casi visibili; `submissions` contiene bozze, consegne, esiti e attribuzione dell'ultimo aggiornamento.
 
-## Nota di sicurezza
+Le migrazioni incrementali sono l'unica fonte autorevole dello schema. Un'installazione pulita le applica tutte in ordine e non carica identità o dati didattici fittizi.
 
-I test eseguiti nel browser non sono realmente segreti. La RLS impedisce comunque agli studenti di leggere le righe `tests.is_hidden = true`; per un grading blindato futuro, l’esecuzione e i test nascosti devono passare a un judge isolato lato server.
+## Flussi
 
-## Attivazione Supabase
+1. Il primo account di un database pulito diventa docente.
+2. Il docente crea classe, esercizio, test e assegnazione.
+3. Lo studente entra tramite `join_class`, una funzione atomica che non espone le altre classi.
+4. L'editor salva la bozza e sincronizza gli interventi tramite Realtime, con polling breve di recupero dopo una disconnessione.
+5. Il browser esegue Python localmente; la consegna è accettata solo dopo i test visibili.
+6. Il docente valuta la consegna, con voto opzionale separato dall'esito.
 
-1. Creare un progetto Supabase e incollare `supabase/schema.sql` nel SQL Editor.
-2. Nello script, sostituire `docente@scuola.it` con l'email Google dell'unico docente. La tabella `app_settings` non è leggibile dal browser e un indice garantisce che esista al massimo un profilo docente.
-3. Abilitare Google in Authentication → Providers e configurare client ID/secret.
-4. Copiare `.env.example` in `.env.local` e inserire URL e anon key.
-5. Aggiungere fra i redirect autorizzati l’URL locale e quello di produzione.
+## Prestazioni
 
-### Cambiare successivamente l'email del docente
+Editor Python e parser Markdown sono suddivisi in chunk caricati solo nella schermata dell'esercizio. Le query iniziali sono parallele, gli indici coprono relazioni, tag, ordine propedeutico e monitoraggio Realtime. Gli autosalvataggi sono ritardati per evitare una scrittura per battuta.
 
-Eseguire nel SQL Editor di Supabase, sostituendo l'indirizzo:
+## Confini di sicurezza
 
-```sql
-begin;
-update public.profiles set role = 'student' where role = 'teacher';
-update public.app_settings set teacher_email = lower('nuovo-docente@scuola.it') where singleton = true;
-update public.profiles set role = 'teacher' where lower(email) = lower('nuovo-docente@scuola.it');
-commit;
-```
-
-Gli utenti normali non possono modificare `role`: il controllo è applicato nel database, non nell'interfaccia.
+Il browser usa esclusivamente la chiave anon e tutte le autorizzazioni dipendono da RLS. Test eseguiti nel browser non sono segreti: un grading autorevole richiede un judge isolato lato server. Le intestazioni di sicurezza riducono framing, MIME sniffing e accesso a capacità del dispositivo; la CSP permette `unsafe-eval` perché richiesto dal runtime Python e va rivalutata se Pyodide cambia modalità di esecuzione.

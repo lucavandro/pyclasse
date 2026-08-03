@@ -1,0 +1,121 @@
+PyClasse Source-Available Noncommercial Copyleft License, Version 1.0
+
+Copyright (c) 2026 Luca Vandro. All rights reserved except as expressly
+granted by this License.
+
+1. Definitions
+
+"Software" means PyClasse and every source file, asset, database schema,
+configuration file, and accompanying document distributed with this License.
+
+"Derivative Work" means any work based on, incorporating, modifying,
+translating, adapting, or extending all or any substantial part of the
+Software.
+
+"Corresponding Source" means all source code, build scripts, configuration,
+schemas, dependency manifests, and other material reasonably necessary to
+build, install, run, and modify the distributed Software or Derivative Work.
+
+"Commercial Distribution" means selling, licensing for a fee, renting,
+subscribing, sublicensing for consideration, or otherwise providing the
+Software or a Derivative Work, or access to its substantial functionality,
+in exchange for money, services, advertising value, or any other commercial
+consideration. It includes paid hosting, software-as-a-service, paid access,
+and bundling the Software or a Derivative Work into a paid product or service.
+Charging only the documented, direct, and reasonable cost of physical media
+and delivery, without profit or service fee, is not Commercial Distribution.
+
+2. Permission
+
+Subject to every condition in this License, Luca Vandro grants you a
+worldwide, royalty-free, non-exclusive, non-transferable except through a
+permitted distribution, revocable copyright license to use, study, copy,
+modify, and distribute the Software and Derivative Works solely without
+Commercial Distribution.
+
+3. No paid redistribution or commercial offering
+
+You may not engage in Commercial Distribution of the Software or any
+Derivative Work. You may not authorize another person or entity to do so.
+Commercial rights require a separate written license from Luca Vandro.
+
+4. Source availability and copyleft
+
+Whenever you distribute, publish, or provide network access to the Software or
+a Derivative Work, you must, at no charge:
+
+a. make its complete Corresponding Source readily available to every recipient
+   and network user through a public, durable, and plainly identified location;
+b. license the entire Software or Derivative Work under this exact License,
+   without additional restrictions;
+c. include an unmodified copy of this License and the NOTICE file; and
+d. provide build and installation instructions sufficient for a technically
+   competent recipient to create the distributed or hosted version.
+
+These obligations apply to the work as a whole when the Software or a
+Derivative Work forms a substantial or inseparable part of that work. They do
+not change the license of independent works that merely communicate with the
+Software through a documented external interface and do not incorporate or
+derive from it.
+
+5. Attribution and notices
+
+All copies and Derivative Works must preserve every copyright, license, and
+attribution notice from the Software. The README, documentation, and any
+reasonably accessible credits or "About" view accompanying a distributed or
+hosted Derivative Work must prominently state:
+
+    Based on PyClasse, originally created by Luca Vandro.
+
+Derivative Works must also identify their modifier and describe material
+changes. Attribution may not imply endorsement by Luca Vandro.
+
+6. No relicensing or circumvention
+
+You may not remove or obscure notices, apply a different license to the
+Software or a Derivative Work, impose technological or contractual measures
+that prevent recipients from exercising the rights granted here, or structure
+a transaction primarily to avoid the prohibition on Commercial Distribution.
+
+7. Contributions
+
+Unless a separate written agreement states otherwise, any contribution
+intentionally submitted for inclusion in PyClasse is licensed to Luca Vandro
+and all recipients under this License. The contributor represents that they
+have the right to grant that license.
+
+8. Trademarks and personal identity
+
+This License does not grant rights in the name, logo, trademarks, or personal
+identity of Luca Vandro, except for the attribution required by section 5.
+
+9. Termination
+
+Your rights terminate automatically upon violation. They are reinstated if you
+cure the violation within thirty days after first becoming aware of it, unless
+Luca Vandro has previously terminated your rights for the same violation.
+Sections concerning attribution, warranty, liability, and interpretation
+survive termination.
+
+10. Disclaimer of warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, TITLE, AND NON-INFRINGEMENT. YOU BEAR ALL RISK ARISING FROM USE OR
+DISTRIBUTION OF THE SOFTWARE.
+
+11. Limitation of liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, LUCA VANDRO AND CONTRIBUTORS WILL NOT
+BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN CONTRACT,
+TORT, OR OTHERWISE, ARISING FROM OR RELATED TO THE SOFTWARE OR THIS LICENSE.
+
+12. Interpretation and severability
+
+This License is the entire copyright permission granted for the Software. If a
+provision is unenforceable, it will be limited to the minimum extent necessary,
+and the remaining provisions will remain effective. No waiver is effective
+unless made in writing by Luca Vandro.
+
+This is a source-available, noncommercial license. It is not an OSI-approved
+open source license because it restricts commercial distribution.

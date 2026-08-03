@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="it">
+  <body
+    style="
+      margin: 0;
+      background: #f4f7f6;
+      font-family: Arial, sans-serif;
+      color: #173d38;
+    "
+  >
+    <main
+      style="
+        max-width: 520px;
+        margin: 32px auto;
+        padding: 32px;
+        background: #fff;
+        border: 1px solid #dfe7e5;
+        border-radius: 14px;
+      "
+    >
+      <p style="margin: 0 0 24px; font-weight: 700; color: #0d665f">
+        &gt;_ PyClasse
+      </p>
+      <h1 style="margin: 0 0 12px; font-size: 25px">
+        Il tuo codice di accesso
+      </h1>
+      <p style="color: #61736f">
+        Inserisci questo codice nella schermata di accesso. Scadrà
+        automaticamente.
+      </p>
+      <p
+        style="
+          margin: 28px 0;
+          padding: 18px;
+          text-align: center;
+          border-radius: 10px;
+          background: #edf7f5;
+          font: 700 30px monospace;
+          letter-spacing: 8px;
+        "
+      >
+        {{ .Token }}
+      </p>
+      <p style="margin: 0; color: #7a8986; font-size: 13px">
+        Se non hai richiesto tu questo codice, ignora l’email.
+      </p>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,2 @@
+-- Dati dimostrativi opzionali per lo sviluppo locale.
+-- Non inserire qui dati reali di studenti, credenziali o copie di dati di produzione.

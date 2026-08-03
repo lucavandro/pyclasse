@@ -1,0 +1,13 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+.next
+.vinext
+.wrangler
+dist
+node_modules
+npm-debug.log*
+sources
+AGENTS.md

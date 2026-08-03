@@ -1,22 +1,76 @@
 # PyClasse
 
-Piattaforma didattica per classi, esercizi Python, editor online, grading nel browser, feedback IA e report docente.
+PyClasse è una piattaforma didattica **gratuita e accessibile** per assegnare esercizi Python, eseguirli nel browser e seguire il lavoro degli studenti in tempo reale. Il progetto è pensato per fornire uno strumento didattico senza costi per docenti e studenti. I dati applicativi provengono da Supabase: il frontend non contiene dataset mock e non usa `localStorage` come fonte autorevole.
 
-## Avvio rapido
+## Funzioni principali
+
+- classi con codice di iscrizione e ruoli docente/studente;
+- esercizi con tracce Markdown, test, tag, risorse HTTPS e ordine propedeutico;
+- esecuzione Python locale tramite Pyodide in un Web Worker con timeout;
+- consegne senza voto o con voto in decimi/centesimi;
+- autosalvataggio e monitoraggio docente tramite Supabase Realtime;
+- interfaccia italiano/inglese con rilevamento della lingua;
+- autenticazione email/password, con OTP email e Google attivabili separatamente;
+- Row Level Security su tutte le tabelle applicative;
+- ambiente Docker e Supabase locale riproducibile.
+
+## Avvio locale
+
+Requisiti: Node.js 22.13+, npm e Docker Desktop.
 
 ```bash
-npm install
-copy .env.example .env.local
+npm ci
+npm run supabase:start
+npm run supabase:status
+```
+
+Copia `.env.example` in `.env.local` e inserisci l'API URL e la chiave anon locale mostrate da Supabase, quindi:
+
+```bash
+npm run supabase:reset
 npm run dev
 ```
 
-Aprire `http://localhost:3000`. Prima dell'uso reale configurare Supabase, Google OAuth e l'email dell'unico docente seguendo la [guida completa](docs/INSTALLATION_AND_DEPLOYMENT.md).
+L'app è normalmente disponibile su `http://localhost:3000`; Supabase Studio su `http://127.0.0.1:54323`.
 
-## Comandi
+In alternativa, per avviare l'applicazione in Docker senza creare
+`.env.local` (usa automaticamente le credenziali pubbliche standard del
+Supabase locale):
 
-- `npm run dev`: sviluppo locale.
-- `npm test`: build e suite automatizzata.
-- `npm run build`: build di produzione.
-- `npm run start`: avvio della build locale.
+```bash
+docker compose up --build
+```
 
-Le specifiche funzionali sono in [spec.md](spec.md). Lo schema iniziale con RLS è in [supabase/schema.sql](supabase/schema.sql).
+Supabase locale deve essere già attivo (`npm run supabase:start`). I valori
+predefiniti del Compose sono esclusivamente per lo sviluppo locale; un deploy
+deve impostare le proprie variabili Supabase.
+
+## Qualità e test
+
+```bash
+npm run check       # formato, lint, TypeScript, build e test applicativi
+npm run test:db     # schema, RLS, indici, trigger e privilegi
+npm run test:e2e    # flussi reali docente/studente con Playwright
+```
+
+`test:e2e` e `supabase:reset` ricreano il database locale: non eseguirli contro ambienti contenenti dati da conservare.
+
+## Documentazione
+
+- [Architettura](docs/ARCHITECTURE.md)
+- [Installazione e deployment](docs/INSTALLATION_AND_DEPLOYMENT.md)
+- [Funzioni didattiche](docs/LEARNING_AND_LOCALIZATION.md)
+- [Linee guida stilistiche](docs/STYLE_GUIDE.md)
+- [Privacy, GDPR e limiti operativi](docs/PRIVACY_AND_DATA_PROTECTION.md)
+- [Sicurezza e segnalazione vulnerabilità](SECURITY.md)
+- [Contribuire](CONTRIBUTING.md)
+
+## Stato e responsabilità
+
+Il software include misure tecniche di privacy e sicurezza, ma la conformità GDPR dipende dal trattamento concreto e dalle misure organizzative dell'istituto. Prima di usare dati scolastici reali occorrono valutazione del titolare/DPO, informative, accordi con i fornitori, retention, procedure per i diritti e test dell'ambiente distribuito.
+
+## Licenza
+
+Copyright © 2026 Luca Vandro.
+
+PyClasse è distribuito con la [PyClasse Source-Available Noncommercial Copyleft License 1.0](LICENSE). Modifiche e ridistribuzioni devono restare gratuite, pubblicare il sorgente, mantenere la stessa licenza e attribuire l'autore originale. La restrizione commerciale rende questa licenza non approvata OSI.

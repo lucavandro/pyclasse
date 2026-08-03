@@ -59,6 +59,40 @@ nel medesimo blocco e assegnarle un nome basato sul suo ruolo, non sul singolo
 componente. Dopo ogni modifica verificare il contrasto WCAG 2.1 AA, inclusi
 hover, focus, messaggi di errore e opzioni native dei menu a tendina.
 
+## Altri design token
+
+Lo stesso blocco `:root` centralizza anche le caratteristiche grafiche non
+cromatiche:
+
+- `--font-ui`, `--font-code` e `--font-editorial` definiscono le famiglie;
+- `--font-size-*`, `--line-height-*` e `--font-weight-*` definiscono la scala
+  tipografica;
+- `--space-*` definisce la scala di spaziatura condivisa;
+- `--radius-*` controlla la forma di campi, pulsanti, badge e pannelli;
+- `--control-min-height`, `--border-width` e `--focus-width` definiscono le
+  dimensioni accessibili dei controlli;
+- `--duration-*` e `--easing-standard` regolano le animazioni;
+- `--layer-*` definisce i livelli di sovrapposizione.
+
+Per cambiare font non bisogna intervenire sui componenti. È sufficiente
+modificare gli alias semantici, lasciando invariati i token usati dai selettori:
+
+```css
+:root {
+  --font-ui: system-ui, sans-serif;
+  --font-code: "Cascadia Code", monospace;
+  --font-editorial: Georgia, serif;
+  --radius-md: 6px;
+  --duration-normal: 0.18s;
+}
+```
+
+Geist e Geist Mono sono caricati da `app/layout.tsx` tramite `next/font` e
+assegnati rispettivamente a `--font-geist` e `--font-mono`. Per sostituirli alla
+fonte, aggiornare quel file e mantenere `--font-ui` e `--font-code` come livello
+di astrazione. Nei nuovi componenti evitare valori ripetuti scritti direttamente:
+usare il token esistente oppure aggiungerne uno semantico a questa scala.
+
 ## Gerarchia visiva
 
 - Sfondo pagina `#191a21`, pannelli `#282a36`, superfici interattive

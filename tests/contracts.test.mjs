@@ -172,10 +172,18 @@ test("il tema Dracula attivo usa token CSS centralizzati", async () => {
     "--color-purple:",
     "--color-cyan:",
     "--focus-ring:",
+    "--font-ui:",
+    "--font-code:",
+    "--font-size-base:",
+    "--space-4:",
+    "--radius-md:",
+    "--duration-normal:",
   ]) {
     assert.ok(tokens.includes(token), `Token CSS mancante: ${token}`);
   }
   assert.doesNotMatch(consumers, /#[0-9a-f]{3,8}\b|rgba?\(/i);
+  assert.doesNotMatch(consumers, /font-family:(?!\s*var\()/i);
+  assert.doesNotMatch(consumers, /font-size:(?!\s*var\()/i);
 });
 
 test("le pagine interne hanno un handler server", async () => {

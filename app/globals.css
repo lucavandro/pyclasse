@@ -17,7 +17,7 @@ body {
   margin: 0;
   background: var(--cream);
   color: var(--ink);
-  font-family: var(--font-geist), Arial, sans-serif;
+  font-family: var(--font-ui);
 }
 button,
 input {

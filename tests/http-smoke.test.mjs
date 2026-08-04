@@ -2,12 +2,18 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const baseUrl = process.env.TEST_BASE_URL;
+const requestTimeout = Number(process.env.SMOKE_REQUEST_TIMEOUT_MS || 60_000);
 const live = {
   skip: baseUrl ? false : "impostare TEST_BASE_URL per lo smoke test HTTP",
 };
 
 async function request(path) {
-  return fetch(new URL(path, baseUrl), { signal: AbortSignal.timeout(15_000) });
+  return fetch(new URL(path, baseUrl), {
+    // The Docker smoke job starts Vite from a clean checkout. Its first request
+    // to each dynamic route includes compilation and can exceed 15 seconds on a
+    // shared CI runner without indicating an unhealthy application.
+    signal: AbortSignal.timeout(requestTimeout),
+  });
 }
 
 test("tutte le rotte pubbliche rispondono dal container", live, async () => {

@@ -2,6 +2,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import type { Exercise, Profile, Submission, Workspace } from "../lib/types";
+import { useLocale } from "../lib/i18n";
+
+const statusLabels = {
+  it: {
+    draft: "in lavorazione",
+    submitted: "consegnato",
+    passed: "superato",
+    partial: "parzialmente superato",
+    failed: "da rivedere",
+  },
+  en: {
+    draft: "in progress",
+    submitted: "submitted",
+    passed: "passed",
+    partial: "partially passed",
+    failed: "needs revision",
+  },
+} as const;
 
 export function LiveMonitor({
   data,
@@ -10,6 +28,7 @@ export function LiveMonitor({
   data: Workspace;
   notify: (message: string) => void;
 }) {
+  const { locale } = useLocale();
   const [rows, setRows] = useState<Submission[]>(data.submissions);
   const assignments = useMemo(
     () => new Map(data.assignments.map((item) => [item.id, item])),
@@ -69,6 +88,7 @@ export function LiveMonitor({
               student={student}
               teacherId={data.profile.id}
               notify={notify}
+              locale={locale}
             />
           );
         })
@@ -87,12 +107,14 @@ function LiveDraft({
   student,
   teacherId,
   notify,
+  locale,
 }: {
   submission: Submission;
   exercise?: Exercise;
   student?: Profile;
   teacherId: string;
   notify: (message: string) => void;
+  locale: "it" | "en";
 }) {
   const [code, setCode] = useState(submission.code);
   async function save() {
@@ -117,10 +139,7 @@ function LiveDraft({
         <div>
           <strong>{student?.full_name || student?.email}</strong>
           <small>
-            {exercise?.title} ·{" "}
-            {submission.status === "draft"
-              ? "in lavorazione"
-              : submission.status}
+            {exercise?.title} · {statusLabels[locale][submission.status]}
           </small>
         </div>
         <time>{new Date(submission.updated_at).toLocaleTimeString()}</time>

@@ -18,6 +18,26 @@ const runNode = (script, args, options = {}) =>
     ...options,
   });
 
+function resetDatabase({ seed }) {
+  const args = ["db", "reset", "--local"];
+  if (!seed) args.push("--no-seed");
+  args.push("--agent", "no");
+  let lastError;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      runNode(supabaseCli, args, { stdio: "inherit" });
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 3) {
+        console.warn(`Reset Supabase non riuscito (tentativo ${attempt}/3).`);
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2000);
+      }
+    }
+  }
+  throw lastError;
+}
+
 function parseStatus(raw) {
   const values = {};
   for (const line of raw.split(/\r?\n/)) {
@@ -62,9 +82,9 @@ async function waitForSupabase(url, anonKey) {
   );
 }
 
-runNode(supabaseCli, ["db", "reset", "--local", "--agent", "no"], {
-  stdio: "inherit",
-});
+// The scenarios create their own isolated identities. The local demo dataset is
+// restored in the finally block so running E2E never leaves development empty.
+resetDatabase({ seed: false });
 const status = parseStatus(
   runNode(supabaseCli, ["status", "--output", "env", "--agent", "no"]),
 );
@@ -105,5 +125,6 @@ try {
       stdio: "ignore",
     });
   else server.kill("SIGTERM");
+  resetDatabase({ seed: true });
 }
 process.exitCode = exitCode;

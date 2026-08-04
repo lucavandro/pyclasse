@@ -72,11 +72,21 @@ test("applica correttamente il percorso propedeutico", () => {
     isAssignmentLocked(
       assignments,
       exercises,
-      [{ class_assignment_id: "a", student_id: "s", status: "passed" }],
+      [{ class_assignment_id: "a", student_id: "s", status: "submitted" }],
       assignments[1],
       "s",
     ),
     false,
+  );
+  assert.equal(
+    isAssignmentLocked(
+      assignments,
+      exercises,
+      [{ class_assignment_id: "a", student_id: "other", status: "submitted" }],
+      assignments[1],
+      "s",
+    ),
+    true,
   );
   exercises[0].is_prerequisite = false;
   assert.equal(

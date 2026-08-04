@@ -318,7 +318,7 @@ export function ExerciseFormV2({
           </div>
         )}
         <div className="class-assignments">
-          <strong>Assegnazioni</strong>
+          <strong>Compiti assegnati</strong>
           {data.classes.map((classroom) => {
             const link = links.find((item) => item.classId === classroom.id);
             const nextPosition =

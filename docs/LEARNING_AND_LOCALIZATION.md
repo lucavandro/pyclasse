@@ -2,7 +2,7 @@
 
 ## Lingua
 
-Al primo caricamento PyClasse legge la lingua preferita del browser. L'italiano usa il catalogo `it`; tutte le altre lingue usano il catalogo inglese di fallback. Il selettore “Language” permette di cambiare lingua durante la sessione e l'attributo `lang` del documento viene aggiornato per le tecnologie assistive.
+Al primo caricamento PyClasse legge la lingua preferita del browser. L'italiano usa il catalogo `it`; tutte le altre lingue usano il catalogo inglese di fallback. Dopo l'accesso il selettore “Language” si trova nelle Impostazioni, permette di cambiare lingua durante la sessione e aggiorna l'attributo `lang` del documento per le tecnologie assistive.
 
 Il docente può personalizzare dalle Impostazioni il titolo e il sottotitolo
 della pagina di accesso, separatamente per italiano e inglese. Prima del login
@@ -22,7 +22,32 @@ distinto dal voto.
 
 ## Esercizi propedeutici
 
-Ogni esercizio è propedeutico per impostazione predefinita. Una consegna precedente deve essere marcata `passed` dal docente prima che lo studente possa aprire e consegnare l'esercizio successivo della classe. Disabilitando “Propedeutico”, quell'esercizio non blocca i successivi. L'ordine è persistito in `class_assignments.position`; il controllo è duplicato nell'interfaccia per chiarezza e in PostgreSQL/RLS per impedire aggiramenti via API.
+Ogni esercizio è propedeutico per impostazione predefinita. Un esercizio
+precedente blocca il successivo soltanto finché non è stato consegnato: la
+valutazione del docente può avvenire in seguito e non influenza lo sblocco.
+Disabilitando “Propedeutico”, quell'esercizio non blocca i successivi. L'ordine
+è persistito in `class_assignments.position`; il controllo è duplicato
+nell'interfaccia per chiarezza e in PostgreSQL/RLS per impedire aggiramenti via
+API.
+
+## Area di lavoro dello studente
+
+La panoramica dello studente mostra il rapporto fra esercizi completati e
+compiti assegnati, senza esporre statistiche sul numero degli altri studenti.
+La sezione “Compiti assegnati” separa le attività “Da consegnare” da quelle
+“Consegnate”; ogni scheda rende evidenti classe, scadenza, valutazione, stato
+della bozza ed eventuale blocco propedeutico.
+
+Il dettaglio di un esercizio usa due tab accessibili:
+
+- **Traccia** contiene il Markdown interpretato, i vincoli e le risorse esterne;
+- **Editor e codice** contiene CodeMirror, output, esecuzione, test e consegna.
+
+Il codice viene salvato con debounce nel database. Gli aggiornamenti dello
+studente non vengono riletti e reinseriti nell'editor; soltanto un intervento
+Realtime attribuito al docente può sostituire il contenuto locale. Modificare
+una soluzione già consegnata la riporta a bozza, evitando che il polling di una
+versione precedente cancelli il lavoro in corso.
 
 ## Tag e filtro
 

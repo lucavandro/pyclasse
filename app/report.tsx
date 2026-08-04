@@ -4,6 +4,24 @@ import { supabase } from "../lib/supabase";
 import type { Submission, Workspace } from "../lib/types";
 import { scoreAsPercentage, validScore } from "../lib/learning-path.mjs";
 import { LiveMonitor } from "./live-monitor";
+import { useLocale } from "../lib/i18n";
+
+const statusLabels = {
+  it: {
+    draft: "In lavorazione",
+    submitted: "Consegnato",
+    passed: "Superato",
+    partial: "Parzialmente superato",
+    failed: "Da rivedere",
+  },
+  en: {
+    draft: "In progress",
+    submitted: "Submitted",
+    passed: "Passed",
+    partial: "Partially passed",
+    failed: "Needs revision",
+  },
+} as const;
 
 export function ReportV2({
   data,
@@ -14,6 +32,7 @@ export function ReportV2({
   reload: () => Promise<void>;
   notify: (message: string) => void;
 }) {
+  const { locale } = useLocale();
   const submissions = data.submissions.filter(
     (item) => item.status !== "draft",
   );
@@ -49,18 +68,21 @@ export function ReportV2({
           <small>Media dei compiti con voto</small>
         </article>
       </div>
-      <div className="table">
+      <div
+        className={`table${data.profile.role === "student" ? " student-report-table" : ""}`}
+      >
         <div className="table-row table-head">
-          <span>Studente</span>
+          {data.profile.role === "teacher" && <span>Studente</span>}
           <span>Esercizio</span>
           <span>Stato</span>
           <span>Valutazione</span>
-          <span>Azioni</span>
+          {data.profile.role === "teacher" && <span>Azioni</span>}
         </div>
         {submissions.map((submission) => (
           <ReviewRow
             key={submission.id}
             submission={submission}
+            locale={locale}
             data={data}
             reload={reload}
             notify={notify}
@@ -76,11 +98,13 @@ export function ReportV2({
 
 function ReviewRow({
   submission,
+  locale,
   data,
   reload,
   notify,
 }: {
   submission: Submission;
+  locale: "it" | "en";
   data: Workspace;
   reload: () => Promise<void>;
   notify: (message: string) => void;
@@ -95,6 +119,11 @@ function ReviewRow({
     (item) => item.id === submission.student_id,
   );
   const [score, setScore] = useState(String(submission.score ?? ""));
+  const grading = assignment?.grading_scale
+    ? submission.score === null
+      ? "Non ancora assegnato"
+      : `${submission.score}/${assignment.grading_scale}`
+    : "Senza voto";
   async function evaluate(status: "passed" | "failed") {
     if (!supabase) return;
     const numeric = Number(score);
@@ -121,13 +150,26 @@ function ReviewRow({
       );
     }
   }
+  if (data.profile.role === "student") {
+    return (
+      <div className="table-row">
+        <span className="student-report-exercise">{exercise?.title}</span>
+        <span className={`submission-status status-${submission.status}`}>
+          {statusLabels[locale][submission.status]}
+        </span>
+        <span className="student-report-grade">{grading}</span>
+      </div>
+    );
+  }
   return (
     <div className="table-row">
       <span>
         <strong>{student?.full_name || student?.email}</strong>
       </span>
       <span>{exercise?.title}</span>
-      <span>{submission.status}</span>
+      <span className={`submission-status status-${submission.status}`}>
+        {statusLabels[locale][submission.status]}
+      </span>
       <span>
         {assignment?.grading_scale ? (
           <label>
@@ -147,23 +189,12 @@ function ReviewRow({
         )}
       </span>
       <span>
-        {data.profile.role === "teacher" ? (
-          <>
-            <button className="primary" onClick={() => void evaluate("passed")}>
-              Superato
-            </button>
-            <button
-              className="secondary"
-              onClick={() => void evaluate("failed")}
-            >
-              Da rivedere
-            </button>
-          </>
-        ) : submission.score === null ? (
-          "Senza voto"
-        ) : (
-          `${submission.score}/${assignment?.grading_scale ?? 100}`
-        )}
+        <button className="primary" onClick={() => void evaluate("passed")}>
+          Superato
+        </button>
+        <button className="secondary" onClick={() => void evaluate("failed")}>
+          Da rivedere
+        </button>
       </span>
     </div>
   );

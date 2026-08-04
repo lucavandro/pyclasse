@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useRef, type Dispatch, type SetStateAction } from "react";
 import { supabase } from "../lib/supabase";
 
-type Draft = { id: string; status: string; code: string } | undefined;
 type Assignment = { id: string } | undefined;
 
 export function useStudentDraft({
   assignment,
-  existing,
   studentId,
   enabled,
   code,
@@ -16,13 +14,13 @@ export function useStudentDraft({
   notify,
 }: {
   assignment: Assignment;
-  existing: Draft;
   studentId: string;
   enabled: boolean;
   code: string;
   setCode: Dispatch<SetStateAction<string>>;
   notify: (message: string) => void;
 }) {
+  const synchronizedCode = useRef(code);
   useEffect(() => {
     if (!supabase || !assignment || !enabled) return;
     const channel = supabase
@@ -45,40 +43,23 @@ export function useStudentDraft({
             remote.student_id === studentId &&
             remote.updated_by !== studentId &&
             typeof remote.code === "string"
-          )
+          ) {
+            synchronizedCode.current = remote.code;
             setCode(remote.code);
+          }
         },
       )
       .subscribe();
-    const fallback = setInterval(async () => {
-      const result = await supabase!
-        .from("submissions")
-        .select("code,updated_by")
-        .eq("class_assignment_id", assignment.id)
-        .eq("student_id", studentId)
-        .maybeSingle();
-      if (
-        result.data?.updated_by !== studentId &&
-        typeof result.data?.code === "string"
-      )
-        setCode((current) =>
-          current === result.data!.code ? current : result.data!.code,
-        );
-    }, 1500);
     return () => {
-      clearInterval(fallback);
       void supabase?.removeChannel(channel);
     };
   }, [assignment, enabled, setCode, studentId]);
 
   useEffect(() => {
-    if (
-      !supabase ||
-      !assignment ||
-      !enabled ||
-      (existing && existing.status !== "draft")
-    )
-      return;
+    if (!supabase || !assignment || !enabled) return;
+    // Initial database content and teacher-authored Realtime updates are already
+    // synchronized; only a genuine student edit should create a new draft.
+    if (code === synchronizedCode.current) return;
     const timer = setTimeout(async () => {
       const result = await supabase!.from("submissions").upsert(
         {
@@ -96,7 +77,8 @@ export function useStudentDraft({
       );
       if (result.error)
         notify(`Salvataggio automatico non riuscito: ${result.error.message}`);
+      else synchronizedCode.current = code;
     }, 700);
     return () => clearTimeout(timer);
-  }, [assignment, code, enabled, existing, notify, studentId]);
+  }, [assignment, code, enabled, notify, studentId]);
 }

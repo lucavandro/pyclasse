@@ -134,14 +134,24 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
       page.getByRole("heading", { name: "Classe E2E · Informatica" }),
     ).toBeVisible();
     await page.getByRole("button", { name: "Esercizi" }).click();
-    await expect(page.getByText("#funzioni #base")).toBeVisible();
-    await page.getByText("Risposta universale").click();
+    await expect(page.getByText("#funzioni", { exact: true })).toBeVisible();
+    await expect(page.getByText("#base", { exact: true })).toBeVisible();
+    await expect(page.locator(".student-task-deadline")).toBeVisible();
+    await expect(page.locator(".student-task-grading")).toContainText(
+      "Voto in decimi",
+    );
+    await page.getByRole("button", { name: "Inizia", exact: true }).click();
     await expect(
       page.getByRole("heading", { name: "Obiettivo" }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Video introduttivo" }),
     ).toHaveAttribute("href", "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+    await page.getByRole("tab", { name: "Editor e codice" }).click();
+    const studentCode = page.locator(".cm-content");
+    await studentCode.fill("def answer():\n    return 42");
+    await page.waitForTimeout(2_200);
+    await expect(studentCode).toContainText("return 42");
     await page.getByRole("button", { name: "Test" }).click();
     await expect(page.getByText("1 test su 1 superati.")).toBeVisible({
       timeout: 45_000,
@@ -150,6 +160,15 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await expect(page.getByRole("status")).toContainText(
       "Soluzione consegnata",
     );
+    await page.getByRole("button", { name: "Report", exact: true }).click();
+    const studentReport = page.locator(".student-report-table");
+    await expect(
+      studentReport.getByText(student.name, { exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      studentReport.getByText("Azioni", { exact: true }),
+    ).toHaveCount(0);
+    await expect(page.getByText("Non ancora assegnato")).toBeVisible();
   });
 
   test("il docente monitora e modifica il codice dello studente in tempo reale", async ({
@@ -161,11 +180,23 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     const teacherPage = await teacherContext.newPage();
     await login(studentPage, student);
     await studentPage.getByRole("button", { name: "Esercizi" }).click();
-    await studentPage.getByText("Risposta universale").click();
+    await studentPage.getByRole("tab", { name: "Consegnati 1" }).click();
+    await studentPage
+      .getByRole("button", { name: "Rivedi consegna", exact: true })
+      .click();
+    await studentPage.getByRole("tab", { name: "Editor e codice" }).click();
     await login(teacherPage, teacher);
     await teacherPage
       .getByRole("button", { name: "Report", exact: true })
       .click();
+    await expect(
+      teacherPage.getByText("Consegnato", { exact: true }),
+    ).toBeVisible();
+    await teacherPage.getByRole("button", { name: "Comprimi menu" }).click();
+    await expect(teacherPage.locator("main.app-shell")).toHaveClass(
+      /sidebar-collapsed/,
+    );
+    await teacherPage.getByRole("button", { name: "Espandi menu" }).click();
     await expect(
       teacherPage.getByRole("heading", {
         name: "Monitoraggio lavori in corso",
@@ -191,8 +222,12 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await expect(
       page.getByRole("link", { name: "Apri amministrazione Supabase" }),
     ).toHaveCount(0);
-    const consent = page.getByLabel(/Abilito volontariamente/);
-    await consent.check();
+    await expect(page.getByLabel("Language")).toBeVisible();
+    const consent = page.getByLabel("Consenti l’invio di dati a Puter");
+    await page
+      .getByText("Consenti l’invio di dati a Puter", { exact: true })
+      .click();
+    await expect(consent).toBeChecked();
     await page.getByRole("button", { name: "Salva impostazioni" }).click();
     await page.reload();
     await expect(consent).toBeChecked();

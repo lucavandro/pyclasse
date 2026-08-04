@@ -55,12 +55,17 @@ npm run test:e2e    # flussi reali docente/studente con Playwright
 
 `test:e2e` e `supabase:reset` ricreano il database locale: non eseguirli contro ambienti contenenti dati da conservare.
 
+Il reset locale carica anche utenti, classi, esercizi, test e consegne fittizie.
+Le credenziali e gli scenari disponibili sono descritti in
+[Dati per lo sviluppo locale](docs/LOCAL_DEVELOPMENT_DATA.md).
+
 ## Documentazione
 
 - [Architettura](docs/ARCHITECTURE.md)
 - [Installazione e deployment](docs/INSTALLATION_AND_DEPLOYMENT.md)
 - [Funzioni didattiche](docs/LEARNING_AND_LOCALIZATION.md)
 - [Linee guida stilistiche](docs/STYLE_GUIDE.md)
+- [Dati e credenziali per lo sviluppo locale](docs/LOCAL_DEVELOPMENT_DATA.md)
 - [Privacy, GDPR e limiti operativi](docs/PRIVACY_AND_DATA_PROTECTION.md)
 - [Sicurezza e segnalazione vulnerabilità](SECURITY.md)
 - [Contribuire](CONTRIBUTING.md)

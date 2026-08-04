@@ -111,6 +111,35 @@ test("la configurazione Supabase limita righe e redirect locali", async () => {
   assert.match(config, /\[db\.migrations\][\s\S]*enabled = true/);
 });
 
+test("lo sviluppo locale include un dataset completo e credenziali documentate", async () => {
+  const [seed, documentation] = await Promise.all([
+    read("supabase/seed.sql"),
+    read("docs/LOCAL_DEVELOPMENT_DATA.md"),
+  ]);
+  assert.match(seed, /teacher@pyclasse\.test/);
+  for (let index = 1; index <= 5; index += 1) {
+    assert.match(seed, new RegExp(`student${index}@pyclasse\\.test`));
+  }
+  for (const table of [
+    "auth.users",
+    "auth.identities",
+    "public.classes",
+    "public.class_members",
+    "public.exercises",
+    "public.tests",
+    "public.class_assignments",
+    "public.submissions",
+  ]) {
+    assert.match(
+      seed,
+      new RegExp(`insert into ${table.replace(".", "\\.")}`, "i"),
+    );
+  }
+  assert.match(documentation, /Teacher2026!/);
+  assert.match(documentation, /Student2026!/);
+  assert.match(documentation, /solo per Supabase locale/i);
+});
+
 test("Supabase include test pgTAP per schema, RLS e permessi", async () => {
   const sql = await read("supabase/tests/database.test.sql");
   assert.match(sql, /select plan\(45\)/i);

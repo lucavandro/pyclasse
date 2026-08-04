@@ -1,4 +1,3 @@
-/* eslint-disable react/no-unescaped-entities */
 "use client";
 
 import {
@@ -259,6 +258,7 @@ export default function Home() {
     null,
   );
   const [toast, setToast] = useState("");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const userRef = useRef<User | null>(null);
 
   const reload = useCallback(async (currentUser?: User | null) => {
@@ -414,12 +414,24 @@ export default function Home() {
                     : t("settings");
 
   return (
-    <main className="app-shell">
+    <main
+      className={`app-shell${sidebarCollapsed ? " sidebar-collapsed" : ""}`}
+    >
       <aside className="sidebar">
-        <button className="brand" onClick={() => navigate("home")}>
-          <span className="brand-mark">&gt;_</span>
-          <span>PyClasse</span>
-        </button>
+        <div className="sidebar-head">
+          <button
+            className="hamburger"
+            aria-label={sidebarCollapsed ? "Espandi menu" : "Comprimi menu"}
+            aria-expanded={!sidebarCollapsed}
+            onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
+          >
+            <Icon name={sidebarCollapsed ? "menu_open" : "menu"} />
+          </button>
+          <button className="brand" onClick={() => navigate("home")}>
+            <span className="brand-mark">&gt;_</span>
+            <span>PyClasse</span>
+          </button>
+        </div>
         <nav aria-label="Navigazione principale">
           {(
             [
@@ -441,17 +453,6 @@ export default function Home() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <label>
-            <span className="sr-only">Language</span>
-            <select
-              aria-label="Language"
-              value={locale}
-              onChange={(event) => setLocale(event.target.value as "it" | "en")}
-            >
-              <option value="it">Italiano</option>
-              <option value="en">English</option>
-            </select>
-          </label>
           <div className="profile">
             <span className="avatar dark">{initials(workspace.profile)}</span>
             <div>
@@ -463,6 +464,7 @@ export default function Home() {
               </small>
             </div>
             <button
+              className="logout-button"
               aria-label="Esci dall'account"
               onClick={() => void handleSignOut()}
             >
@@ -542,8 +544,8 @@ export default function Home() {
             );
             return assignment && assignmentIsLocked(workspace, assignment) ? (
               <Empty>
-                Completa correttamente gli esercizi propedeutici precedenti per
-                sbloccare questa attività.
+                Consegna gli esercizi propedeutici precedenti per sbloccare
+                questa attività.
               </Empty>
             ) : (
               <Editor
@@ -558,7 +560,13 @@ export default function Home() {
           <ReportV2 data={workspace} reload={reload} notify={notify} />
         )}
         {view === "settings" && (
-          <SettingsPanel data={workspace} reload={reload} notify={notify} />
+          <SettingsPanel
+            data={workspace}
+            locale={locale}
+            setLocale={setLocale}
+            reload={reload}
+            notify={notify}
+          />
         )}
         {((view === "class-detail" && !selectedClass) ||
           (view === "editor" && !selectedExercise)) && (
@@ -646,6 +654,14 @@ function Dashboard({
 }) {
   const published = data.assignments.filter((item) => item.published_at);
   const submitted = data.submissions.filter((item) => item.status !== "draft");
+  const studentCompletedIds = new Set(
+    submitted
+      .filter((item) => item.student_id === data.profile.id)
+      .map((item) => item.class_assignment_id),
+  );
+  const completedExercises = published.filter((item) =>
+    studentCompletedIds.has(item.id),
+  ).length;
   const normalizedScores = submitted.flatMap((item) => {
     const assignment = data.assignments.find(
       (candidate) => candidate.id === item.class_assignment_id,
@@ -653,10 +669,13 @@ function Dashboard({
     const value = scoreAsPercentage(item.score, assignment?.grading_scale);
     return value === null ? [] : [value];
   });
-  const completion = percent(
-    submitted.length,
-    published.length * Math.max(1, data.memberships.length),
-  );
+  const completion =
+    data.profile.role === "student"
+      ? percent(completedExercises, published.length)
+      : percent(
+          submitted.length,
+          published.length * Math.max(1, data.memberships.length),
+        );
   const avg = normalizedScores.length
     ? Math.round(
         normalizedScores.reduce((sum, item) => sum + item, 0) /
@@ -664,6 +683,10 @@ function Dashboard({
       )
     : 0;
   const upcoming = published
+    .filter(
+      (item) =>
+        data.profile.role !== "student" || !studentCompletedIds.has(item.id),
+    )
     .filter((item) => item.deadline && new Date(item.deadline) >= new Date())
     .slice(0, 3);
   return (
@@ -688,17 +711,29 @@ function Dashboard({
           </div>
         </div>
       </section>
-      <div className="stats-grid">
-        <Stat
-          label="Studenti iscritti"
-          value={String(data.memberships.length)}
-          delta="iscrizioni correnti"
-          icon="person_check"
-        />
+      <div
+        className={`stats-grid${data.profile.role === "student" ? " student-stats" : ""}`}
+      >
+        {data.profile.role === "teacher" && (
+          <Stat
+            label="Studenti iscritti"
+            value={String(data.memberships.length)}
+            delta="iscrizioni correnti"
+            icon="person_check"
+          />
+        )}
         <Stat
           label="Esercizi"
-          value={String(data.exercises.length)}
-          delta={`${published.length} assegnazioni pubblicate`}
+          value={
+            data.profile.role === "student"
+              ? `${completedExercises}/${published.length}`
+              : String(data.exercises.length)
+          }
+          delta={
+            data.profile.role === "student"
+              ? "completati / assegnati"
+              : `${published.length} compiti pubblicati`
+          }
           icon="code_blocks"
         />
         <Stat
@@ -797,26 +832,28 @@ function Classes({
   }
   return (
     <section className="classes-page">
-      <div className="classes-summary">
-        <Stat
-          label="Classi"
-          value={String(data.classes.length)}
-          delta="accessibili"
-          icon="groups"
-        />
-        <Stat
-          label="Partecipanti"
-          value={String(data.memberships.length)}
-          delta="iscrizioni"
-          icon="person_check"
-        />
-        <Stat
-          label="Assegnazioni"
-          value={String(data.assignments.length)}
-          delta="totali"
-          icon="assignment"
-        />
-      </div>
+      {data.profile.role === "teacher" && (
+        <div className="classes-summary">
+          <Stat
+            label="Classi"
+            value={String(data.classes.length)}
+            delta="accessibili"
+            icon="groups"
+          />
+          <Stat
+            label="Partecipanti"
+            value={String(data.memberships.length)}
+            delta="iscrizioni"
+            icon="person_check"
+          />
+          <Stat
+            label="Compiti assegnati"
+            value={String(data.assignments.length)}
+            delta="totali"
+            icon="assignment"
+          />
+        </div>
+      )}
       {data.profile.role === "student" && (
         <div className="join-strip">
           <div>
@@ -835,7 +872,9 @@ function Classes({
           </div>
         </div>
       )}
-      <div className="class-grid">
+      <div
+        className={`class-grid${data.profile.role === "student" ? " student-class-grid" : ""}`}
+      >
         {data.classes.map((item) => (
           <article className="managed-class" key={item.id}>
             <div className="class-card-head">
@@ -850,15 +889,17 @@ function Classes({
               </div>
             </div>
             <div className="class-metrics">
-              <span>
-                <strong>
-                  {
-                    data.memberships.filter((m) => m.class_id === item.id)
-                      .length
-                  }
-                </strong>
-                <small>partecipanti</small>
-              </span>
+              {data.profile.role === "teacher" && (
+                <span>
+                  <strong>
+                    {
+                      data.memberships.filter((m) => m.class_id === item.id)
+                        .length
+                    }
+                  </strong>
+                  <small>partecipanti</small>
+                </span>
+              )}
               <span>
                 <strong>
                   {
@@ -866,7 +907,7 @@ function Classes({
                       .length
                   }
                 </strong>
-                <small>assegnazioni</small>
+                <small>compiti assegnati</small>
               </span>
             </div>
             {data.profile.role === "teacher" && (
@@ -951,8 +992,8 @@ function ClassDetail({
             {classroom.name} · {classroom.subject}
           </h2>
           <p>
-            {members.length} partecipanti · {classAssignments.length}{" "}
-            assegnazioni
+            {members.length} partecipanti · {classAssignments.length} compiti
+            assegnati
           </p>
         </div>
         {data.profile.role === "teacher" && (
@@ -1093,6 +1134,205 @@ function Exercises({
   data: Workspace;
   navigate: (v: View, id?: string) => void;
 }) {
+  return data.profile.role === "student" ? (
+    <StudentExercises data={data} navigate={navigate} />
+  ) : (
+    <TeacherExercises data={data} navigate={navigate} />
+  );
+}
+
+function StudentExercises({
+  data,
+  navigate,
+}: {
+  data: Workspace;
+  navigate: (v: View, id?: string) => void;
+}) {
+  const [filter, setFilter] = useState<"todo" | "submitted">("todo");
+  const items = data.assignments
+    .filter((assignment) => assignment.published_at)
+    .map((assignment) => {
+      const exercise = data.exercises.find(
+        (candidate) => candidate.id === assignment.exercise_id,
+      );
+      const classroom = data.classes.find(
+        (candidate) => candidate.id === assignment.class_id,
+      );
+      const submission = data.submissions.find(
+        (candidate) =>
+          candidate.class_assignment_id === assignment.id &&
+          candidate.student_id === data.profile.id,
+      );
+      return { assignment, exercise, classroom, submission };
+    })
+    .filter((item) => item.exercise);
+  const delivered = items.filter(
+    (item) => item.submission && item.submission.status !== "draft",
+  );
+  const todo = items.filter(
+    (item) => !item.submission || item.submission.status === "draft",
+  );
+  const visible = (filter === "todo" ? todo : delivered).sort((a, b) => {
+    const left = a.assignment.deadline
+      ? new Date(a.assignment.deadline).getTime()
+      : Number.MAX_SAFE_INTEGER;
+    const right = b.assignment.deadline
+      ? new Date(b.assignment.deadline).getTime()
+      : Number.MAX_SAFE_INTEGER;
+    return left - right;
+  });
+
+  return (
+    <section className="student-tasks-page">
+      <header className="student-tasks-hero">
+        <div>
+          <p className="eyebrow">IL TUO LAVORO</p>
+          <h2>Compiti assegnati</h2>
+          <p>
+            Individua subito le attività da completare e consulta separatamente
+            quelle già consegnate.
+          </p>
+        </div>
+        <div className="student-task-progress" aria-label="Riepilogo compiti">
+          <strong>{delivered.length}</strong>
+          <span>di {items.length} consegnati</span>
+        </div>
+      </header>
+      <div
+        className="task-status-filter"
+        role="tablist"
+        aria-label="Stato compiti"
+      >
+        <button
+          role="tab"
+          aria-selected={filter === "todo"}
+          className={filter === "todo" ? "active" : ""}
+          onClick={() => setFilter("todo")}
+        >
+          <Icon name="pending_actions" /> Da consegnare
+          <span>{todo.length}</span>
+        </button>
+        <button
+          role="tab"
+          aria-selected={filter === "submitted"}
+          className={filter === "submitted" ? "active" : ""}
+          onClick={() => setFilter("submitted")}
+        >
+          <Icon name="task_alt" /> Consegnati
+          <span>{delivered.length}</span>
+        </button>
+      </div>
+      <div className="student-task-list" role="tabpanel">
+        {visible.length ? (
+          visible.map(({ assignment, exercise, classroom, submission }) => {
+            if (!exercise) return null;
+            const locked = assignmentIsLocked(data, assignment);
+            const overdue = Boolean(
+              assignment.deadline &&
+                new Date(assignment.deadline) < new Date() &&
+                (!submission || submission.status === "draft"),
+            );
+            const deliveredItem = Boolean(
+              submission && submission.status !== "draft",
+            );
+            return (
+              <article
+                className={`student-task-card${locked ? " is-locked" : ""}${overdue ? " is-overdue" : ""}`}
+                key={assignment.id}
+              >
+                <div className="student-task-state">
+                  <span>
+                    <Icon
+                      name={
+                        locked
+                          ? "lock"
+                          : deliveredItem
+                            ? "task_alt"
+                            : "edit_note"
+                      }
+                    />
+                    {locked
+                      ? "Bloccato"
+                      : deliveredItem
+                        ? "Consegnato"
+                        : submission
+                          ? "Bozza salvata"
+                          : "Da iniziare"}
+                  </span>
+                  <small>{classroom?.name}</small>
+                </div>
+                <div className="student-task-main">
+                  <h3>{exercise.title}</h3>
+                  <p>
+                    {
+                      data.tests.filter(
+                        (test) => test.exercise_id === exercise.id,
+                      ).length
+                    }{" "}
+                    test automatici · {exercise.max_points} punti
+                  </p>
+                  {exercise.tags.length > 0 && (
+                    <div className="student-task-tags">
+                      {exercise.tags.map((tag) => (
+                        <span key={tag}>#{tag}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="student-task-metadata">
+                  <div className="student-task-deadline">
+                    <span>{overdue ? "SCADUTO" : "SCADENZA"}</span>
+                    <strong>
+                      {assignment.deadline
+                        ? formatDate(assignment.deadline)
+                        : "Nessuna scadenza"}
+                    </strong>
+                  </div>
+                  <div className="student-task-grading">
+                    <span>VALUTAZIONE</span>
+                    <strong>
+                      {assignment.grading_scale
+                        ? `Voto in ${assignment.grading_scale === 10 ? "decimi" : "centesimi"}`
+                        : "Senza voto"}
+                    </strong>
+                  </div>
+                </div>
+                <button
+                  className={deliveredItem ? "secondary" : "primary"}
+                  disabled={locked}
+                  onClick={() => navigate("editor", exercise.id)}
+                >
+                  {locked
+                    ? "Completa i precedenti"
+                    : deliveredItem
+                      ? "Rivedi consegna"
+                      : submission
+                        ? "Continua"
+                        : "Inizia"}
+                  {!locked && <Icon name="arrow_forward" />}
+                </button>
+              </article>
+            );
+          })
+        ) : (
+          <Empty>
+            {filter === "todo"
+              ? "Non hai compiti da consegnare."
+              : "Non hai ancora consegnato alcun compito."}
+          </Empty>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function TeacherExercises({
+  data,
+  navigate,
+}: {
+  data: Workspace;
+  navigate: (v: View, id?: string) => void;
+}) {
   const allTags = [
     ...new Set(data.exercises.flatMap((item) => item.tags)),
   ].sort();
@@ -1102,14 +1342,28 @@ function Exercises({
     : data.exercises;
   return (
     <section className="panel full-panel repository">
-      <div className="panel-head">
+      <div className="panel-head exercise-library-head">
         <div>
-          <p className="eyebrow">DATI SUPABASE</p>
-          <h3>Repository esercizi</h3>
+          <p className="eyebrow">
+            {data.profile.role === "student"
+              ? "IL TUO PERCORSO"
+              : "LIBRERIA DIDATTICA"}
+          </p>
+          <h3>
+            {data.profile.role === "student"
+              ? "Compiti assegnati"
+              : "Repository esercizi"}
+          </h3>
+          <p className="exercise-library-intro">
+            {data.profile.role === "student"
+              ? "Svolgi le attività nell’ordine previsto e controlla scadenze e modalità di valutazione."
+              : "Organizza, filtra e assegna le attività Python alle tue classi."}
+          </p>
         </div>
-        <div>
-          <label>
-            Filtra per tag{" "}
+        <div className="exercise-library-tools">
+          <label className="exercise-filter">
+            <Icon name="filter_alt" />
+            <span>Filtra per tag</span>
             <select
               aria-label="Filtra per tag"
               value={tag}
@@ -1121,7 +1375,9 @@ function Exercises({
               ))}
             </select>
           </label>
-          <span className="repo-count"> {visible.length} esercizi</span>
+          <span className="repo-count">
+            {visible.length} {visible.length === 1 ? "esercizio" : "esercizi"}
+          </span>
         </div>
       </div>
       {visible.length ? (
@@ -1133,7 +1389,10 @@ function Exercises({
             ? assignmentIsLocked(data, assignment)
             : false;
           return (
-            <article className="repository-row" key={item.id}>
+            <article
+              className={`repository-row exercise-card${locked ? " is-locked" : ""}`}
+              key={item.id}
+            >
               <button
                 className="repo-title"
                 disabled={locked}
@@ -1142,7 +1401,7 @@ function Exercises({
                 <span className="assignment-icon violet">
                   <Icon name={locked ? "lock" : "code_blocks"} />
                 </span>
-                <span>
+                <span className="exercise-card-copy">
                   <strong>{item.title}</strong>
                   <small>
                     {data.tests.filter((t) => t.exercise_id === item.id).length}{" "}
@@ -1150,13 +1409,14 @@ function Exercises({
                     {item.is_prerequisite ? "Propedeutico" : "Non propedeutico"}
                   </small>
                   {item.tags.length > 0 && (
-                    <small>
+                    <span className="exercise-tags" aria-label="Tag esercizio">
                       {item.tags.map((value) => `#${value}`).join(" ")}
-                    </small>
+                    </span>
                   )}
                 </span>
               </button>
-              <span>
+              <span className={`verification-chip${locked ? " locked" : ""}`}>
+                <Icon name={locked ? "lock" : "verified"} />
                 {locked
                   ? "Bloccato"
                   : item.verification_mode === "ai"
@@ -1201,10 +1461,14 @@ function Exercises({
 
 function SettingsPanel({
   data,
+  locale,
+  setLocale,
   reload,
   notify,
 }: {
   data: Workspace;
+  locale: "it" | "en";
+  setLocale: (locale: "it" | "en") => void;
   reload: () => Promise<void>;
   notify: (v: string) => void;
 }) {
@@ -1258,6 +1522,26 @@ function SettingsPanel({
         <p className="eyebrow">CONFIGURAZIONE DAL DATABASE</p>
         <h3>Impostazioni</h3>
         <form onSubmit={(e) => void save(e)}>
+          <fieldset className="settings-section language-settings">
+            <legend>Lingua dell’interfaccia</legend>
+            <label htmlFor="settings-language">
+              <span>
+                <Icon name="language" /> Lingua
+              </span>
+              <select
+                id="settings-language"
+                aria-label="Language"
+                value={locale}
+                onChange={(event) =>
+                  setLocale(event.target.value as "it" | "en")
+                }
+              >
+                <option value="it">Italiano</option>
+                <option value="en">English</option>
+              </select>
+            </label>
+            <small>La modifica viene applicata immediatamente.</small>
+          </fieldset>
           {data.profile.role === "teacher" && (
             <>
               <label>
@@ -1323,21 +1607,30 @@ function SettingsPanel({
               )}
             </>
           )}
-          <label>
-            <input
-              type="checkbox"
-              checked={ai}
-              onChange={(e) => setAi(e.target.checked)}
-            />{" "}
-            Abilito volontariamente l'invio a Puter di prompt, errori e codice
-            per le funzioni IA.
-          </label>
-          <p>
-            <small>
-              Il consenso è facoltativo, registrato nel database e revocabile in
-              ogni momento.
-            </small>
-          </p>
+          <fieldset className="settings-section puter-consent">
+            <legend>Funzioni IA esterne</legend>
+            <label className="consent-switch">
+              <input
+                type="checkbox"
+                checked={ai}
+                onChange={(e) => setAi(e.target.checked)}
+              />
+              <span className="switch-track" aria-hidden="true">
+                <span />
+              </span>
+              <span className="consent-copy">
+                <strong>Consenti l’invio di dati a Puter</strong>
+                <small>
+                  Prompt, errori e codice vengono inviati esclusivamente quando
+                  utilizzi volontariamente le funzioni IA.
+                </small>
+              </span>
+            </label>
+            <p className="consent-privacy-note">
+              <Icon name="shield" /> Il consenso è facoltativo, registrato nel
+              database e revocabile in ogni momento.
+            </p>
+          </fieldset>
           <button className="primary">Salva impostazioni</button>
         </form>
       </div>
@@ -1371,11 +1664,11 @@ function Editor({
   const [output, setOutput] = useState("Pronto.");
   const [running, setRunning] = useState(false);
   const [passed, setPassed] = useState(0);
+  const [activeTab, setActiveTab] = useState<"brief" | "code">("brief");
   const workerRef = useRef<Worker | null>(null);
   useEffect(() => () => workerRef.current?.terminate(), []);
   useStudentDraft({
     assignment,
-    existing,
     studentId: data.profile.id,
     enabled: data.profile.role === "student",
     code,
@@ -1458,17 +1751,63 @@ function Editor({
     notify("Soluzione consegnata");
   }
   return (
-    <div className="editor-layout">
-      <section className="brief">
-        <button className="back" onClick={() => history.back()}>
-          <Icon name="arrow_back" /> Esercizi
+    <div className="editor-layout exercise-workbench">
+      <button className="back workbench-back" onClick={() => history.back()}>
+        <Icon name="arrow_back" /> Torna ai compiti
+      </button>
+      <header className="workbench-header">
+        <div>
+          <p className="eyebrow">ESERCIZIO PYTHON</p>
+          <h2>{exercise.title}</h2>
+          <div className="workbench-meta">
+            <span>
+              <Icon name="event" />
+              {assignment?.deadline
+                ? `Scadenza ${formatDate(assignment.deadline)}`
+                : "Nessuna scadenza"}
+            </span>
+            <span>
+              <Icon name="science" /> {tests.length} test automatici
+            </span>
+            <span>
+              <Icon name="workspace_premium" /> {exercise.max_points} punti
+            </span>
+          </div>
+        </div>
+        <span className="workbench-save-state">
+          <Icon name="cloud_done" /> Salvataggio automatico attivo
+        </span>
+      </header>
+      <div
+        className="workbench-tabs"
+        role="tablist"
+        aria-label="Contenuto esercizio"
+      >
+        <button
+          role="tab"
+          aria-selected={activeTab === "brief"}
+          aria-controls="exercise-brief-panel"
+          className={activeTab === "brief" ? "active" : ""}
+          onClick={() => setActiveTab("brief")}
+        >
+          <Icon name="description" /> Traccia
         </button>
-        <p className="eyebrow">
-          {assignment
-            ? `Scadenza ${formatDate(assignment.deadline)}`
-            : "NON ASSEGNATO"}
-        </p>
-        <h2>{exercise.title}</h2>
+        <button
+          role="tab"
+          aria-selected={activeTab === "code"}
+          aria-controls="exercise-code-panel"
+          className={activeTab === "code" ? "active" : ""}
+          onClick={() => setActiveTab("code")}
+        >
+          <Icon name="code" /> Editor e codice
+        </button>
+      </div>
+      <section
+        className="brief workbench-panel"
+        id="exercise-brief-panel"
+        role="tabpanel"
+        hidden={activeTab !== "brief"}
+      >
         <Suspense fallback={<p>{exercise.description}</p>}>
           <MarkdownContent>{exercise.description}</MarkdownContent>
         </Suspense>
@@ -1505,43 +1844,64 @@ function Editor({
             {exercise.max_points} punti
           </span>
         </div>
+        <button
+          className="primary brief-next"
+          onClick={() => setActiveTab("code")}
+        >
+          Apri l’editor <Icon name="arrow_forward" />
+        </button>
       </section>
-      <section className="workspace">
-        <div className="editor-toolbar">
-          <span>main.py</span>
-          <span>Python nel browser</span>
+      <section
+        className="workspace workbench-panel"
+        id="exercise-code-panel"
+        role="tabpanel"
+        hidden={activeTab !== "code"}
+      >
+        <div className="editor-toolbar professional-toolbar">
+          <span>
+            <Icon name="code" /> main.py
+          </span>
+          <span>Python nel browser · modifiche salvate automaticamente</span>
         </div>
         <Suspense
           fallback={<div className="editor-loading">Caricamento editor…</div>}
         >
           <PythonEditor value={code} onChange={setCode} />
         </Suspense>
-        <div className="console">
+        <div className="console professional-console">
+          <header>
+            <span>
+              <Icon name="terminal" /> Output
+            </span>
+            <small>{running ? "Esecuzione in corso…" : "Pronto"}</small>
+          </header>
           <pre aria-live="polite">{output}</pre>
         </div>
-        <div className="runbar">
-          <button
-            className="secondary"
-            onClick={() => run("run_interactive")}
-            disabled={running}
-          >
-            Esegui
-          </button>
-          {exercise.verification_mode === "tests" && (
+        <div className="runbar professional-runbar">
+          <div>
             <button
               className="secondary"
-              onClick={() => run("test")}
+              onClick={() => run("run_interactive")}
               disabled={running}
             >
-              Test
+              <Icon name="play_arrow" /> Esegui
             </button>
-          )}
+            {exercise.verification_mode === "tests" && (
+              <button
+                className="secondary"
+                onClick={() => run("test")}
+                disabled={running}
+              >
+                <Icon name="science" /> Test
+              </button>
+            )}
+          </div>
           <button
             className="primary"
             onClick={() => void submit()}
             disabled={running || data.profile.role !== "student" || !assignment}
           >
-            Consegna soluzione
+            <Icon name="send" /> Consegna soluzione
           </button>
         </div>
       </section>

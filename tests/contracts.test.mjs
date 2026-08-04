@@ -208,11 +208,33 @@ test("il monitoraggio usa bozze, Realtime e attribuzione dell'editor", async () 
   assert.match(monitor, /postgres_changes/);
   assert.match(monitor, /updated_by: teacherId/);
   assert.match(draft, /setTimeout[\s\S]*700/);
-  assert.match(draft, /setInterval[\s\S]*1500/);
   assert.match(draft, /remote\.updated_by !== studentId/);
   assert.match(
     migration,
     /alter publication supabase_realtime add table public\.submissions/i,
   );
   assert.match(migration, /replica identity full/i);
+});
+
+test("l'autosalvataggio non ripristina periodicamente codice obsoleto", async () => {
+  const draftHook = await read("app/use-student-draft.ts");
+  const revisionPolicy = await read(
+    "supabase/migrations/20260803002000_allow_student_revisions.sql",
+  );
+  assert.doesNotMatch(draftHook, /setInterval/);
+  assert.doesNotMatch(draftHook, /existing\.status\s*!==\s*["']draft["']/);
+  assert.match(draftHook, /remote\.updated_by\s*!==\s*studentId/);
+  assert.match(draftHook, /code\s*===\s*synchronizedCode\.current/);
+  assert.match(revisionPolicy, /student_id\s*=\s*\(select auth\.uid\(\)\)/i);
+  assert.match(revisionPolicy, /student_can_submit_to_assignment/i);
+});
+
+test("una consegna soddisfa il vincolo propedeutico prima della valutazione", async () => {
+  const migration = await read(
+    "supabase/migrations/20260803003000_unlock_delivered_prerequisites.sql",
+  );
+  assert.match(migration, /delivered\.status\s*<>\s*'draft'/i);
+  assert.doesNotMatch(migration, /delivered\.status\s*=\s*'passed'/i);
+  assert.match(migration, /previous\.published_at is not null/i);
+  assert.match(migration, /prerequisite\.is_prerequisite/i);
 });

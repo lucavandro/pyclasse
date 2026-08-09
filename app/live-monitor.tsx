@@ -21,6 +21,9 @@ const statusLabels = {
   },
 } as const;
 
+const isMonitorable = (submission: Submission) =>
+  submission.status === "draft" || submission.status === "submitted";
+
 export function LiveMonitor({
   data,
   notify,
@@ -29,7 +32,9 @@ export function LiveMonitor({
   notify: (message: string) => void;
 }) {
   const { locale } = useLocale();
-  const [rows, setRows] = useState<Submission[]>(data.submissions);
+  const [rows, setRows] = useState<Submission[]>(
+    data.submissions.filter(isMonitorable),
+  );
   const assignments = useMemo(
     () => new Map(data.assignments.map((item) => [item.id, item])),
     [data.assignments],
@@ -52,7 +57,7 @@ export function LiveMonitor({
         (payload) => {
           const changed = (payload.new || payload.old) as Submission;
           setRows((current) =>
-            payload.eventType === "DELETE"
+            payload.eventType === "DELETE" || !isMonitorable(changed)
               ? current.filter((item) => item.id !== changed.id)
               : [changed, ...current.filter((item) => item.id !== changed.id)],
           );

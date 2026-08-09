@@ -13,6 +13,7 @@ PyClasse è una piattaforma didattica **gratuita e accessibile** per assegnare e
 - autenticazione email/password, con OTP email e Google attivabili separatamente;
 - Row Level Security su tutte le tabelle applicative;
 - ambiente Docker e Supabase locale riproducibile.
+- installazione come PWA, icone dedicate e fallback offline rispettoso della privacy.
 
 ## Avvio locale
 
@@ -65,6 +66,7 @@ Le credenziali e gli scenari disponibili sono descritti in
 - [Installazione e deployment](docs/INSTALLATION_AND_DEPLOYMENT.md)
 - [Funzioni didattiche](docs/LEARNING_AND_LOCALIZATION.md)
 - [Linee guida stilistiche](docs/STYLE_GUIDE.md)
+- [Progressive Web App](docs/PWA.md)
 - [Dati e credenziali per lo sviluppo locale](docs/LOCAL_DEVELOPMENT_DATA.md)
 - [Privacy, GDPR e limiti operativi](docs/PRIVACY_AND_DATA_PROTECTION.md)
 - [Sicurezza e segnalazione vulnerabilità](SECURITY.md)

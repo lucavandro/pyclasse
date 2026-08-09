@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#282a36" />
+    <title>PyClasse — Connessione assente</title>
+    <style>
+      :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+      * { box-sizing: border-box; }
+      body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px; background: #282a36; color: #f8f8f2; }
+      main { width: min(440px, 100%); padding: 40px; border: 1px solid #6272a4; border-radius: 20px; background: #30323f; text-align: center; box-shadow: 0 20px 60px #15161d80; }
+      img { width: 76px; height: 76px; border-radius: 18px; }
+      h1 { margin: 24px 0 12px; font-size: 28px; }
+      p { margin: 0 0 24px; color: #c7c8d1; line-height: 1.6; }
+      button { border: 0; border-radius: 10px; padding: 12px 18px; background: #bd93f9; color: #282a36; font: inherit; font-weight: 750; cursor: pointer; }
+      button:focus-visible { outline: 3px solid #8be9fd; outline-offset: 3px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/pwa-icon-192.png" alt="" />
+      <h1>Sei offline</h1>
+      <p>PyClasse non riesce a raggiungere il server. Controlla la connessione e riprova: il lavoro già salvato nel database non viene perso.</p>
+      <button type="button" onclick="location.reload()">Riprova</button>
+    </main>
+  </body>
+</html>

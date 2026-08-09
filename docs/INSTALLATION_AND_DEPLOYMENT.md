@@ -118,23 +118,12 @@ npm run test:e2e
 
 Configura le variabili nel provider, pubblica la build e verifica login, rotte interne, RLS e Realtime sul dominio definitivo. I test E2E devono usare esclusivamente un progetto di test perché azzerano il database configurato.
 
-## Installazione guidata
-
-Un wizard in stile WordPress è fattibile, ma il provisioning privilegiato non deve avvenire in una pagina web pubblica. La soluzione raccomandata è un comando locale che:
-
-1. verifica Node, Docker e porte;
-2. avvia Supabase e applica le migrazioni;
-3. genera `.env.local` usando la chiave anon locale;
-4. crea il primo docente;
-5. esegue health check e test;
-6. registra il completamento e disabilita il bootstrap.
-
-Per un progetto remoto, migrazioni, `service_role` e creazione dell'amministratore devono restare in un processo CLI/server autenticato. Una futura schermata web può mostrare diagnostica e istruzioni, ma non deve ricevere o persistere chiavi privilegiate.
-
 ## Controlli post-deployment
 
 - ricarica direttamente `/classes`, `/exercises`, `/reports` e `/settings`;
 - verifica che uno studente non legga classi, test nascosti o consegne altrui;
 - prova autosalvataggio e intervento docente con due sessioni;
+- verifica che `/manifest.webmanifest`, `/sw.js` e `/offline.html` rispondano
+  dalla stessa origine e che il browser proponga l'installazione PWA su HTTPS;
 - controlla CSP e intestazioni di sicurezza;
 - verifica backup, ripristino, retention e log senza codice o token.

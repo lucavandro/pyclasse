@@ -85,6 +85,10 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
       .fill("def answer():\n    return 42");
     await page.getByLabel("Tag").fill("funzioni, base, funzioni");
     await expect(page.getByLabel("Esercizio propedeutico")).toBeChecked();
+    await expect(page.locator(".prerequisite-control")).toContainText(
+      "finché lo studente non consegna",
+    );
+    await expect(page.locator(".verification-card")).toHaveCount(2);
     await page.getByRole("button", { name: "Aggiungi" }).click();
     await page.getByLabel("Input test 1").fill("answer()");
     await page.getByLabel("Output test 1").fill("42");
@@ -118,6 +122,18 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
         exact: true,
       })
       .fill("Un ambiente personalizzato dal docente per la propria classe.");
+    await expect(
+      loginBranding.getByRole("textbox", {
+        name: "Sottotitolo (italiano)",
+      }),
+    ).toHaveAttribute("maxlength", "240");
+    const administration = page.locator(".administration-settings");
+    await expect(administration).toContainText("Amministrazione tecnica");
+    await expect(
+      administration.getByRole("link", {
+        name: "Apri amministrazione Supabase",
+      }),
+    ).toBeVisible();
     await page.getByRole("button", { name: "Salva impostazioni" }).click();
     await page.getByRole("button", { name: "Esci dall'account" }).click();
     await expect(
@@ -190,7 +206,18 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
       .getByRole("button", { name: "Report", exact: true })
       .click();
     await expect(
-      teacherPage.getByText("Consegnato", { exact: true }),
+      teacherPage
+        .locator(".teacher-report-table")
+        .getByText("Da valutare", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      teacherPage.getByLabel("Cerca studente o esercizio"),
+    ).toBeVisible();
+    await expect(
+      teacherPage.getByLabel("Filtra report per classe"),
+    ).toBeVisible();
+    await expect(
+      teacherPage.getByLabel("Filtra report per stato"),
     ).toBeVisible();
     await teacherPage.getByRole("button", { name: "Comprimi menu" }).click();
     await expect(teacherPage.locator("main.app-shell")).toHaveClass(

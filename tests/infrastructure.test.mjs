@@ -159,6 +159,40 @@ test("gli asset Pyodide self-hosted sono generati dal postinstall", async () => 
   }
 });
 
+test("la PWA espone manifest, icone, fallback offline e service worker sicuro", async () => {
+  const [manifestText, serviceWorker, register, layout] = await Promise.all([
+    read("public/manifest.webmanifest"),
+    read("public/sw.js"),
+    read("app/pwa-register.tsx"),
+    read("app/layout.tsx"),
+  ]);
+  const manifest = JSON.parse(manifestText);
+  assert.equal(manifest.display, "standalone");
+  assert.equal(manifest.start_url, "/");
+  assert.equal(manifest.scope, "/");
+  assert.ok(manifest.icons.some((icon) => icon.sizes === "192x192"));
+  assert.ok(
+    manifest.icons.some(
+      (icon) => icon.sizes === "512x512" && icon.purpose === "maskable",
+    ),
+  );
+  for (const asset of [
+    "pwa-icon-192.png",
+    "pwa-icon-512.png",
+    "pwa-icon-maskable-512.png",
+    "offline.html",
+  ]) {
+    await access(new URL(`../public/${asset}`, import.meta.url));
+  }
+  assert.match(serviceWorker, /request\.mode === "navigate"/);
+  assert.match(serviceWorker, /url\.origin !== self\.location\.origin/);
+  assert.match(serviceWorker, /caches\.match\(OFFLINE_URL\)/);
+  assert.match(register, /navigator\.serviceWorker\.register\("\/sw\.js"/);
+  assert.match(register, /process\.env\.NODE_ENV !== "production"/);
+  assert.match(layout, /manifest: "\/manifest\.webmanifest"/);
+  assert.match(layout, /appleWebApp/);
+});
+
 test("CI esegue installazione riproducibile e suite completa", async () => {
   const workflow = await read(".github/workflows/ci.yml");
   assert.match(workflow, /node-version: 22\.13\.0/);

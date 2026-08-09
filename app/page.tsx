@@ -1565,13 +1565,20 @@ function SettingsPanel({
                   />
                 </label>
                 <label>
-                  Sottotitolo (italiano)
+                  <span className="field-label-row">
+                    Sottotitolo (italiano)
+                    <small aria-hidden="true">
+                      {loginSubtitleIt.length}/240
+                    </small>
+                  </span>
                   <textarea
                     value={loginSubtitleIt}
                     onChange={(event) => setLoginSubtitleIt(event.target.value)}
                     minLength={5}
                     maxLength={240}
                     required
+                    rows={4}
+                    placeholder="Descrivi in modo breve lo spazio didattico."
                   />
                 </label>
                 <label>
@@ -1585,25 +1592,52 @@ function SettingsPanel({
                   />
                 </label>
                 <label>
-                  Sottotitolo (inglese)
+                  <span className="field-label-row">
+                    Sottotitolo (inglese)
+                    <small aria-hidden="true">
+                      {loginSubtitleEn.length}/240
+                    </small>
+                  </span>
                   <textarea
                     value={loginSubtitleEn}
                     onChange={(event) => setLoginSubtitleEn(event.target.value)}
                     minLength={5}
                     maxLength={240}
                     required
+                    rows={4}
+                    placeholder="Briefly describe the learning environment."
                   />
                 </label>
               </fieldset>
               {supabaseStudioUrl && (
-                <a
-                  className="settings-admin-link"
-                  href={supabaseStudioUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <section
+                  className="settings-section administration-settings"
+                  aria-labelledby="administration-title"
                 >
-                  <Icon name="database" /> Apri amministrazione Supabase
-                </a>
+                  <div>
+                    <span className="settings-section-icon">
+                      <Icon name="database" />
+                    </span>
+                    <div>
+                      <strong id="administration-title">
+                        Amministrazione tecnica
+                      </strong>
+                      <small>
+                        Accesso separato agli strumenti locali di Supabase,
+                        disponibile esclusivamente al docente.
+                      </small>
+                    </div>
+                  </div>
+                  <a
+                    className="settings-admin-link"
+                    href={supabaseStudioUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Apri amministrazione Supabase
+                    <Icon name="open_in_new" />
+                  </a>
+                </section>
               )}
             </>
           )}

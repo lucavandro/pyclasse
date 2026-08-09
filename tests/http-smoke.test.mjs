@@ -47,6 +47,11 @@ test(
       "/vendor/pyodide/pyodide.js",
       "/vendor/pyodide/pyodide.asm.wasm",
       "/vendor/pyodide/python_stdlib.zip",
+      "/manifest.webmanifest",
+      "/sw.js",
+      "/offline.html",
+      "/pwa-icon-192.png",
+      "/pwa-icon-512.png",
     ]) {
       const response = await request(path);
       assert.equal(

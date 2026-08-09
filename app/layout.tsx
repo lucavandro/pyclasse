@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "./dark.css";
 import "material-symbols/rounded.css";
+import { PwaRegister } from "./pwa-register";
 
 const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
 const mono = Geist_Mono({ variable: "--font-mono", subsets: ["latin"] });
@@ -14,6 +15,20 @@ export const metadata: Metadata = {
   title: "PyClasse — Impara Python, insieme",
   description:
     "Classi, esercizi Python, correzione automatica e progressi in un solo spazio.",
+  applicationName: "PyClasse",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "PyClasse",
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/pwa-icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/pwa-icon-192.png", sizes: "192x192" }],
+  },
   openGraph: {
     title: "PyClasse — Impara Python, insieme",
     description: "Esercizi, grading automatico e progressi per la tua classe.",
@@ -34,7 +49,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="it">
-      <body className={`${geist.variable} ${mono.variable}`}>{children}</body>
+      <body className={`${geist.variable} ${mono.variable}`}>
+        {children}
+        <PwaRegister />
+      </body>
     </html>
   );
 }

@@ -1341,8 +1341,25 @@ body {
   font-weight: var(--font-weight-extra-bold);
 }
 .settings-branding-fields textarea {
-  min-height: 84px;
+  min-height: 112px;
   resize: vertical;
+  line-height: 1.55;
+}
+.settings-branding-fields textarea:focus {
+  border-color: var(--color-purple);
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+.field-label-row small {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
 }
 .settings-panel label,
 .exercise-modal > label,
@@ -1352,6 +1369,7 @@ body {
   color: var(--color-text-softest);
 }
 .settings-panel input,
+.settings-panel textarea,
 .exercise-modal input,
 .exercise-modal textarea {
   width: 100%;
@@ -1407,6 +1425,45 @@ body {
 }
 .settings-section > small {
   color: var(--color-text-muted);
+}
+.administration-settings {
+  gap: var(--space-7);
+}
+.administration-settings > div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-5);
+  align-items: center;
+}
+.administration-settings > div > div {
+  display: grid;
+  gap: var(--space-2);
+}
+.administration-settings small {
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-normal);
+  line-height: 1.5;
+}
+.settings-section-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-purple-soft);
+  color: var(--color-cyan);
+}
+.administration-settings .settings-admin-link {
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-control);
+}
+.administration-settings .settings-admin-link:hover {
+  border-color: var(--color-border-purple);
+  text-decoration: none;
 }
 .consent-switch {
   display: grid;
@@ -1541,6 +1598,37 @@ body {
   color: var(--color-foreground);
   cursor: pointer;
 }
+.verification-card input,
+.prerequisite-control input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+}
+.custom-radio {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: block;
+  border: 2px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  box-shadow: inset 0 0 0 4px var(--color-surface-sunken);
+  transition:
+    border-color var(--duration-fast) var(--easing-standard),
+    background var(--duration-fast) var(--easing-standard);
+}
+.verification-card input:checked + .custom-radio {
+  border-color: var(--color-purple);
+  background: var(--color-purple);
+}
+.verification-card:has(input:focus-visible),
+.prerequisite-control:has(input:focus-visible) {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
 .verification-card.selected {
   border-color: var(--color-purple);
   background: var(--color-surface-selected);
@@ -1556,6 +1644,45 @@ body {
 .verification-card small {
   color: var(--muted);
   line-height: 1.4;
+}
+.prerequisite-control {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-5);
+  align-items: center;
+  padding: var(--space-5) var(--space-6);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+  cursor: pointer;
+}
+.prerequisite-control > span:last-child {
+  display: grid;
+  gap: var(--space-2);
+}
+.prerequisite-control small {
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-normal);
+  line-height: 1.45;
+}
+.custom-check {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--color-border-strong);
+  border-radius: var(--radius-xs-plus);
+  background: var(--color-surface-control);
+  color: transparent;
+}
+.custom-check .material-symbols-rounded {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-extra-bold);
+}
+.prerequisite-control input:checked + .custom-check {
+  border-color: var(--color-purple);
+  background: var(--color-purple);
+  color: var(--color-on-accent);
 }
 .modal-actions {
   justify-content: flex-end;
@@ -2189,8 +2316,148 @@ body {
   color: var(--color-on-accent);
 }
 
-.student-report-table {
+.report-page {
+  display: grid;
+  gap: var(--space-8);
+  min-width: 0;
   width: 100%;
+}
+.report-page > * {
+  min-width: 0;
+  width: 100%;
+}
+.report-overview,
+.report-results,
+.report-live-section {
+  margin: 0;
+}
+.report-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+.report-title-row h2 {
+  margin: var(--space-2) 0 var(--space-3);
+  font-size: var(--font-size-display-sm);
+}
+.report-title-row p:not(.eyebrow) {
+  max-width: 680px;
+  margin: 0;
+  color: var(--color-text-muted);
+}
+.report-total {
+  min-width: 104px;
+  display: grid;
+  justify-items: center;
+  padding: var(--space-5) var(--space-7);
+  border: var(--border-width) solid var(--color-current-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-sunken);
+}
+.report-total strong {
+  color: var(--color-green);
+  font-size: var(--font-size-display-sm);
+}
+.report-total small {
+  color: var(--color-text-muted);
+}
+.report-page .report-summary {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-5);
+  margin-top: var(--space-8);
+}
+.report-metric {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  border: var(--border-width) solid var(--color-current-line);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+}
+.report-metric > .material-symbols-rounded {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-blue-soft);
+  color: var(--color-cyan);
+}
+.report-metric.attention > .material-symbols-rounded {
+  background: var(--color-surface-purple-soft);
+  color: var(--color-pink);
+}
+.report-metric > div {
+  display: grid;
+  gap: var(--space-1);
+}
+.report-metric strong {
+  font-size: var(--font-size-xl);
+}
+.report-metric small,
+.result-count {
+  color: var(--color-text-muted);
+}
+.report-toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(160px, 0.45fr) minmax(
+      160px,
+      0.45fr
+    );
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+.report-toolbar > label {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+.report-toolbar input,
+.report-toolbar select {
+  width: 100%;
+  height: 42px;
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-5);
+  background: var(--color-surface-sunken);
+  color: var(--color-foreground);
+  font: inherit;
+}
+.report-toolbar select option {
+  background: var(--color-surface);
+}
+.report-search {
+  position: relative;
+  align-self: end;
+}
+.report-search > .material-symbols-rounded {
+  position: absolute;
+  left: var(--space-5);
+  bottom: 11px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-lg);
+}
+.report-search input {
+  padding-left: 42px;
+}
+.teacher-report-table,
+.student-report-table {
+  max-width: 100%;
+  width: 100%;
+}
+.teacher-report-table {
+  overflow-x: auto;
+}
+.teacher-report-table .table-row {
+  grid-template-columns:
+    minmax(150px, 1.25fr) minmax(130px, 1.1fr) minmax(100px, 0.75fr)
+    minmax(120px, 0.85fr) minmax(105px, 0.7fr) auto;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
 }
 .student-report-table .table-row {
   grid-template-columns: minmax(240px, 2fr) minmax(170px, 1fr) minmax(
@@ -2206,6 +2473,79 @@ body {
 }
 .student-report-grade {
   color: var(--color-green);
+}
+.report-student {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+.report-student strong,
+.report-student small,
+.report-exercise {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.report-student small {
+  color: var(--color-text-muted);
+}
+.report-score {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.report-score input {
+  width: 74px;
+  height: 36px;
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0 30px 0 var(--space-4);
+  background: var(--color-surface-sunken);
+  color: var(--color-foreground);
+  font: inherit;
+}
+.report-score > span {
+  position: absolute;
+  right: var(--space-3);
+  z-index: 1;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+.ungraded-label {
+  color: var(--color-text-muted);
+}
+.report-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+.icon-action {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+}
+.icon-action .material-symbols-rounded {
+  font-size: var(--font-size-lg);
+}
+.icon-action.approve {
+  color: var(--color-green);
+}
+.icon-action.revise {
+  color: var(--color-pink);
+}
+.icon-action:hover {
+  border-color: var(--color-border-purple);
+  background: var(--color-surface-control);
+}
+.report-live-section .live-monitor {
+  margin: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
 }
 .student-task-list {
   display: grid;
@@ -2485,6 +2825,18 @@ body {
   .student-task-metadata {
     grid-column: 1 / -1;
   }
+  .report-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+  .report-search {
+    grid-column: 1 / -1;
+  }
+  .teacher-report-table {
+    overflow-x: auto;
+  }
+  .teacher-report-table .table-row {
+    min-width: 880px;
+  }
 }
 
 @media (max-width: 650px) {
@@ -2577,6 +2929,21 @@ body {
     min-width: 0;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: var(--space-4);
+  }
+  .report-title-row {
+    flex-direction: column;
+  }
+  .report-total {
+    width: 100%;
+  }
+  .report-toolbar {
+    grid-template-columns: 1fr;
+  }
+  .report-search {
+    grid-column: auto;
+  }
+  .teacher-report-table .table-row {
+    min-width: 860px;
   }
   .student-report-table .table-head span:last-child,
   .student-report-grade {

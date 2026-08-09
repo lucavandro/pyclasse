@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
-import type { Submission, Workspace } from "../lib/types";
+import type { Submission, SubmissionStatus, Workspace } from "../lib/types";
 import { scoreAsPercentage, validScore } from "../lib/learning-path.mjs";
 import { LiveMonitor } from "./live-monitor";
 import { useLocale } from "../lib/i18n";
@@ -9,19 +9,21 @@ import { useLocale } from "../lib/i18n";
 const statusLabels = {
   it: {
     draft: "In lavorazione",
-    submitted: "Consegnato",
+    submitted: "Da valutare",
     passed: "Superato",
     partial: "Parzialmente superato",
     failed: "Da rivedere",
   },
   en: {
     draft: "In progress",
-    submitted: "Submitted",
+    submitted: "Awaiting review",
     passed: "Passed",
     partial: "Partially passed",
     failed: "Needs revision",
   },
 } as const;
+
+type ReportStatus = "all" | Exclude<SubmissionStatus, "draft">;
 
 export function ReportV2({
   data,
@@ -33,6 +35,9 @@ export function ReportV2({
   notify: (message: string) => void;
 }) {
   const { locale } = useLocale();
+  const [classFilter, setClassFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<ReportStatus>("all");
+  const [query, setQuery] = useState("");
   const submissions = data.submissions.filter(
     (item) => item.status !== "draft",
   );
@@ -49,48 +54,189 @@ export function ReportV2({
           normalizedScores.length,
       )
     : null;
+  const waiting = submissions.filter(
+    (item) => item.status === "submitted",
+  ).length;
+  const reviewed = submissions.length - waiting;
+  const visibleSubmissions = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    return submissions.filter((submission) => {
+      const assignment = data.assignments.find(
+        (item) => item.id === submission.class_assignment_id,
+      );
+      const exercise = data.exercises.find(
+        (item) => item.id === assignment?.exercise_id,
+      );
+      const student = data.profiles.find(
+        (item) => item.id === submission.student_id,
+      );
+      return (
+        (classFilter === "all" || assignment?.class_id === classFilter) &&
+        (statusFilter === "all" || submission.status === statusFilter) &&
+        (!normalizedQuery ||
+          `${student?.full_name || ""} ${student?.email || ""} ${exercise?.title || ""}`
+            .toLocaleLowerCase()
+            .includes(normalizedQuery))
+      );
+    });
+  }, [classFilter, data, query, statusFilter, submissions]);
+
   return (
-    <section className="panel full-panel">
-      <LiveMonitor data={data} notify={notify} />
-      <div className="panel-head">
-        <div>
-          <p className="eyebrow">DATI DELLE CONSEGNE</p>
-          <h3>Report</h3>
+    <section className="report-page">
+      <div className="report-overview panel">
+        <div className="report-title-row">
+          <div>
+            <p className="eyebrow">DATI DELLE CONSEGNE</p>
+            <h2>Report</h2>
+            <p>
+              {data.profile.role === "teacher"
+                ? "Valuta le consegne e individua rapidamente ciò che richiede attenzione."
+                : "Consulta lo stato e la valutazione dei compiti consegnati."}
+            </p>
+          </div>
+          <span className="report-total">
+            <strong>{submissions.length}</strong>
+            <small>consegne</small>
+          </span>
+        </div>
+        <div className="report-summary">
+          {data.profile.role === "teacher" && (
+            <>
+              <article className="report-metric attention">
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  pending_actions
+                </span>
+                <div>
+                  <strong>{waiting}</strong>
+                  <small>Da valutare</small>
+                </div>
+              </article>
+              <article className="report-metric">
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  task_alt
+                </span>
+                <div>
+                  <strong>{reviewed}</strong>
+                  <small>Valutate</small>
+                </div>
+              </article>
+            </>
+          )}
+          <article className="report-metric">
+            <span className="material-symbols-rounded" aria-hidden="true">
+              monitoring
+            </span>
+            <div>
+              <strong>{average === null ? "—" : `${average}%`}</strong>
+              <small>Media dei compiti con voto</small>
+            </div>
+          </article>
         </div>
       </div>
-      <div className="report-summary">
-        <article className="stat-card">
-          <strong>{submissions.length}</strong>
-          <small>Consegne</small>
-        </article>
-        <article className="stat-card">
-          <strong>{average === null ? "—" : `${average}%`}</strong>
-          <small>Media dei compiti con voto</small>
-        </article>
-      </div>
-      <div
-        className={`table${data.profile.role === "student" ? " student-report-table" : ""}`}
+
+      <section
+        className="report-results panel"
+        aria-labelledby="report-results-title"
       >
-        <div className="table-row table-head">
-          {data.profile.role === "teacher" && <span>Studente</span>}
-          <span>Esercizio</span>
-          <span>Stato</span>
-          <span>Valutazione</span>
-          {data.profile.role === "teacher" && <span>Azioni</span>}
+        <div className="panel-head">
+          <div>
+            <p className="eyebrow">CONSEGNE</p>
+            <h3 id="report-results-title">
+              {data.profile.role === "teacher"
+                ? "Valutazioni"
+                : "I tuoi risultati"}
+            </h3>
+          </div>
+          {data.profile.role === "teacher" && (
+            <span className="result-count">
+              {visibleSubmissions.length} risultati
+            </span>
+          )}
         </div>
-        {submissions.map((submission) => (
-          <ReviewRow
-            key={submission.id}
-            submission={submission}
-            locale={locale}
-            data={data}
-            reload={reload}
-            notify={notify}
-          />
-        ))}
-      </div>
-      {!submissions.length && (
-        <p className="empty-state">Nessuna consegna disponibile.</p>
+
+        {data.profile.role === "teacher" && (
+          <div className="report-toolbar" aria-label="Filtri report">
+            <label className="report-search">
+              <span className="material-symbols-rounded" aria-hidden="true">
+                search
+              </span>
+              <input
+                aria-label="Cerca studente o esercizio"
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Cerca studente o esercizio"
+              />
+            </label>
+            <label>
+              <span>Classe</span>
+              <select
+                aria-label="Filtra report per classe"
+                value={classFilter}
+                onChange={(event) => setClassFilter(event.target.value)}
+              >
+                <option value="all">Tutte le classi</option>
+                {data.classes.map((classroom) => (
+                  <option key={classroom.id} value={classroom.id}>
+                    {classroom.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Stato</span>
+              <select
+                aria-label="Filtra report per stato"
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(event.target.value as ReportStatus)
+                }
+              >
+                <option value="all">Tutti gli stati</option>
+                <option value="submitted">Da valutare</option>
+                <option value="passed">Superato</option>
+                <option value="partial">Parziale</option>
+                <option value="failed">Da rivedere</option>
+              </select>
+            </label>
+          </div>
+        )}
+
+        <div
+          className={`table${data.profile.role === "student" ? " student-report-table" : " teacher-report-table"}`}
+        >
+          <div className="table-row table-head">
+            {data.profile.role === "teacher" && <span>Studente</span>}
+            <span>Esercizio</span>
+            {data.profile.role === "teacher" && <span>Classe</span>}
+            <span>Stato</span>
+            <span>Valutazione</span>
+            {data.profile.role === "teacher" && <span>Azioni</span>}
+          </div>
+          {visibleSubmissions.map((submission) => (
+            <ReviewRow
+              key={submission.id}
+              submission={submission}
+              locale={locale}
+              data={data}
+              reload={reload}
+              notify={notify}
+            />
+          ))}
+        </div>
+        {!visibleSubmissions.length && (
+          <p className="empty-state">
+            {submissions.length
+              ? "Nessuna consegna corrisponde ai filtri selezionati."
+              : "Nessuna consegna disponibile."}
+          </p>
+        )}
+      </section>
+
+      {data.profile.role === "teacher" && (
+        <section className="report-live-section panel">
+          <LiveMonitor data={data} notify={notify} />
+        </section>
       )}
     </section>
   );
@@ -114,6 +260,9 @@ function ReviewRow({
   );
   const exercise = data.exercises.find(
     (item) => item.id === assignment?.exercise_id,
+  );
+  const classroom = data.classes.find(
+    (item) => item.id === assignment?.class_id,
   );
   const student = data.profiles.find(
     (item) => item.id === submission.student_id,
@@ -163,17 +312,19 @@ function ReviewRow({
   }
   return (
     <div className="table-row">
-      <span>
+      <span className="report-student">
         <strong>{student?.full_name || student?.email}</strong>
+        <small>{student?.email}</small>
       </span>
-      <span>{exercise?.title}</span>
+      <span className="report-exercise">{exercise?.title}</span>
+      <span>{classroom?.name || "—"}</span>
       <span className={`submission-status status-${submission.status}`}>
         {statusLabels[locale][submission.status]}
       </span>
       <span>
         {assignment?.grading_scale ? (
-          <label>
-            Voto /{assignment.grading_scale}
+          <label className="report-score">
+            <span>/{assignment.grading_scale}</span>
             <input
               aria-label={`Voto per ${exercise?.title}`}
               type="number"
@@ -182,18 +333,33 @@ function ReviewRow({
               step="1"
               value={score}
               onChange={(event) => setScore(event.target.value)}
+              placeholder="—"
             />
           </label>
         ) : (
-          "Senza voto"
+          <span className="ungraded-label">Senza voto</span>
         )}
       </span>
-      <span>
-        <button className="primary" onClick={() => void evaluate("passed")}>
-          Superato
+      <span className="report-actions">
+        <button
+          className="icon-action approve"
+          aria-label={`Segna ${exercise?.title} come superato`}
+          title="Superato"
+          onClick={() => void evaluate("passed")}
+        >
+          <span className="material-symbols-rounded" aria-hidden="true">
+            check
+          </span>
         </button>
-        <button className="secondary" onClick={() => void evaluate("failed")}>
-          Da rivedere
+        <button
+          className="icon-action revise"
+          aria-label={`Segna ${exercise?.title} da rivedere`}
+          title="Da rivedere"
+          onClick={() => void evaluate("failed")}
+        >
+          <span className="material-symbols-rounded" aria-hidden="true">
+            replay
+          </span>
         </button>
       </span>
     </div>

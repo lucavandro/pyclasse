@@ -189,15 +189,23 @@ export function ExerciseFormV2({
               placeholder="cicli, liste"
             />
           </label>
-          <label className="wide">
+          <label className="wide prerequisite-control">
             <input
               aria-label="Esercizio propedeutico"
               type="checkbox"
               checked={isPrerequisite}
               onChange={(event) => setIsPrerequisite(event.target.checked)}
-            />{" "}
-            Propedeutico: blocca gli esercizi successivi finché non viene
-            superato
+            />
+            <span className="custom-check" aria-hidden="true">
+              <span className="material-symbols-rounded">check</span>
+            </span>
+            <span>
+              <strong>Propedeutico</strong>
+              <small>
+                Blocca gli esercizi successivi finché lo studente non consegna
+                questo esercizio.
+              </small>
+            </span>
           </label>
           <label className="wide">
             Traccia (Markdown)
@@ -249,21 +257,37 @@ export function ExerciseFormV2({
         </div>
         <fieldset>
           <legend>Verifica</legend>
-          <label>
+          <label
+            className={`verification-card${mode === "tests" ? " selected" : ""}`}
+          >
             <input
+              name="verification-mode"
               type="radio"
               checked={mode === "tests"}
               onChange={() => setMode("tests")}
-            />{" "}
-            Test automatici nel browser
+            />
+            <span className="custom-radio" aria-hidden="true" />
+            <span>
+              <strong>Test automatici</strong>
+              <small>Eseguiti localmente nel browser dello studente.</small>
+            </span>
           </label>
-          <label>
+          <label
+            className={`verification-card${mode === "ai" ? " selected" : ""}`}
+          >
             <input
+              name="verification-mode"
               type="radio"
               checked={mode === "ai"}
               onChange={() => setMode("ai")}
-            />{" "}
-            IA esterna opzionale
+            />
+            <span className="custom-radio" aria-hidden="true" />
+            <span>
+              <strong>IA esterna opzionale</strong>
+              <small>
+                Disponibile soltanto con il consenso dello studente.
+              </small>
+            </span>
           </label>
         </fieldset>
         {mode === "tests" && (

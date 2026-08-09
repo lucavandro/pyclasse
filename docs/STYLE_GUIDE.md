@@ -138,6 +138,19 @@ usare il token esistente oppure aggiungerne uno semantico a questa scala.
 - Animazioni e decorazioni non devono bloccare l'uso né veicolare da sole
   informazioni essenziali.
 
+## Controlli e report docente
+
+Textarea, select, checkbox e radio usano superficie, bordo, focus ring e token
+del tema. Checkbox e radio personalizzati mantengono l'input nativo nel DOM,
+un'etichetta cliccabile e uno stato `focus-visible`; non vanno sostituiti con
+elementi privi di semantica.
+
+Il report docente separa riepilogo, filtri, valutazioni e monitoraggio Realtime.
+Le azioni ripetute usano pulsanti compatti con nome accessibile, mentre ricerca
+e filtri restano visibili sopra la tabella. Su viewport stretti la tabella
+docente può scorrere orizzontalmente senza comprimere voto e azioni fino a
+renderli illeggibili.
+
 ## Checklist per nuove schermate
 
 1. Riutilizzare token, componenti e pattern già presenti.

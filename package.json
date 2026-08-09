@@ -8,6 +8,7 @@
   },
   "scripts": {
     "postinstall": "node scripts/sync-vendor-assets.mjs",
+    "assets:pwa": "node scripts/generate-pwa-icons.mjs",
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "vinext start",

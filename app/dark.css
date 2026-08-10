@@ -592,6 +592,7 @@ input:focus-visible,
   --shadow-color-soft: rgba(0, 0, 0, 0.22);
   --shadow-color-control-hover: rgba(0, 0, 0, 0.18);
   --shadow-color-control: rgba(0, 0, 0, 0.16);
+  --color-modal-overlay: rgba(0, 0, 0, 0.68);
   --focus-ring: rgba(189, 147, 249, 0.22);
   --purple-shadow: rgba(189, 147, 249, 0.2);
   --cyan-shadow: rgba(139, 233, 253, 0.18);
@@ -2925,6 +2926,122 @@ body {
 .submission-status.status-passed {
   background: var(--color-surface-green-soft);
   color: var(--color-green);
+}
+.submission-status.status-unopened {
+  background: var(--color-surface-control);
+  color: var(--color-text-muted);
+}
+.delivery-summary-table .table-row {
+  grid-template-columns: minmax(220px, 1.5fr) repeat(3, minmax(120px, 0.7fr));
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+}
+.delivery-summary-table .table-head button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.delivery-summary-table .table-row > span:not(.report-student) {
+  display: grid;
+  gap: var(--space-1);
+}
+.delivery-summary-table small {
+  color: var(--color-text-muted);
+}
+.exercise-import-modal {
+  width: min(620px, calc(100vw - var(--space-8)));
+  max-height: calc(100vh - var(--space-8));
+  overflow: auto;
+  padding: var(--space-8);
+  border: var(--border-width) solid var(--color-border-purple);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+}
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: var(--color-modal-overlay);
+}
+.exercise-import-modal > header,
+.exercise-import-modal > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+.exercise-import-modal h2 {
+  margin: var(--space-1) 0 0;
+}
+.exercise-import-modal > footer {
+  justify-content: flex-end;
+  margin-top: var(--space-7);
+}
+.exercise-drop-zone {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  margin: var(--space-7) 0 var(--space-5);
+  padding: var(--space-10);
+  border: 2px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-sunken);
+  text-align: center;
+  transition:
+    border-color var(--duration-fast),
+    background var(--duration-fast);
+}
+.exercise-drop-zone.is-dragging {
+  border-color: var(--color-purple);
+  background: var(--color-surface-purple-soft);
+}
+.exercise-drop-zone > .material-symbols-rounded {
+  color: var(--color-purple);
+  font-size: var(--font-size-display-sm);
+}
+.import-file-valid,
+.import-file-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+}
+.import-file-valid {
+  background: var(--color-surface-green-soft);
+  color: var(--color-green);
+}
+.import-file-error {
+  background: var(--color-surface-purple-soft);
+  color: var(--color-pink);
+}
+.exercise-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.danger-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: var(--border-width) solid var(--color-pink);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  color: var(--color-pink);
+  cursor: pointer;
+  font-weight: var(--font-weight-bold);
 }
 .submission-status.status-failed {
   background: var(--color-surface-red-soft);

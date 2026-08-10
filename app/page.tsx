@@ -131,6 +131,11 @@ type EditorSession = {
   active_until: string;
   updated_at: string;
 };
+type AssignmentView = {
+  class_assignment_id: string;
+  student_id: string;
+  first_opened_at: string;
+};
 type Settings = {
   singleton: boolean;
   teacher_email: string | null;
@@ -151,6 +156,7 @@ type Workspace = {
   tests: ExerciseTest[];
   submissions: Submission[];
   editorSessions: EditorSession[];
+  assignmentViews: AssignmentView[];
 };
 
 const initials = (profile?: Profile | null) =>
@@ -207,6 +213,7 @@ async function fetchWorkspace(user: User): Promise<Workspace> {
     tests,
     submissions,
     editorSessions,
+    assignmentViews,
   ] = await Promise.all([
     supabase
       .from("app_settings")
@@ -252,6 +259,9 @@ async function fetchWorkspace(user: User): Promise<Workspace> {
       .select(
         "user_id,context,class_assignment_id,code,active_until,updated_at",
       ),
+    supabase
+      .from("assignment_views")
+      .select("class_assignment_id,student_id,first_opened_at"),
   ]);
   const failure = [
     settings,
@@ -263,6 +273,7 @@ async function fetchWorkspace(user: User): Promise<Workspace> {
     tests,
     submissions,
     editorSessions,
+    assignmentViews,
   ].find((result) => result.error);
   if (failure?.error) throw failure.error;
   return {
@@ -276,6 +287,7 @@ async function fetchWorkspace(user: User): Promise<Workspace> {
     tests: tests.data as ExerciseTest[],
     submissions: submissions.data as Submission[],
     editorSessions: editorSessions.data as EditorSession[],
+    assignmentViews: assignmentViews.data as AssignmentView[],
   };
 }
 
@@ -536,12 +548,19 @@ export default function Home() {
                   <Icon name="group_add" /> Nuova classe
                 </button>
               ) : view === "tasks" ? (
-                <button
-                  className="primary"
-                  onClick={() => navigate("exercise-form")}
-                >
-                  <Icon name="add" /> Nuovo esercizio
-                </button>
+                <>
+                  <ExerciseTransferActions
+                    data={workspace}
+                    reload={reload}
+                    notify={notify}
+                  />
+                  <button
+                    className="primary"
+                    onClick={() => navigate("exercise-form")}
+                  >
+                    <Icon name="add" /> Nuovo esercizio
+                  </button>
+                </>
               ) : null}
             </div>
           )}
@@ -1372,6 +1391,210 @@ function assignmentIsLocked(data: Workspace, assignment: Assignment) {
   );
 }
 
+function ExerciseTransferActions({
+  data,
+  reload,
+  notify,
+}: {
+  data: Workspace;
+  reload: () => Promise<void>;
+  notify: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [selected, setSelected] = useState<{
+    file: File;
+    exercises: ImportedExercise[];
+  } | null>(null);
+  const [validationError, setValidationError] = useState("");
+  const [importing, setImporting] = useState(false);
+  function exportExercises() {
+    const blob = new Blob(
+      [
+        JSON.stringify(
+          buildExerciseTransfer(data.exercises, data.tests),
+          null,
+          2,
+        ),
+      ],
+      { type: "application/json" },
+    );
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "pyclasse-exercises.json";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+  async function validate(file?: File) {
+    setSelected(null);
+    setValidationError("");
+    if (!file) return;
+    try {
+      const parsed = parseExerciseTransfer(await file.text()) as {
+        exercises: ImportedExercise[];
+      };
+      setSelected({ file, exercises: parsed.exercises });
+    } catch (error) {
+      setValidationError(
+        error instanceof Error ? error.message : "Struttura JSON non valida",
+      );
+    }
+  }
+  async function importSelected() {
+    if (!selected || !supabase) return;
+    setImporting(true);
+    const exerciseRows = selected.exercises.map((exercise) => ({
+      id: crypto.randomUUID(),
+      teacher_id: data.profile.id,
+      title: exercise.title,
+      description: exercise.description,
+      description_format: exercise.description_format,
+      resource_url: exercise.resource_url,
+      resource_label: exercise.resource_label,
+      constraints: exercise.constraints,
+      starter_code: exercise.starter_code,
+      verification_mode: exercise.verification_mode,
+      max_points: exercise.max_points,
+      is_prerequisite: exercise.is_prerequisite,
+      tags: exercise.tags,
+    }));
+    try {
+      const result = await supabase.from("exercises").insert(exerciseRows);
+      if (result.error) throw result.error;
+      const tests = selected.exercises.flatMap((exercise, index) =>
+        exercise.tests.map((test) => ({
+          ...test,
+          exercise_id: exerciseRows[index].id,
+        })),
+      );
+      if (tests.length) {
+        const testResult = await supabase.from("tests").insert(tests);
+        if (testResult.error) {
+          await supabase
+            .from("exercises")
+            .delete()
+            .in(
+              "id",
+              exerciseRows.map((item) => item.id),
+            );
+          throw testResult.error;
+        }
+      }
+      await reload();
+      setOpen(false);
+      setSelected(null);
+      notify(
+        `${exerciseRows.length} ${exerciseRows.length === 1 ? "esercizio importato" : "esercizi importati"}`,
+      );
+    } catch (error) {
+      notify(
+        error instanceof Error ? error.message : "Importazione non riuscita",
+      );
+    } finally {
+      setImporting(false);
+    }
+  }
+  return (
+    <>
+      <button className="secondary" type="button" onClick={() => setOpen(true)}>
+        <Icon name="upload_file" /> Importa JSON
+      </button>
+      <button className="secondary" type="button" onClick={exportExercises}>
+        <Icon name="download" /> Esporta JSON
+      </button>
+      {open && (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setOpen(false);
+          }}
+        >
+          <section
+            className="exercise-import-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="exercise-import-title"
+          >
+            <header>
+              <div>
+                <p className="eyebrow">IMPORTAZIONE</p>
+                <h2 id="exercise-import-title">Importa esercizi da JSON</h2>
+              </div>
+              <button
+                className="icon-action"
+                aria-label="Chiudi importazione"
+                onClick={() => setOpen(false)}
+              >
+                <Icon name="close" />
+              </button>
+            </header>
+            <div
+              className={`exercise-drop-zone${dragging ? " is-dragging" : ""}`}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setDragging(true);
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(event) => {
+                event.preventDefault();
+                setDragging(false);
+                void validate(event.dataTransfer.files[0]);
+              }}
+            >
+              <Icon name="upload_file" />
+              <strong>Trascina qui il file JSON</strong>
+              <span>oppure</span>
+              <label className="primary exercise-import-control">
+                Scegli da Esplora file
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  aria-label="Scegli file JSON da importare"
+                  onChange={(event) =>
+                    void validate(event.currentTarget.files?.[0])
+                  }
+                />
+              </label>
+            </div>
+            {selected && (
+              <p className="import-file-valid">
+                <Icon name="check_circle" /> {selected.file.name} ·{" "}
+                {selected.exercises.length} esercizi validi
+              </p>
+            )}
+            {validationError && (
+              <p className="import-file-error" role="alert">
+                <Icon name="error" /> {validationError}
+              </p>
+            )}
+            <a
+              className="exercise-example-link"
+              href="/examples/pyclasse-exercises-example.json"
+              download
+            >
+              Scarica il JSON di esempio
+            </a>
+            <footer>
+              <button className="secondary" onClick={() => setOpen(false)}>
+                Annulla
+              </button>
+              <button
+                className="primary"
+                disabled={!selected || importing}
+                onClick={() => void importSelected()}
+              >
+                {importing ? "Importazione…" : "Importa esercizi"}
+              </button>
+            </footer>
+          </section>
+        </div>
+      )}
+    </>
+  );
+}
+
 function Exercises({
   data,
   navigate,
@@ -1598,81 +1821,6 @@ function TeacherExercises({
   const visible = tag
     ? data.exercises.filter((item) => item.tags.includes(tag))
     : data.exercises;
-  const [importing, setImporting] = useState(false);
-
-  function exportExercises() {
-    const document = buildExerciseTransfer(data.exercises, data.tests);
-    const blob = new Blob([JSON.stringify(document, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = window.document.createElement("a");
-    link.href = url;
-    link.download = "pyclasse-exercises.json";
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
-  async function importExercises(event: React.ChangeEvent<HTMLInputElement>) {
-    const input = event.currentTarget;
-    const file = input.files?.[0];
-    if (!file || !supabase) return;
-    setImporting(true);
-    try {
-      const document = parseExerciseTransfer(await file.text()) as {
-        exercises: ImportedExercise[];
-      };
-      const exerciseRows = document.exercises.map((exercise) => ({
-        id: crypto.randomUUID(),
-        teacher_id: data.profile.id,
-        title: exercise.title,
-        description: exercise.description,
-        description_format: exercise.description_format,
-        resource_url: exercise.resource_url,
-        resource_label: exercise.resource_label,
-        constraints: exercise.constraints,
-        starter_code: exercise.starter_code,
-        verification_mode: exercise.verification_mode,
-        max_points: exercise.max_points,
-        is_prerequisite: exercise.is_prerequisite,
-        tags: exercise.tags,
-      }));
-      const exerciseResult = await supabase
-        .from("exercises")
-        .insert(exerciseRows);
-      if (exerciseResult.error) throw exerciseResult.error;
-      const testRows = document.exercises.flatMap((exercise, index) =>
-        exercise.tests.map((test) => ({
-          ...test,
-          exercise_id: exerciseRows[index].id,
-        })),
-      );
-      if (testRows.length) {
-        const testResult = await supabase.from("tests").insert(testRows);
-        if (testResult.error) {
-          await supabase
-            .from("exercises")
-            .delete()
-            .in(
-              "id",
-              exerciseRows.map((exercise) => exercise.id),
-            );
-          throw testResult.error;
-        }
-      }
-      await reload();
-      notify(
-        `${exerciseRows.length} ${exerciseRows.length === 1 ? "esercizio importato" : "esercizi importati"}`,
-      );
-    } catch (error) {
-      notify(
-        error instanceof Error ? error.message : "Importazione non riuscita",
-      );
-    } finally {
-      input.value = "";
-      setImporting(false);
-    }
-  }
   return (
     <section className="panel full-panel repository">
       <div className="panel-head exercise-library-head">
@@ -1694,36 +1842,6 @@ function TeacherExercises({
           </p>
         </div>
         <div className="exercise-library-tools">
-          <div
-            className="exercise-transfer-tools"
-            aria-label="Importa ed esporta esercizi"
-          >
-            <button
-              className="secondary"
-              type="button"
-              onClick={exportExercises}
-            >
-              <Icon name="download" /> Esporta JSON
-            </button>
-            <label className="secondary exercise-import-control">
-              <Icon name="upload_file" />
-              {importing ? "Importazione…" : "Importa JSON"}
-              <input
-                type="file"
-                accept="application/json,.json"
-                aria-label="Importa esercizi da JSON"
-                disabled={importing}
-                onChange={(event) => void importExercises(event)}
-              />
-            </label>
-            <a
-              className="exercise-example-link"
-              href="/examples/pyclasse-exercises-example.json"
-              download
-            >
-              JSON di esempio
-            </a>
-          </div>
           <label className="exercise-filter">
             <Icon name="filter_alt" />
             <span>Filtra per tag</span>
@@ -1805,12 +1923,37 @@ function TeacherExercises({
               </div>
               <small>{formatDate(item.updated_at)}</small>
               {data.profile.role === "teacher" && (
-                <button
-                  className="secondary"
-                  onClick={() => navigate("exercise-form", item.id)}
-                >
-                  Modifica
-                </button>
+                <div className="exercise-row-actions">
+                  <button
+                    className="secondary"
+                    onClick={() => navigate("exercise-form", item.id)}
+                  >
+                    Modifica
+                  </button>
+                  <button
+                    className="danger-button"
+                    onClick={async () => {
+                      if (
+                        !window.confirm(
+                          `Eliminare definitivamente “${item.title}”? Verranno rimosse anche assegnazioni, bozze e consegne collegate.`,
+                        ) ||
+                        !supabase
+                      )
+                        return;
+                      const result = await supabase
+                        .from("exercises")
+                        .delete()
+                        .eq("id", item.id);
+                      if (result.error) notify(result.error.message);
+                      else {
+                        await reload();
+                        notify("Esercizio eliminato");
+                      }
+                    }}
+                  >
+                    <Icon name="delete" /> Elimina
+                  </button>
+                </div>
               )}
             </article>
           );
@@ -2077,6 +2220,19 @@ function Editor({
   const [activeTab, setActiveTab] = useState<"brief" | "code">("brief");
   const workerRef = useRef<Worker | null>(null);
   useEffect(() => () => workerRef.current?.terminate(), []);
+  useEffect(() => {
+    if (!supabase || data.profile.role !== "student" || !assignment) return;
+    void supabase.from("assignment_views").upsert(
+      {
+        class_assignment_id: assignment.id,
+        student_id: data.profile.id,
+      },
+      {
+        onConflict: "class_assignment_id,student_id",
+        ignoreDuplicates: true,
+      },
+    );
+  }, [assignment, data.profile.id, data.profile.role]);
   useStudentDraft({
     assignment,
     studentId: data.profile.id,

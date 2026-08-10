@@ -4,7 +4,7 @@ Questo documento descrive misure tecniche e limiti del software; non costituisce
 
 ## Dati trattati
 
-PyClasse può conservare identità, email, appartenenza alle classi, codice sorgente, bozze, consegne, esiti, voti, scadenze e timestamp. Nel contesto scolastico questi dati possono riguardare minori. Le sessioni temporanee dell'editor registrano utente, contesto, codice corrente e scadenza esclusivamente per indicare l'attività corrente e per la condivisione volontaria in Code now.
+PyClasse può conservare identità, email, appartenenza alle classi, codice sorgente, bozze, consegne, esiti, voti, scadenze e timestamp. Nel contesto scolastico questi dati possono riguardare minori. Le sessioni temporanee dell'editor registrano utente, contesto, codice corrente e scadenza esclusivamente per indicare l'attività corrente e per la condivisione volontaria in Code now. Alla prima apertura di un esercizio assegnato viene inoltre conservato un solo timestamp, usato per mostrare al docente l'avanzamento della classe; non vengono registrati accessi successivi, durata di lettura o interazioni con la traccia.
 
 ## Misure tecniche presenti
 

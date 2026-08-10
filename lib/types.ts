@@ -83,6 +83,11 @@ export type EditorSession = {
   active_until: string;
   updated_at: string;
 };
+export type AssignmentView = {
+  class_assignment_id: string;
+  student_id: string;
+  first_opened_at: string;
+};
 export type Settings = {
   singleton: boolean;
   teacher_email: string | null;
@@ -103,4 +108,5 @@ export type Workspace = {
   tests: ExerciseTest[];
   submissions: Submission[];
   editorSessions: EditorSession[];
+  assignmentViews: AssignmentView[];
 };

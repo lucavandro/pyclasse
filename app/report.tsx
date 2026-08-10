@@ -23,7 +23,8 @@ const statusLabels = {
   },
 } as const;
 
-type ReportStatus = "all" | Exclude<SubmissionStatus, "draft">;
+type ReportStatus = "all" | "unopened" | Exclude<SubmissionStatus, "draft">;
+type DeliverySort = "student" | "assigned" | "opened" | "completed";
 
 export function ReportV2({
   data,
@@ -38,6 +39,10 @@ export function ReportV2({
   const [classFilter, setClassFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<ReportStatus>("all");
   const [query, setQuery] = useState("");
+  const [deliverySort, setDeliverySort] = useState<DeliverySort>("student");
+  const [deliveryDirection, setDeliveryDirection] = useState<"asc" | "desc">(
+    "asc",
+  );
   const submissions = data.submissions.filter(
     (item) => item.status !== "draft",
   );
@@ -80,6 +85,124 @@ export function ReportV2({
       );
     });
   }, [classFilter, data, query, statusFilter, submissions]);
+  const assignmentPairs = useMemo(
+    () =>
+      data.assignments.flatMap((assignment) =>
+        data.memberships
+          .filter((membership) => membership.class_id === assignment.class_id)
+          .map((membership) => ({
+            assignment,
+            studentId: membership.student_id,
+          })),
+      ),
+    [data.assignments, data.memberships],
+  );
+  const unopenedPairs = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    if (statusFilter !== "all" && statusFilter !== "unopened") return [];
+    return assignmentPairs.filter(({ assignment, studentId }) => {
+      const viewed = data.assignmentViews.some(
+        (view) =>
+          view.class_assignment_id === assignment.id &&
+          view.student_id === studentId,
+      );
+      const submission = data.submissions.some(
+        (item) =>
+          item.class_assignment_id === assignment.id &&
+          item.student_id === studentId,
+      );
+      const student = data.profiles.find((item) => item.id === studentId);
+      const exercise = data.exercises.find(
+        (item) => item.id === assignment.exercise_id,
+      );
+      return (
+        !viewed &&
+        !submission &&
+        (classFilter === "all" || assignment.class_id === classFilter) &&
+        (!normalizedQuery ||
+          `${student?.full_name || ""} ${student?.email || ""} ${exercise?.title || ""}`
+            .toLocaleLowerCase()
+            .includes(normalizedQuery))
+      );
+    });
+  }, [assignmentPairs, classFilter, data, query, statusFilter]);
+  const deliveryRows = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    const students = new Map<
+      string,
+      { studentId: string; assigned: number; opened: number; completed: number }
+    >();
+    assignmentPairs
+      .filter(
+        ({ assignment }) =>
+          classFilter === "all" || assignment.class_id === classFilter,
+      )
+      .forEach(({ assignment, studentId }) => {
+        const row = students.get(studentId) || {
+          studentId,
+          assigned: 0,
+          opened: 0,
+          completed: 0,
+        };
+        row.assigned += 1;
+        if (
+          data.assignmentViews.some(
+            (view) =>
+              view.class_assignment_id === assignment.id &&
+              view.student_id === studentId,
+          ) ||
+          data.submissions.some(
+            (submission) =>
+              submission.class_assignment_id === assignment.id &&
+              submission.student_id === studentId,
+          )
+        )
+          row.opened += 1;
+        if (
+          data.submissions.some(
+            (submission) =>
+              submission.class_assignment_id === assignment.id &&
+              submission.student_id === studentId &&
+              submission.status !== "draft",
+          )
+        )
+          row.completed += 1;
+        students.set(studentId, row);
+      });
+    const name = (studentId: string) => {
+      const profile = data.profiles.find((item) => item.id === studentId);
+      return profile?.full_name || profile?.email || "Studente";
+    };
+    return [...students.values()]
+      .filter((row) =>
+        name(row.studentId).toLocaleLowerCase().includes(normalizedQuery),
+      )
+      .sort((left, right) => {
+        const factor = deliveryDirection === "asc" ? 1 : -1;
+        const result =
+          deliverySort === "student"
+            ? name(left.studentId).localeCompare(name(right.studentId), "it")
+            : left[deliverySort] - right[deliverySort];
+        return result * factor;
+      });
+  }, [
+    assignmentPairs,
+    classFilter,
+    data,
+    deliveryDirection,
+    deliverySort,
+    query,
+  ]);
+  function sortDeliveries(sort: DeliverySort) {
+    if (deliverySort === sort)
+      setDeliveryDirection((direction) =>
+        direction === "asc" ? "desc" : "asc",
+      );
+    else {
+      setDeliverySort(sort);
+      setDeliveryDirection(sort === "student" ? "asc" : "desc");
+    }
+  }
 
   return (
     <section className="report-page">
@@ -134,6 +257,83 @@ export function ReportV2({
         </div>
       </div>
 
+      {data.profile.role === "teacher" && (
+        <section
+          className="report-results panel"
+          aria-labelledby="delivery-summary-title"
+        >
+          <div className="panel-head">
+            <div>
+              <p className="eyebrow">CONSEGNE</p>
+              <h3 id="delivery-summary-title">Avanzamento per studente</h3>
+            </div>
+            <span className="result-count">{deliveryRows.length} studenti</span>
+          </div>
+          <div className="delivery-summary-table table">
+            <div className="table-row table-head">
+              {(
+                ["student", "assigned", "opened", "completed"] as DeliverySort[]
+              ).map((column) => (
+                <button
+                  type="button"
+                  key={column}
+                  onClick={() => sortDeliveries(column)}
+                  aria-label={`Ordina per ${{ student: "studente", assigned: "assegnati", opened: "aperti", completed: "svolti" }[column]}`}
+                >
+                  {
+                    {
+                      student: "Studente",
+                      assigned: "Assegnati",
+                      opened: "Aperti",
+                      completed: "Svolti",
+                    }[column]
+                  }
+                  <span className="material-symbols-rounded" aria-hidden="true">
+                    swap_vert
+                  </span>
+                </button>
+              ))}
+            </div>
+            {deliveryRows.map((row) => {
+              const student = data.profiles.find(
+                (item) => item.id === row.studentId,
+              );
+              return (
+                <div className="table-row" key={row.studentId}>
+                  <span className="report-student">
+                    <strong>{student?.full_name || student?.email}</strong>
+                    <small>{student?.email}</small>
+                  </span>
+                  <span>{row.assigned}</span>
+                  <span>
+                    <strong>
+                      {row.assigned
+                        ? Math.round((row.opened / row.assigned) * 100)
+                        : 0}
+                      %
+                    </strong>
+                    <small>
+                      {row.opened} di {row.assigned}
+                    </small>
+                  </span>
+                  <span>
+                    <strong>
+                      {row.assigned
+                        ? Math.round((row.completed / row.assigned) * 100)
+                        : 0}
+                      %
+                    </strong>
+                    <small>
+                      {row.completed} di {row.assigned}
+                    </small>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       <section
         className="report-results panel"
         aria-labelledby="report-results-title"
@@ -149,7 +349,7 @@ export function ReportV2({
           </div>
           {data.profile.role === "teacher" && (
             <span className="result-count">
-              {visibleSubmissions.length} risultati
+              {visibleSubmissions.length + unopenedPairs.length} risultati
             </span>
           )}
         </div>
@@ -193,6 +393,7 @@ export function ReportV2({
                 }
               >
                 <option value="all">Tutti gli stati</option>
+                <option value="unopened">Non aperto</option>
                 <option value="submitted">Da valutare</option>
                 <option value="passed">Superato</option>
                 <option value="partial">Parziale</option>
@@ -223,8 +424,35 @@ export function ReportV2({
               notify={notify}
             />
           ))}
+          {unopenedPairs.map(({ assignment, studentId }) => {
+            const student = data.profiles.find((item) => item.id === studentId);
+            const exercise = data.exercises.find(
+              (item) => item.id === assignment.exercise_id,
+            );
+            const classroom = data.classes.find(
+              (item) => item.id === assignment.class_id,
+            );
+            return (
+              <div
+                className="table-row"
+                key={`unopened:${assignment.id}:${studentId}`}
+              >
+                <span className="report-student">
+                  <strong>{student?.full_name || student?.email}</strong>
+                  <small>{student?.email}</small>
+                </span>
+                <span className="report-exercise">{exercise?.title}</span>
+                <span>{classroom?.name || "—"}</span>
+                <span className="submission-status status-unopened">
+                  Non aperto
+                </span>
+                <span className="ungraded-label">—</span>
+                <span />
+              </div>
+            );
+          })}
         </div>
-        {!visibleSubmissions.length && (
+        {!visibleSubmissions.length && !unopenedPairs.length && (
           <p className="empty-state">
             {submissions.length
               ? "Nessuna consegna corrisponde ai filtri selezionati."

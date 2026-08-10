@@ -45,6 +45,7 @@ test(
     for (const path of [
       "/pyodide-worker.js",
       "/vendor/pyodide/pyodide.js",
+      "/vendor/pyodide/pyodide.asm.mjs",
       "/vendor/pyodide/pyodide.asm.wasm",
       "/vendor/pyodide/python_stdlib.zip",
       "/manifest.webmanifest",

@@ -150,12 +150,33 @@ test("Supabase include test pgTAP per schema, RLS e permessi", async () => {
 test("gli asset Pyodide self-hosted sono generati dal postinstall", async () => {
   for (const asset of [
     "pyodide.js",
-    "pyodide.asm.js",
+    "pyodide.asm.mjs",
     "pyodide.asm.wasm",
     "pyodide-lock.json",
     "python_stdlib.zip",
   ]) {
     await access(new URL(`../public/vendor/pyodide/${asset}`, import.meta.url));
+  }
+  await assert.rejects(
+    access(new URL("../public/vendor/pyodide/pyodide.asm.js", import.meta.url)),
+  );
+});
+
+test("i font dell'interfaccia sono self-hosted senza richieste a Google", async () => {
+  const [layout, styles] = await Promise.all([
+    read("app/layout.tsx"),
+    read("app/globals.css"),
+  ]);
+  assert.doesNotMatch(layout, /next\/font\/google/);
+  assert.doesNotMatch(styles, /https?:\/\//);
+  assert.match(styles, /url\("\/fonts\/geist-latin\.woff2"\)/);
+  assert.match(styles, /url\("\/fonts\/geist-mono-latin\.woff2"\)/);
+  for (const asset of [
+    "geist-latin.woff2",
+    "geist-mono-latin.woff2",
+    "OFL.txt",
+  ]) {
+    await access(new URL(`../public/fonts/${asset}`, import.meta.url));
   }
 });
 

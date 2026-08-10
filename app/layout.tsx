@@ -1,12 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "./dark.css";
 import "material-symbols/rounded.css";
 import { PwaRegister } from "./pwa-register";
-
-const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
-const mono = Geist_Mono({ variable: "--font-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -49,7 +45,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="it">
-      <body className={`${geist.variable} ${mono.variable}`}>
+      <body>
         {children}
         <PwaRegister />
       </body>

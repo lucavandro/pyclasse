@@ -87,11 +87,14 @@ modificare gli alias semantici, lasciando invariati i token usati dai selettori:
 }
 ```
 
-Geist e Geist Mono sono caricati da `app/layout.tsx` tramite `next/font` e
-assegnati rispettivamente a `--font-geist` e `--font-mono`. Per sostituirli alla
-fonte, aggiornare quel file e mantenere `--font-ui` e `--font-code` come livello
-di astrazione. Nei nuovi componenti evitare valori ripetuti scritti direttamente:
-usare il token esistente oppure aggiungerne uno semantico a questa scala.
+Geist e Geist Mono sono distribuiti localmente da `public/fonts` e dichiarati
+con `@font-face` in `app/globals.css`, senza richieste a CDN o servizi Google.
+Sono assegnati rispettivamente a `--font-geist` e `--font-mono`. Per sostituirli
+alla fonte, aggiornare gli asset locali e mantenere `--font-ui` e `--font-code`
+come livello di astrazione. Nei nuovi componenti evitare valori ripetuti scritti
+direttamente: usare il token esistente oppure aggiungerne uno semantico a questa
+scala. I file Geist sono redistribuiti secondo la SIL Open Font License 1.1
+inclusa in `public/fonts/OFL.txt`.
 
 ## Gerarchia visiva
 

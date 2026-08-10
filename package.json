@@ -33,7 +33,7 @@
     "@supabase/supabase-js": "^2.111.0",
     "@uiw/react-codemirror": "^4.25.11",
     "material-symbols": "^0.45.10",
-    "next": "^16.2.12",
+    "next": "^16.3.0",
     "postcss": "^8.5.25",
     "pyodide": "^314.0.3",
     "react": "^19.2.8",

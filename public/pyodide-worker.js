@@ -1,4 +1,4 @@
-self.importScripts("/vendor/pyodide/pyodide.js");
+import "/vendor/pyodide/pyodide.js";
 let runtime;
 self.onmessage = async ({ data }) => {
   try {

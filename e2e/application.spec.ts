@@ -187,6 +187,54 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await expect(page.getByText("Non ancora assegnato")).toBeVisible();
   });
 
+  test("Code now condivide il codice docente e scarica Python", async ({
+    browser,
+  }) => {
+    const teacherContext = await browser.newContext({ locale: "it-IT" });
+    const studentContext = await browser.newContext({ locale: "it-IT" });
+    const teacherPage = await teacherContext.newPage();
+    const studentPage = await studentContext.newPage();
+    await login(teacherPage, teacher);
+    await teacherPage.getByRole("button", { name: "Code now" }).click();
+    await teacherPage
+      .getByLabel("Editor Code now")
+      .fill('print("codice condiviso dal docente")');
+    await expect(
+      teacherPage.getByText("Codice docente disponibile agli studenti"),
+    ).toBeVisible();
+    await login(studentPage, student);
+    await studentPage.getByRole("button", { name: "Code now" }).click();
+    await studentPage
+      .getByRole("button", { name: "Copia codice prof" })
+      .click();
+    await expect(studentPage.getByLabel("Editor Code now")).toContainText(
+      "codice condiviso dal docente",
+    );
+    await expect(
+      studentPage.getByRole("button", { name: "Run" }),
+    ).toBeVisible();
+    const downloadEvent = studentPage.waitForEvent("download");
+    await studentPage.getByRole("button", { name: "Scarica .py" }).click();
+    expect((await downloadEvent).suggestedFilename()).toBe("code-now.py");
+    await studentPage
+      .getByLabel("Editor Code now")
+      .fill('nome = input("Nome? ")\nprint("Ciao", nome)');
+    await studentPage.getByRole("button", { name: "Run" }).click();
+    await expect(studentPage.getByLabel("Valore per input Python")).toBeVisible(
+      {
+        timeout: 45_000,
+      },
+    );
+    await studentPage.getByLabel("Valore per input Python").fill("Luca");
+    await studentPage.getByRole("button", { name: "Invia" }).click();
+    await expect(studentPage.locator(".code-now-console")).toContainText(
+      "Ciao Luca",
+      { timeout: 45_000 },
+    );
+    await teacherContext.close();
+    await studentContext.close();
+  });
+
   test("il docente monitora e modifica il codice dello studente in tempo reale", async ({
     browser,
   }) => {
@@ -201,6 +249,10 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
       .getByRole("button", { name: "Rivedi consegna", exact: true })
       .click();
     await studentPage.getByRole("tab", { name: "Editor e codice" }).click();
+    await studentPage
+      .getByLabel("Editor Python")
+      .fill("def answer():\n    return 42\n# revisione in corso");
+    await studentPage.waitForTimeout(1_000);
     await login(teacherPage, teacher);
     await teacherPage
       .getByRole("button", { name: "Report", exact: true })
@@ -208,8 +260,8 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await expect(
       teacherPage
         .locator(".teacher-report-table")
-        .getByText("Da valutare", { exact: true }),
-    ).toBeVisible();
+        .getByText("Risposta universale", { exact: true }),
+    ).toHaveCount(0);
     await expect(
       teacherPage.getByLabel("Cerca studente o esercizio"),
     ).toBeVisible();
@@ -224,11 +276,29 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
       /sidebar-collapsed/,
     );
     await teacherPage.getByRole("button", { name: "Espandi menu" }).click();
+    await teacherPage
+      .getByRole("button", { name: "Monitoraggio", exact: true })
+      .click();
+    await expect(
+      teacherPage.getByLabel("Filtra monitoraggio per classe"),
+    ).toBeVisible();
+    await expect(
+      teacherPage.getByLabel("Filtra monitoraggio per attività"),
+    ).toBeVisible();
     await expect(
       teacherPage.getByRole("heading", {
         name: "Monitoraggio lavori in corso",
       }),
     ).toBeVisible();
+    await expect(
+      teacherPage.getByRole("article").getByText("Editor aperto ora"),
+    ).toBeVisible();
+    await expect(
+      teacherPage.getByRole("article").getByText("Risposta universale"),
+    ).toBeVisible();
+    await teacherPage
+      .getByLabel("Filtra monitoraggio per attività")
+      .selectOption("active");
     const liveCode = teacherPage.getByLabel(`Codice di ${student.name}`);
     await expect(liveCode).toContainText("return 42");
     await liveCode.fill("def answer():\n    return 43");
@@ -239,6 +309,13 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
       "return 43",
       { timeout: 20_000 },
     );
+    await studentPage.getByRole("button", { name: "Classi" }).click();
+    await teacherPage
+      .getByLabel("Filtra monitoraggio per attività")
+      .selectOption("inactive");
+    await expect(
+      teacherPage.getByRole("article").getByText("Lavoro aperto, non attivo"),
+    ).toBeVisible({ timeout: 35_000 });
     await studentContext.close();
     await teacherContext.close();
   });

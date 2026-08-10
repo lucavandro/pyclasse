@@ -32,6 +32,8 @@ test("risolve tutte le rotte statiche anche con slash finale", () => {
     ["/exercises", "tasks"],
     ["/exercises/new", "exercise-form"],
     ["/reports", "report"],
+    ["/monitoring", "monitor"],
+    ["/code-now", "code-now"],
     ["/settings", "settings"],
   ]);
   for (const [path, view] of expected) {

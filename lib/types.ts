@@ -75,6 +75,14 @@ export type Submission = {
   updated_at: string;
   updated_by: string | null;
 };
+export type EditorSession = {
+  user_id: string;
+  context: "exercise" | "code_now";
+  class_assignment_id: string | null;
+  code: string;
+  active_until: string;
+  updated_at: string;
+};
 export type Settings = {
   singleton: boolean;
   teacher_email: string | null;
@@ -94,4 +102,5 @@ export type Workspace = {
   assignments: Assignment[];
   tests: ExerciseTest[];
   submissions: Submission[];
+  editorSessions: EditorSession[];
 };

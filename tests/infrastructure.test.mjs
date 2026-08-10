@@ -72,6 +72,10 @@ test("le risposte applicano intestazioni di sicurezza", async () => {
     assert.match(config, new RegExp(header));
   assert.match(config, /frame-ancestors 'none'/);
   assert.match(config, /object-src 'none'/);
+  assert.match(config, /font-src 'self' data:/);
+  assert.match(config, /process\.env\.NODE_ENV === "development"/);
+  assert.match(config, /http:\/\/127\.0\.0\.1:54321/);
+  assert.match(config, /ws:\/\/127\.0\.0\.1:54321/);
 });
 
 test("le variabili pubbliche di esempio non contengono segreti", async () => {
@@ -142,7 +146,7 @@ test("lo sviluppo locale include un dataset completo e credenziali documentate",
 
 test("Supabase include test pgTAP per schema, RLS e permessi", async () => {
   const sql = await read("supabase/tests/database.test.sql");
-  assert.match(sql, /select plan\(45\)/i);
+  assert.match(sql, /select plan\(63\)/i);
   assert.match(sql, /relrowsecurity/i);
   assert.match(sql, /not has_function_privilege\('anon'/i);
 });

@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import type { Submission, SubmissionStatus, Workspace } from "../lib/types";
 import { scoreAsPercentage, validScore } from "../lib/learning-path.mjs";
-import { LiveMonitor } from "./live-monitor";
 import { useLocale } from "../lib/i18n";
 
 const statusLabels = {
@@ -232,12 +231,6 @@ export function ReportV2({
           </p>
         )}
       </section>
-
-      {data.profile.role === "teacher" && (
-        <section className="report-live-section panel">
-          <LiveMonitor data={data} notify={notify} />
-        </section>
-      )}
     </section>
   );
 }

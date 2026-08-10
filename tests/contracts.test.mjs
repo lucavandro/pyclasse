@@ -60,6 +60,7 @@ test("editor applica watchdog e blocco clipboard", async () => {
   assert.match(worker, /output limitato/i);
   assert.doesNotMatch(worker, /cdn\.jsdelivr\.net/i);
   assert.match(worker, /\/vendor\/pyodide\//i);
+  assert.match(page, /type: "module"/);
 });
 
 test("feedback IA vieta soluzioni dirette e dispone di fallback", async () => {
@@ -95,6 +96,7 @@ test("le schermate leggono Supabase e non incorporano dati dimostrativi", async 
     "class_assignments",
     "tests",
     "submissions",
+    "editor_sessions",
   ]) {
     assert.match(page, new RegExp(`from\\(\"${table}\"\\)`));
   }
@@ -214,6 +216,32 @@ test("il monitoraggio usa bozze, Realtime e attribuzione dell'editor", async () 
     /alter publication supabase_realtime add table public\.submissions/i,
   );
   assert.match(migration, /replica identity full/i);
+});
+
+test("monitoraggio e Code now usano presenza temporanea protetta", async () => {
+  const [monitor, codeNow, presence, migration] = await Promise.all([
+    read("app/live-monitor.tsx"),
+    read("app/code-now.tsx"),
+    read("app/use-editor-session.ts"),
+    read("supabase/migrations/20260810001000_editor_presence_and_code_now.sql"),
+  ]);
+  assert.match(monitor, /submission\.status === "draft"/);
+  assert.match(monitor, /Editor aperto ora/);
+  assert.match(monitor, /PythonEditor/);
+  assert.match(codeNow, /Copia codice prof/);
+  assert.match(codeNow, /code-now\.py/);
+  assert.match(codeNow, /mode: "run_interactive"/);
+  assert.match(codeNow, /inputRequired/);
+  assert.match(codeNow, /Valore per input Python/);
+  assert.match(codeNow, /nextInputs/);
+  assert.match(presence, /active_until/);
+  assert.match(presence, /25_000/);
+  assert.match(presence, /150/);
+  assert.match(migration, /enable row level security/i);
+  assert.match(migration, /get_active_teacher_code/i);
+  assert.match(migration, /publish_code_now/i);
+  assert.match(migration, /close_editor_session/i);
+  assert.match(migration, /prune_editor_sessions/i);
 });
 
 test("l'autosalvataggio non ripristina periodicamente codice obsoleto", async () => {

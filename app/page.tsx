@@ -14,6 +14,9 @@ import { resolveRoute } from "../lib/domain.mjs";
 import { ExerciseFormV2 } from "./exercise-form";
 import { AuthScreenV2 } from "./auth-screen";
 import { ReportV2 } from "./report";
+import { MonitoringPage } from "./live-monitor";
+import { CodeNow } from "./code-now";
+import { useEditorSession } from "./use-editor-session";
 import { useStudentDraft } from "./use-student-draft";
 import { useLocale } from "../lib/i18n";
 import {
@@ -40,6 +43,8 @@ type View =
   | "class-form"
   | "tasks"
   | "report"
+  | "monitor"
+  | "code-now"
   | "settings"
   | "editor"
   | "exercise-form";
@@ -108,6 +113,14 @@ type Submission = {
   updated_at: string;
   updated_by: string | null;
 };
+type EditorSession = {
+  user_id: string;
+  context: "exercise" | "code_now";
+  class_assignment_id: string | null;
+  code: string;
+  active_until: string;
+  updated_at: string;
+};
 type Settings = {
   singleton: boolean;
   teacher_email: string | null;
@@ -127,6 +140,7 @@ type Workspace = {
   assignments: Assignment[];
   tests: ExerciseTest[];
   submissions: Submission[];
+  editorSessions: EditorSession[];
 };
 
 const initials = (profile?: Profile | null) =>
@@ -161,6 +175,7 @@ function Empty({ children }: { children: React.ReactNode }) {
 
 async function fetchWorkspace(user: User): Promise<Workspace> {
   if (!supabase) throw new Error("Supabase non è configurato.");
+  await supabase.rpc("prune_editor_sessions");
   const profileResult = await supabase
     .from("profiles")
     .select("id,email,full_name,role,last_seen_at,external_ai_enabled")
@@ -181,6 +196,7 @@ async function fetchWorkspace(user: User): Promise<Workspace> {
     assignments,
     tests,
     submissions,
+    editorSessions,
   ] = await Promise.all([
     supabase
       .from("app_settings")
@@ -221,6 +237,11 @@ async function fetchWorkspace(user: User): Promise<Workspace> {
         "id,class_assignment_id,student_id,code,status,score,submitted_at,updated_at,updated_by",
       )
       .order("updated_at", { ascending: false }),
+    supabase
+      .from("editor_sessions")
+      .select(
+        "user_id,context,class_assignment_id,code,active_until,updated_at",
+      ),
   ]);
   const failure = [
     settings,
@@ -231,6 +252,7 @@ async function fetchWorkspace(user: User): Promise<Workspace> {
     assignments,
     tests,
     submissions,
+    editorSessions,
   ].find((result) => result.error);
   if (failure?.error) throw failure.error;
   return {
@@ -243,6 +265,7 @@ async function fetchWorkspace(user: User): Promise<Workspace> {
     assignments: assignments.data as Assignment[],
     tests: tests.data as ExerciseTest[],
     submissions: submissions.data as Submission[],
+    editorSessions: editorSessions.data as EditorSession[],
   };
 }
 
@@ -330,6 +353,8 @@ export default function Home() {
   }, [syncRoute]);
 
   function navigate(target: View, id?: string) {
+    if ((view === "editor" || view === "code-now") && target !== view)
+      void supabase?.rpc("close_editor_session");
     const path =
       target === "home"
         ? "/"
@@ -351,7 +376,11 @@ export default function Home() {
                     ? `/exercises/${id}`
                     : target === "report"
                       ? "/reports"
-                      : "/settings";
+                      : target === "monitor"
+                        ? "/monitoring"
+                        : target === "code-now"
+                          ? "/code-now"
+                          : "/settings";
     history.pushState({}, "", path);
     syncRoute();
   }
@@ -411,7 +440,11 @@ export default function Home() {
                   ? selectedExercise?.title || t("exercises")
                   : view === "report"
                     ? t("report")
-                    : t("settings");
+                    : view === "monitor"
+                      ? t("monitor")
+                      : view === "code-now"
+                        ? "Code now"
+                        : t("settings");
 
   return (
     <main
@@ -438,7 +471,11 @@ export default function Home() {
               ["home", "dashboard", t("overview")],
               ["classes", "groups", t("classes")],
               ["tasks", "code_blocks", t("exercises")],
+              ["code-now", "terminal", "Code now"],
               ["report", "analytics", t("report")],
+              ...(workspace.profile.role === "teacher"
+                ? [["monitor", "monitoring", t("monitor")]]
+                : []),
               ["settings", "settings", t("settings")],
             ] as [View, string, string][]
           ).map(([target, icon, label]) => (
@@ -551,6 +588,7 @@ export default function Home() {
               <Editor
                 exercise={selectedExercise}
                 data={workspace}
+                navigate={navigate}
                 reload={reload}
                 notify={notify}
               />
@@ -559,6 +597,10 @@ export default function Home() {
         {view === "report" && (
           <ReportV2 data={workspace} reload={reload} notify={notify} />
         )}
+        {view === "monitor" && workspace.profile.role === "teacher" && (
+          <MonitoringPage data={workspace} notify={notify} />
+        )}
+        {view === "code-now" && <CodeNow data={workspace} notify={notify} />}
         {view === "settings" && (
           <SettingsPanel
             data={workspace}
@@ -705,7 +747,11 @@ function Dashboard({
           </button>
         </div>
         <div className="hero-stat">
-          <div className="ring">
+          <div
+            className="ring"
+            style={{ "--progress": `${completion}%` } as React.CSSProperties}
+            aria-label={`${completion}% completato`}
+          >
             <strong>{completion}%</strong>
             <span>completati</span>
           </div>
@@ -953,16 +999,51 @@ function ClassDetail({
   reload: () => Promise<void>;
   notify: (v: string) => void;
 }) {
+  const [sortBy, setSortBy] = useState<"surname" | "last_seen">("surname");
+  const [studentEmail, setStudentEmail] = useState("");
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
+    null,
+  );
   const members = data.memberships
     .filter((m) => m.class_id === classroom.id)
     .map((m) => ({
       membership: m,
       profile: data.profiles.find((p) => p.id === m.student_id),
     }))
-    .filter((item) => item.profile);
+    .filter((item) => item.profile)
+    .sort((left, right) => {
+      if (sortBy === "last_seen") {
+        return (right.profile?.last_seen_at || "").localeCompare(
+          left.profile?.last_seen_at || "",
+        );
+      }
+      const surname = (profile?: Profile) =>
+        (profile?.full_name || profile?.email || "")
+          .trim()
+          .split(/\s+/)
+          .at(-1) || "";
+      return surname(left.profile).localeCompare(surname(right.profile), "it", {
+        sensitivity: "base",
+      });
+    });
   const classAssignments = data.assignments.filter(
     (a) => a.class_id === classroom.id,
   );
+  const selectedStudent = members.find(
+    (item) => item.membership.student_id === selectedStudentId,
+  )?.profile;
+  async function addParticipant(event: React.FormEvent) {
+    event.preventDefault();
+    if (!supabase || !studentEmail.trim()) return;
+    const { error } = await supabase.rpc("add_student_to_class", {
+      target_class: classroom.id,
+      student_email: studentEmail.trim(),
+    });
+    if (error) return notify(error.message);
+    setStudentEmail("");
+    await reload();
+    notify("Partecipante aggiunto");
+  }
   async function remove(studentId: string) {
     if (!supabase) return;
     const { error } = await supabase
@@ -1011,15 +1092,70 @@ function ClassDetail({
             <p className="eyebrow">PARTECIPANTI</p>
             <h3>Studenti della classe</h3>
           </div>
+          {data.profile.role === "teacher" && (
+            <label className="member-sort">
+              Ordina per
+              <select
+                aria-label="Ordina partecipanti"
+                value={sortBy}
+                onChange={(event) =>
+                  setSortBy(event.target.value as "surname" | "last_seen")
+                }
+              >
+                <option value="surname">Cognome (A-Z)</option>
+                <option value="last_seen">Ultimo accesso</option>
+              </select>
+            </label>
+          )}
         </div>
+        {data.profile.role === "teacher" && (
+          <form
+            className="add-participant"
+            onSubmit={(event) => void addParticipant(event)}
+          >
+            <label>
+              Email dello studente
+              <input
+                type="email"
+                value={studentEmail}
+                onChange={(event) => setStudentEmail(event.target.value)}
+                placeholder="studente@pyclasse.test"
+                required
+              />
+            </label>
+            <button className="primary">
+              <Icon name="person_add" /> Aggiungi
+            </button>
+          </form>
+        )}
         {members.length ? (
           members.map(({ membership, profile }) => (
             <div className="student" key={membership.student_id}>
-              <span className="avatar blue">{initials(profile)}</span>
-              <span className="student-name">
-                <strong>{displayName(profile)}</strong>
-                <small>Iscritto: {formatDate(membership.joined_at)}</small>
-              </span>
+              {data.profile.role === "teacher" ? (
+                <button
+                  className="student-open"
+                  onClick={() => setSelectedStudentId(membership.student_id)}
+                  aria-label={`Apri il lavoro di ${displayName(profile)}`}
+                >
+                  <span className="avatar blue">{initials(profile)}</span>
+                </button>
+              ) : (
+                <span className="avatar blue">{initials(profile)}</span>
+              )}
+              {data.profile.role === "teacher" ? (
+                <button
+                  className="student-name student-open-name"
+                  onClick={() => setSelectedStudentId(membership.student_id)}
+                >
+                  <strong>{displayName(profile)}</strong>
+                  <small>Iscritto: {formatDate(membership.joined_at)}</small>
+                </button>
+              ) : (
+                <span className="student-name">
+                  <strong>{displayName(profile)}</strong>
+                  <small>Iscritto: {formatDate(membership.joined_at)}</small>
+                </span>
+              )}
               <span>{formatDate(profile?.last_seen_at)}</span>
               {data.profile.role === "teacher" && (
                 <button
@@ -1035,6 +1171,98 @@ function ClassDetail({
           <Empty>Nessuno studente iscritto.</Empty>
         )}
       </section>
+      <section className="panel class-exercises">
+        <div className="panel-head">
+          <div>
+            <p className="eyebrow">ESERCIZI</p>
+            <h3>Assegnati alla classe</h3>
+          </div>
+        </div>
+        {classAssignments.length ? (
+          classAssignments.map((assignment) => {
+            const exercise = data.exercises.find(
+              (item) => item.id === assignment.exercise_id,
+            );
+            return (
+              <button
+                className="assignment"
+                key={assignment.id}
+                onClick={() => exercise && navigate("editor", exercise.id)}
+              >
+                <span className="assignment-icon violet">
+                  <Icon name="code" />
+                </span>
+                <span className="assignment-main">
+                  <strong>{exercise?.title}</strong>
+                  <small>
+                    {assignment.published_at ? "Pubblicato" : "Bozza"}
+                  </small>
+                </span>
+                <span className="due">
+                  <small>SCADENZA</small>
+                  <strong>{formatDate(assignment.deadline)}</strong>
+                </span>
+              </button>
+            );
+          })
+        ) : (
+          <Empty>Nessun esercizio assegnato.</Empty>
+        )}
+      </section>
+      {data.profile.role === "teacher" && selectedStudent && (
+        <section
+          className="panel student-work-detail"
+          aria-labelledby="student-work-title"
+        >
+          <div className="panel-head">
+            <div>
+              <p className="eyebrow">LAVORO DELLO STUDENTE</p>
+              <h3 id="student-work-title">{displayName(selectedStudent)}</h3>
+            </div>
+            <button
+              className="secondary"
+              onClick={() => setSelectedStudentId(null)}
+            >
+              Chiudi
+            </button>
+          </div>
+          {classAssignments.map((assignment) => {
+            const exercise = data.exercises.find(
+              (item) => item.id === assignment.exercise_id,
+            );
+            const submission = data.submissions.find(
+              (item) =>
+                item.class_assignment_id === assignment.id &&
+                item.student_id === selectedStudent.id,
+            );
+            return (
+              <article className="student-work-row" key={assignment.id}>
+                <div>
+                  <strong>{exercise?.title}</strong>
+                  <small>
+                    {submission
+                      ? `Ultimo aggiornamento: ${formatDate(submission.updated_at)}`
+                      : "Non iniziato"}
+                  </small>
+                </div>
+                <span className="status">
+                  {submission?.status || "non iniziato"}
+                </span>
+                <span>
+                  {submission?.score == null
+                    ? "—"
+                    : `${submission.score}/${assignment.grading_scale || exercise?.max_points}`}
+                </span>
+                {submission?.code && (
+                  <pre>
+                    <code>{submission.code}</code>
+                  </pre>
+                )}
+              </article>
+            );
+          })}
+        </section>
+      )}
     </section>
   );
 }
@@ -1472,6 +1700,7 @@ function SettingsPanel({
   reload: () => Promise<void>;
   notify: (v: string) => void;
 }) {
+  const [fullName, setFullName] = useState(data.profile.full_name || "");
   const [school, setSchool] = useState(data.settings?.school_name || "");
   const [loginTitleIt, setLoginTitleIt] = useState(
     data.settings?.login_title_it || "",
@@ -1505,6 +1734,7 @@ function SettingsPanel({
     const result = await supabase
       .from("profiles")
       .update({
+        full_name: fullName.trim() || null,
         external_ai_enabled: ai,
         external_ai_consented_at: ai ? new Date().toISOString() : null,
       })
@@ -1544,6 +1774,15 @@ function SettingsPanel({
           </fieldset>
           {data.profile.role === "teacher" && (
             <>
+              <label>
+                Nome docente
+                <input
+                  value={fullName}
+                  onChange={(event) => setFullName(event.target.value)}
+                  maxLength={120}
+                  required
+                />
+              </label>
               <label>
                 Nome della scuola
                 <input
@@ -1675,11 +1914,13 @@ function SettingsPanel({
 function Editor({
   exercise,
   data,
+  navigate,
   reload,
   notify,
 }: {
   exercise: Exercise;
   data: Workspace;
+  navigate: (v: View, id?: string) => void;
   reload: () => Promise<void>;
   notify: (v: string) => void;
 }) {
@@ -1709,9 +1950,16 @@ function Editor({
     setCode,
     notify,
   });
+  useEditorSession({
+    enabled: data.profile.role === "student" && Boolean(assignment),
+    userId: data.profile.id,
+    context: "exercise",
+    assignmentId: assignment?.id,
+    code,
+  });
   function run(mode: "run_interactive" | "test") {
     workerRef.current?.terminate();
-    const worker = new Worker("/pyodide-worker.js");
+    const worker = new Worker("/pyodide-worker.js", { type: "module" });
     workerRef.current = worker;
     setRunning(true);
     setOutput(mode === "test" ? "Esecuzione test…" : "Esecuzione…");
@@ -1808,9 +2056,21 @@ function Editor({
             </span>
           </div>
         </div>
-        <span className="workbench-save-state">
-          <Icon name="cloud_done" /> Salvataggio automatico attivo
-        </span>
+        <div className="workbench-header-actions">
+          {data.profile.role === "teacher" && (
+            <button
+              className="secondary"
+              onClick={() => navigate("exercise-form", exercise.id)}
+            >
+              <Icon name="edit" /> Modifica esercizio
+            </button>
+          )}
+          {data.profile.role === "student" && (
+            <span className="workbench-save-state">
+              <Icon name="cloud_done" /> Salvataggio automatico attivo
+            </span>
+          )}
+        </div>
       </header>
       <div
         className="workbench-tabs"

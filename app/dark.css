@@ -655,7 +655,10 @@ body {
 .ring {
   background:
     radial-gradient(circle, var(--color-surface-purple) 56%, transparent 57%),
-    conic-gradient(var(--color-green) 0 72%, var(--color-progress-track) 72%);
+    conic-gradient(
+      var(--color-green) 0 var(--progress, 0%),
+      var(--color-progress-track) var(--progress, 0%)
+    );
 }
 .stat-icon {
   background: var(--color-surface-stat);
@@ -1815,6 +1818,163 @@ body {
 .class-members {
   margin-top: 18px;
 }
+.class-exercises,
+.student-work-detail {
+  margin-top: var(--space-6);
+}
+.member-sort {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+.member-sort select,
+.monitor-class-filter select {
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+  color: var(--color-foreground);
+  padding: var(--space-3) var(--space-4);
+}
+.add-participant {
+  display: flex;
+  align-items: end;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+.add-participant label {
+  flex: 1;
+}
+.student-open,
+.student-open-name {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.student-work-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto auto;
+  gap: var(--space-5);
+  align-items: start;
+  padding: var(--space-5) 0;
+  border-top: 1px solid var(--color-current-line);
+}
+.student-work-row > div {
+  display: grid;
+}
+.student-work-row small {
+  color: var(--muted);
+}
+.student-work-row pre {
+  grid-column: 1 / -1;
+  max-height: 260px;
+  overflow: auto;
+  padding: var(--space-5);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+}
+.monitoring-page {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+.monitor-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+}
+.monitor-class-filter {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 320px;
+  margin-bottom: var(--space-7);
+}
+.activity-badge {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-control);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+.activity-badge.active {
+  background: var(--color-surface-green-soft);
+  color: var(--color-green);
+}
+.live-draft .cm-editor {
+  margin: var(--space-5) 0;
+  border: var(--border-width) solid var(--color-current-line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.code-now-page {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+.code-now-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-7);
+  margin-bottom: var(--space-7);
+}
+.code-now-header h2,
+.code-now-header p {
+  margin-bottom: var(--space-2);
+}
+.code-now-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+.code-sharing-state {
+  display: inline-flex;
+  margin-top: var(--space-3);
+  color: var(--color-green);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+.code-now-page > .cm-editor {
+  border: var(--border-width) solid var(--color-border-purple);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  overflow: hidden;
+}
+.code-now-console {
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+.code-now-input {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-top: var(--border-width) solid var(--color-current-line);
+  background: var(--color-surface-sunken);
+}
+.code-now-input label {
+  color: var(--color-cyan);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+}
+.code-now-input > div {
+  display: flex;
+  gap: var(--space-3);
+}
+.code-now-input input {
+  min-width: 0;
+  flex: 1;
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-mono);
+}
+.workbench-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
 .member-table {
   overflow-x: auto;
 }
@@ -1880,6 +2040,10 @@ body {
 }
 .class-fields label:last-child {
   grid-column: 1 / -1;
+}
+.class-fields > .primary {
+  justify-self: start;
+  width: auto;
 }
 .class-fields label {
   color: var(--color-text-softest);

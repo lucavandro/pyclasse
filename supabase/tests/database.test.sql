@@ -1,6 +1,6 @@
 begin;
 
-select plan(45);
+select plan(63);
 
 select has_table('public', 'profiles', 'profiles table exists');
 select has_table('public', 'app_settings', 'app_settings table exists');
@@ -10,6 +10,7 @@ select has_table('public', 'exercises', 'exercises table exists');
 select has_table('public', 'class_assignments', 'class_assignments table exists');
 select has_table('public', 'tests', 'tests table exists');
 select has_table('public', 'submissions', 'submissions table exists');
+select has_table('public', 'editor_sessions', 'editor sessions table exists');
 
 select ok(
   (select bool_and(c.relrowsecurity)
@@ -18,7 +19,7 @@ select ok(
    where n.nspname = 'public'
      and c.relname = any(array[
        'profiles', 'app_settings', 'classes', 'class_members', 'exercises',
-       'class_assignments', 'tests', 'submissions'
+       'class_assignments', 'tests', 'submissions', 'editor_sessions'
      ])),
   'RLS is enabled on every application table'
 );
@@ -36,6 +37,56 @@ select ok(
 select ok(
   not has_function_privilege('anon', 'public.join_class(text)', 'EXECUTE'),
   'anonymous users cannot execute join_class'
+);
+select has_function('public', 'add_student_to_class', array['uuid', 'text'], 'teacher add member function exists');
+select ok(
+  has_function_privilege('authenticated', 'public.add_student_to_class(uuid,text)', 'EXECUTE'),
+  'authenticated teachers can request a manual class membership'
+);
+select ok(
+  not has_function_privilege('anon', 'public.add_student_to_class(uuid,text)', 'EXECUTE'),
+  'anonymous users cannot add class members'
+);
+select has_function('public', 'get_active_teacher_code', array[]::text[], 'active teacher code function exists');
+select ok(
+  has_function_privilege('authenticated', 'public.get_active_teacher_code()', 'EXECUTE'),
+  'authenticated students can request active teacher code'
+);
+select ok(
+  not has_function_privilege('anon', 'public.get_active_teacher_code()', 'EXECUTE'),
+  'anonymous users cannot request teacher code'
+);
+select has_function('public', 'prune_editor_sessions', array[]::text[], 'expired editor session cleanup exists');
+select ok(
+  has_function_privilege('authenticated', 'public.prune_editor_sessions()', 'EXECUTE'),
+  'authenticated users can remove expired editor sessions'
+);
+select ok(
+  not has_function_privilege('anon', 'public.prune_editor_sessions()', 'EXECUTE'),
+  'anonymous users cannot invoke editor session cleanup'
+);
+select has_function('public', 'publish_code_now', array['text'], 'Code now publication function exists');
+select ok(
+  has_function_privilege('authenticated', 'public.publish_code_now(text)', 'EXECUTE'),
+  'authenticated users can publish their current Code now content'
+);
+select ok(
+  not has_function_privilege('anon', 'public.publish_code_now(text)', 'EXECUTE'),
+  'anonymous users cannot publish Code now content'
+);
+select has_function('public', 'close_editor_session', array[]::text[], 'editor session close function exists');
+select ok(
+  has_function_privilege('authenticated', 'public.close_editor_session()', 'EXECUTE'),
+  'authenticated users can close their editor session'
+);
+select ok(
+  not has_function_privilege('anon', 'public.close_editor_session()', 'EXECUTE'),
+  'anonymous users cannot close editor sessions'
+);
+select has_index('public', 'editor_sessions', 'editor_sessions_active_idx', 'active editor sessions are indexed');
+select ok(
+  (select exists(select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'editor_sessions')),
+  'editor sessions are published to Supabase Realtime'
 );
 
 select has_index('public', 'class_assignments', 'class_assignments_class_idx', 'class assignments class foreign key is indexed');

@@ -26,6 +26,8 @@ test("tutte le rotte pubbliche rispondono dal container", live, async () => {
     "/exercises/1",
     "/exercises/new",
     "/reports",
+    "/monitoring",
+    "/code-now",
     "/settings",
   ]) {
     const response = await request(path);

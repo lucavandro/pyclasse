@@ -23,15 +23,23 @@ const blockClipboard = EditorView.domEventHandlers({
 export function PythonEditor({
   value,
   onChange,
+  ariaLabel = "Editor Python",
+  allowClipboard = false,
 }: {
   value: string;
   onChange: (value: string) => void;
+  ariaLabel?: string;
+  allowClipboard?: boolean;
 }) {
   return (
     <CodeMirror
       value={value}
       height="350px"
-      extensions={[python(), blockClipboard]}
+      extensions={[
+        python(),
+        EditorView.contentAttributes.of({ "aria-label": ariaLabel }),
+        ...(allowClipboard ? [] : [blockClipboard]),
+      ]}
       onChange={onChange}
       theme="dark"
     />

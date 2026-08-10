@@ -1,0 +1,28 @@
+{
+  "format": "pyclasse-exercises",
+  "version": 1,
+  "exercises": [
+    {
+      "title": "Saluto personalizzato",
+      "description": "Leggi un nome e stampa un saluto.",
+      "description_format": "markdown",
+      "resource_url": null,
+      "resource_label": null,
+      "constraints": "Usa la funzione input una sola volta.",
+      "starter_code": "nome = input()\n",
+      "verification_mode": "tests",
+      "max_points": 10,
+      "is_prerequisite": false,
+      "tags": ["input", "stringhe"],
+      "tests": [
+        {
+          "position": 1,
+          "input_data": "Ada",
+          "expected_output": "Ciao Ada",
+          "is_hidden": false,
+          "points": 10
+        }
+      ]
+    }
+  ]
+}

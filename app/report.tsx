@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import type { Submission, SubmissionStatus, Workspace } from "../lib/types";
 import { scoreAsPercentage, validScore } from "../lib/learning-path.mjs";
 import { useLocale } from "../lib/i18n";
+import { PythonCodeBlock } from "./python-code-block";
 
 const statusLabels = {
   it: {
@@ -261,6 +262,7 @@ function ReviewRow({
     (item) => item.id === submission.student_id,
   );
   const [score, setScore] = useState(String(submission.score ?? ""));
+  const [codeVisible, setCodeVisible] = useState(false);
   const grading = assignment?.grading_scale
     ? submission.score === null
       ? "Non ancora assegnato"
@@ -335,6 +337,17 @@ function ReviewRow({
       </span>
       <span className="report-actions">
         <button
+          className="icon-action view-code"
+          aria-label={`${codeVisible ? "Nascondi" : "Visualizza"} codice di ${student?.full_name || student?.email}`}
+          title={codeVisible ? "Nascondi codice" : "Visualizza codice"}
+          aria-expanded={codeVisible}
+          onClick={() => setCodeVisible((visible) => !visible)}
+        >
+          <span className="material-symbols-rounded" aria-hidden="true">
+            {codeVisible ? "code_off" : "code"}
+          </span>
+        </button>
+        <button
           className="icon-action approve"
           aria-label={`Segna ${exercise?.title} come superato`}
           title="Superato"
@@ -355,6 +368,30 @@ function ReviewRow({
           </span>
         </button>
       </span>
+      {codeVisible && (
+        <section
+          className="report-code-detail"
+          aria-label={`Codice consegnato da ${student?.full_name || student?.email}`}
+        >
+          <header>
+            <div>
+              <strong>Codice della consegna</strong>
+              <small>{exercise?.title}</small>
+            </div>
+            <button
+              className="secondary"
+              type="button"
+              onClick={() => setCodeVisible(false)}
+            >
+              Chiudi
+            </button>
+          </header>
+          <PythonCodeBlock
+            code={submission.code}
+            ariaLabel={`Codice consegnato da ${student?.full_name || student?.email}`}
+          />
+        </section>
+      )}
     </div>
   );
 }

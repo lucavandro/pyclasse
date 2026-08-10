@@ -30,6 +30,10 @@ Lo studente salva una bozza nel database e il docente proprietario della classe 
 - I link esterni, incluso YouTube, non sono incorporati automaticamente.
 - Le funzioni IA sono opzionali e devono restare disattivate senza una decisione documentata dell'istituto.
 
+## Importazione ed esportazione degli esercizi
+
+Il docente può trasferire la propria libreria didattica tramite un file JSON locale. Il file contiene esclusivamente contenuti e configurazione degli esercizi, inclusi codice iniziale, tag e test; non contiene identificativi del docente, classi, studenti, assegnazioni, bozze, consegne o valutazioni. L'operazione non contatta servizi esterni. Il docente resta responsabile della conservazione e della condivisione del file esportato; l'importazione valida formato, dimensioni e URL HTTPS prima della scrittura nel database, dove continuano ad applicarsi le policy RLS.
+
 ## Requisiti prima dell'uso reale
 
 - identificare titolare, contatto privacy/DPO, finalità e basi giuridiche;

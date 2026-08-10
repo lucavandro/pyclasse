@@ -23,6 +23,10 @@ import {
   isAssignmentLocked,
   scoreAsPercentage,
 } from "../lib/learning-path.mjs";
+import {
+  buildExerciseTransfer,
+  parseExerciseTransfer,
+} from "../lib/exercise-transfer.mjs";
 
 // Markdown and its parser are loaded only when an exercise editor is opened.
 const MarkdownContent = lazy(() =>
@@ -101,6 +105,12 @@ type ExerciseTest = {
   expected_output: string;
   is_hidden: boolean;
   points: number;
+};
+type ImportedExercise = Omit<
+  Exercise,
+  "id" | "teacher_id" | "updated_at" | "created_at"
+> & {
+  tests: Omit<ExerciseTest, "id" | "exercise_id">[];
 };
 type Submission = {
   id: string;
@@ -563,7 +573,14 @@ export default function Home() {
             notify={notify}
           />
         )}
-        {view === "tasks" && <Exercises data={workspace} navigate={navigate} />}
+        {view === "tasks" && (
+          <Exercises
+            data={workspace}
+            navigate={navigate}
+            reload={reload}
+            notify={notify}
+          />
+        )}
         {view === "exercise-form" && (
           <ExerciseFormV2
             exercise={selectedExercise}
@@ -1358,14 +1375,23 @@ function assignmentIsLocked(data: Workspace, assignment: Assignment) {
 function Exercises({
   data,
   navigate,
+  reload,
+  notify,
 }: {
   data: Workspace;
   navigate: (v: View, id?: string) => void;
+  reload: () => Promise<void>;
+  notify: (v: string) => void;
 }) {
   return data.profile.role === "student" ? (
     <StudentExercises data={data} navigate={navigate} />
   ) : (
-    <TeacherExercises data={data} navigate={navigate} />
+    <TeacherExercises
+      data={data}
+      navigate={navigate}
+      reload={reload}
+      notify={notify}
+    />
   );
 }
 
@@ -1557,9 +1583,13 @@ function StudentExercises({
 function TeacherExercises({
   data,
   navigate,
+  reload,
+  notify,
 }: {
   data: Workspace;
   navigate: (v: View, id?: string) => void;
+  reload: () => Promise<void>;
+  notify: (v: string) => void;
 }) {
   const allTags = [
     ...new Set(data.exercises.flatMap((item) => item.tags)),
@@ -1568,6 +1598,81 @@ function TeacherExercises({
   const visible = tag
     ? data.exercises.filter((item) => item.tags.includes(tag))
     : data.exercises;
+  const [importing, setImporting] = useState(false);
+
+  function exportExercises() {
+    const document = buildExerciseTransfer(data.exercises, data.tests);
+    const blob = new Blob([JSON.stringify(document, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = window.document.createElement("a");
+    link.href = url;
+    link.download = "pyclasse-exercises.json";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importExercises(event: React.ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file || !supabase) return;
+    setImporting(true);
+    try {
+      const document = parseExerciseTransfer(await file.text()) as {
+        exercises: ImportedExercise[];
+      };
+      const exerciseRows = document.exercises.map((exercise) => ({
+        id: crypto.randomUUID(),
+        teacher_id: data.profile.id,
+        title: exercise.title,
+        description: exercise.description,
+        description_format: exercise.description_format,
+        resource_url: exercise.resource_url,
+        resource_label: exercise.resource_label,
+        constraints: exercise.constraints,
+        starter_code: exercise.starter_code,
+        verification_mode: exercise.verification_mode,
+        max_points: exercise.max_points,
+        is_prerequisite: exercise.is_prerequisite,
+        tags: exercise.tags,
+      }));
+      const exerciseResult = await supabase
+        .from("exercises")
+        .insert(exerciseRows);
+      if (exerciseResult.error) throw exerciseResult.error;
+      const testRows = document.exercises.flatMap((exercise, index) =>
+        exercise.tests.map((test) => ({
+          ...test,
+          exercise_id: exerciseRows[index].id,
+        })),
+      );
+      if (testRows.length) {
+        const testResult = await supabase.from("tests").insert(testRows);
+        if (testResult.error) {
+          await supabase
+            .from("exercises")
+            .delete()
+            .in(
+              "id",
+              exerciseRows.map((exercise) => exercise.id),
+            );
+          throw testResult.error;
+        }
+      }
+      await reload();
+      notify(
+        `${exerciseRows.length} ${exerciseRows.length === 1 ? "esercizio importato" : "esercizi importati"}`,
+      );
+    } catch (error) {
+      notify(
+        error instanceof Error ? error.message : "Importazione non riuscita",
+      );
+    } finally {
+      input.value = "";
+      setImporting(false);
+    }
+  }
   return (
     <section className="panel full-panel repository">
       <div className="panel-head exercise-library-head">
@@ -1589,6 +1694,36 @@ function TeacherExercises({
           </p>
         </div>
         <div className="exercise-library-tools">
+          <div
+            className="exercise-transfer-tools"
+            aria-label="Importa ed esporta esercizi"
+          >
+            <button
+              className="secondary"
+              type="button"
+              onClick={exportExercises}
+            >
+              <Icon name="download" /> Esporta JSON
+            </button>
+            <label className="secondary exercise-import-control">
+              <Icon name="upload_file" />
+              {importing ? "Importazione…" : "Importa JSON"}
+              <input
+                type="file"
+                accept="application/json,.json"
+                aria-label="Importa esercizi da JSON"
+                disabled={importing}
+                onChange={(event) => void importExercises(event)}
+              />
+            </label>
+            <a
+              className="exercise-example-link"
+              href="/examples/pyclasse-exercises-example.json"
+              download
+            >
+              JSON di esempio
+            </a>
+          </div>
           <label className="exercise-filter">
             <Icon name="filter_alt" />
             <span>Filtra per tag</span>

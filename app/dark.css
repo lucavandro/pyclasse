@@ -1890,16 +1890,49 @@ body {
   max-width: 320px;
   margin-bottom: var(--space-7);
 }
-.activity-badge {
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-pill);
+.activity-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 230px;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
   background: var(--color-surface-control);
   color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
 }
-.activity-badge.active {
+.activity-status-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  flex: 0 0 34px;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-sunken);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-lg);
+}
+.activity-status-copy {
+  display: grid;
+  gap: var(--space-1);
+}
+.activity-status-copy strong {
+  color: var(--color-foreground);
+  font-size: var(--font-size-sm);
+}
+.activity-status-copy small {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2xs);
+}
+.activity-status.active {
+  border-color: var(--color-green);
   background: var(--color-surface-green-soft);
+}
+.activity-status.active .activity-status-icon {
+  background: var(--color-green);
+  color: var(--color-on-accent);
+}
+.activity-status.active .activity-status-copy strong {
   color: var(--color-green);
 }
 .live-draft .cm-editor {
@@ -2126,8 +2159,42 @@ body {
 }
 .exercise-library-tools {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: var(--space-6);
+}
+.exercise-transfer-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.exercise-transfer-tools .secondary,
+.exercise-import-control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+}
+.exercise-import-control {
+  cursor: pointer;
+}
+.exercise-import-control input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.exercise-import-control:focus-within {
+  outline: 2px solid var(--color-purple);
+  outline-offset: 2px;
+}
+.exercise-example-link {
+  color: var(--color-cyan);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
 }
 .exercise-filter {
   display: grid;
@@ -2700,6 +2767,50 @@ body {
 }
 .icon-action.revise {
   color: var(--color-pink);
+}
+.icon-action.view-code {
+  color: var(--color-cyan);
+}
+.report-code-detail {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin-top: var(--space-2);
+  padding: var(--space-5);
+  border: var(--border-width) solid var(--color-border-purple);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+}
+.report-code-detail header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  margin-bottom: var(--space-4);
+}
+.report-code-detail header > div {
+  display: grid;
+  gap: var(--space-1);
+}
+.report-code-detail header small {
+  color: var(--color-text-muted);
+}
+.report-code-detail .python-code-block {
+  max-height: 420px;
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+}
+.python-code-block {
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-current-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+}
+.python-code-block .cm-editor {
+  background: transparent;
+}
+.markdown-content .python-code-block {
+  margin: var(--space-5) 0;
 }
 .icon-action:hover {
   border-color: var(--color-border-purple);

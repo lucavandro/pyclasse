@@ -201,3 +201,20 @@ export async function generateExerciseWithAi(
     return fallback;
   }
 }
+
+export async function getStudentOverviewWithAi(
+  summary: string,
+  allowExternalAi = false,
+) {
+  if (!allowExternalAi)
+    return "L’overview IA è disponibile solo quando il docente abilita esplicitamente i servizi IA nelle impostazioni.";
+  try {
+    const puter = await loadPuter();
+    const response = await puter.ai.chat(
+      `Sei un supporto didattico per un docente. Analizza esclusivamente le metriche aggregate e anonime fornite. Scrivi in italiano un overview professionale di massimo 120 parole con andamento generale e 2 consigli pedagogici prudenti. Non formulare diagnosi, non inventare cause e non usare dati esterni.\n\nMetriche:\n${summary.slice(0, 3000)}`,
+    );
+    return extractText(response).trim() || "Overview non disponibile.";
+  } catch {
+    return "Il servizio IA non è disponibile in questo momento.";
+  }
+}

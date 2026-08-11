@@ -1,10 +1,11 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import type { Submission, SubmissionStatus, Workspace } from "../lib/types";
 import { scoreAsPercentage, validScore } from "../lib/learning-path.mjs";
 import { useLocale } from "../lib/i18n";
 import { PythonCodeBlock } from "./python-code-block";
+import { getStudentOverviewWithAi } from "../lib/ai-feedback";
 
 const statusLabels = {
   it: {
@@ -25,6 +26,8 @@ const statusLabels = {
 
 type ReportStatus = "all" | "unopened" | Exclude<SubmissionStatus, "draft">;
 type DeliverySort = "student" | "assigned" | "opened" | "completed";
+type ReportSection = "deliveries" | "classes" | "alerts" | "student";
+const PAGE_SIZE = 8;
 
 export function ReportV2({
   data,
@@ -43,6 +46,12 @@ export function ReportV2({
   const [deliveryDirection, setDeliveryDirection] = useState<"asc" | "desc">(
     "asc",
   );
+  const [section, setSection] = useState<ReportSection>("deliveries");
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
+    null,
+  );
+  const [summaryPage, setSummaryPage] = useState(1);
+  const [evaluationPage, setEvaluationPage] = useState(1);
   const submissions = data.submissions.filter(
     (item) => item.status !== "draft",
   );
@@ -203,6 +212,25 @@ export function ReportV2({
       setDeliveryDirection(sort === "student" ? "asc" : "desc");
     }
   }
+  const evaluationItems = [
+    ...visibleSubmissions.map((submission) => ({
+      kind: "submission" as const,
+      submission,
+    })),
+    ...unopenedPairs.map((pair) => ({ kind: "unopened" as const, ...pair })),
+  ];
+  const pagedDeliveries = deliveryRows.slice(
+    (summaryPage - 1) * PAGE_SIZE,
+    summaryPage * PAGE_SIZE,
+  );
+  const pagedEvaluations = evaluationItems.slice(
+    (evaluationPage - 1) * PAGE_SIZE,
+    evaluationPage * PAGE_SIZE,
+  );
+  function openStudent(studentId: string) {
+    setSelectedStudentId(studentId);
+    setSection("student");
+  }
 
   return (
     <section className="report-page">
@@ -258,6 +286,29 @@ export function ReportV2({
       </div>
 
       {data.profile.role === "teacher" && (
+        <nav className="report-section-nav" aria-label="Sezioni report">
+          <button
+            className={section === "deliveries" ? "active" : ""}
+            onClick={() => setSection("deliveries")}
+          >
+            Consegne
+          </button>
+          <button
+            className={section === "classes" ? "active" : ""}
+            onClick={() => setSection("classes")}
+          >
+            Report per classe
+          </button>
+          <button
+            className={section === "alerts" ? "active" : ""}
+            onClick={() => setSection("alerts")}
+          >
+            Alert
+          </button>
+        </nav>
+      )}
+
+      {data.profile.role === "teacher" && section === "deliveries" && (
         <section
           className="report-results panel"
           aria-labelledby="delivery-summary-title"
@@ -294,16 +345,19 @@ export function ReportV2({
                 </button>
               ))}
             </div>
-            {deliveryRows.map((row) => {
+            {pagedDeliveries.map((row) => {
               const student = data.profiles.find(
                 (item) => item.id === row.studentId,
               );
               return (
                 <div className="table-row" key={row.studentId}>
-                  <span className="report-student">
+                  <button
+                    className="report-student student-detail-link"
+                    onClick={() => openStudent(row.studentId)}
+                  >
                     <strong>{student?.full_name || student?.email}</strong>
                     <small>{student?.email}</small>
-                  </span>
+                  </button>
                   <span>{row.assigned}</span>
                   <span>
                     <strong>
@@ -331,135 +385,568 @@ export function ReportV2({
               );
             })}
           </div>
+          <Pagination
+            page={summaryPage}
+            total={deliveryRows.length}
+            onChange={setSummaryPage}
+          />
         </section>
       )}
 
-      <section
-        className="report-results panel"
-        aria-labelledby="report-results-title"
-      >
-        <div className="panel-head">
-          <div>
-            <p className="eyebrow">CONSEGNE</p>
-            <h3 id="report-results-title">
-              {data.profile.role === "teacher"
-                ? "Valutazioni"
-                : "I tuoi risultati"}
-            </h3>
-          </div>
-          {data.profile.role === "teacher" && (
-            <span className="result-count">
-              {visibleSubmissions.length + unopenedPairs.length} risultati
-            </span>
-          )}
-        </div>
-
-        {data.profile.role === "teacher" && (
-          <div className="report-toolbar" aria-label="Filtri report">
-            <label className="report-search">
-              <span className="material-symbols-rounded" aria-hidden="true">
-                search
-              </span>
-              <input
-                aria-label="Cerca studente o esercizio"
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Cerca studente o esercizio"
-              />
-            </label>
-            <label>
-              <span>Classe</span>
-              <select
-                aria-label="Filtra report per classe"
-                value={classFilter}
-                onChange={(event) => setClassFilter(event.target.value)}
-              >
-                <option value="all">Tutte le classi</option>
-                {data.classes.map((classroom) => (
-                  <option key={classroom.id} value={classroom.id}>
-                    {classroom.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>Stato</span>
-              <select
-                aria-label="Filtra report per stato"
-                value={statusFilter}
-                onChange={(event) =>
-                  setStatusFilter(event.target.value as ReportStatus)
-                }
-              >
-                <option value="all">Tutti gli stati</option>
-                <option value="unopened">Non aperto</option>
-                <option value="submitted">Da valutare</option>
-                <option value="passed">Superato</option>
-                <option value="partial">Parziale</option>
-                <option value="failed">Da rivedere</option>
-              </select>
-            </label>
-          </div>
-        )}
-
-        <div
-          className={`table${data.profile.role === "student" ? " student-report-table" : " teacher-report-table"}`}
+      {(data.profile.role === "student" || section === "deliveries") && (
+        <section
+          className="report-results panel"
+          aria-labelledby="report-results-title"
         >
-          <div className="table-row table-head">
-            {data.profile.role === "teacher" && <span>Studente</span>}
-            <span>Esercizio</span>
-            {data.profile.role === "teacher" && <span>Classe</span>}
-            <span>Stato</span>
-            <span>Valutazione</span>
-            {data.profile.role === "teacher" && <span>Azioni</span>}
+          <div className="panel-head">
+            <div>
+              <p className="eyebrow">CONSEGNE</p>
+              <h3 id="report-results-title">
+                {data.profile.role === "teacher"
+                  ? "Valutazioni"
+                  : "I tuoi risultati"}
+              </h3>
+            </div>
+            {data.profile.role === "teacher" && (
+              <span className="result-count">
+                {visibleSubmissions.length + unopenedPairs.length} risultati
+              </span>
+            )}
           </div>
-          {visibleSubmissions.map((submission) => (
-            <ReviewRow
-              key={submission.id}
-              submission={submission}
-              locale={locale}
-              data={data}
-              reload={reload}
-              notify={notify}
-            />
-          ))}
-          {unopenedPairs.map(({ assignment, studentId }) => {
-            const student = data.profiles.find((item) => item.id === studentId);
-            const exercise = data.exercises.find(
-              (item) => item.id === assignment.exercise_id,
-            );
-            const classroom = data.classes.find(
-              (item) => item.id === assignment.class_id,
-            );
-            return (
-              <div
-                className="table-row"
-                key={`unopened:${assignment.id}:${studentId}`}
-              >
-                <span className="report-student">
-                  <strong>{student?.full_name || student?.email}</strong>
-                  <small>{student?.email}</small>
+
+          {data.profile.role === "teacher" && (
+            <div className="report-toolbar" aria-label="Filtri report">
+              <label className="report-search">
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  search
                 </span>
-                <span className="report-exercise">{exercise?.title}</span>
-                <span>{classroom?.name || "—"}</span>
-                <span className="submission-status status-unopened">
-                  Non aperto
-                </span>
-                <span className="ungraded-label">—</span>
-                <span />
-              </div>
-            );
-          })}
-        </div>
-        {!visibleSubmissions.length && !unopenedPairs.length && (
-          <p className="empty-state">
-            {submissions.length
-              ? "Nessuna consegna corrisponde ai filtri selezionati."
-              : "Nessuna consegna disponibile."}
-          </p>
+                <input
+                  aria-label="Cerca studente o esercizio"
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Cerca studente o esercizio"
+                />
+              </label>
+              <label>
+                <span>Classe</span>
+                <select
+                  aria-label="Filtra report per classe"
+                  value={classFilter}
+                  onChange={(event) => setClassFilter(event.target.value)}
+                >
+                  <option value="all">Tutte le classi</option>
+                  {data.classes.map((classroom) => (
+                    <option key={classroom.id} value={classroom.id}>
+                      {classroom.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Stato</span>
+                <select
+                  aria-label="Filtra report per stato"
+                  value={statusFilter}
+                  onChange={(event) =>
+                    setStatusFilter(event.target.value as ReportStatus)
+                  }
+                >
+                  <option value="all">Tutti gli stati</option>
+                  <option value="unopened">Non aperto</option>
+                  <option value="submitted">Da valutare</option>
+                  <option value="passed">Superato</option>
+                  <option value="partial">Parziale</option>
+                  <option value="failed">Da rivedere</option>
+                </select>
+              </label>
+            </div>
+          )}
+
+          <div
+            className={`table${data.profile.role === "student" ? " student-report-table" : " teacher-report-table"}`}
+          >
+            <div className="table-row table-head">
+              {data.profile.role === "teacher" && <span>Studente</span>}
+              <span>Esercizio</span>
+              {data.profile.role === "teacher" && <span>Classe</span>}
+              <span>Stato</span>
+              <span>Valutazione</span>
+              {data.profile.role === "teacher" && <span>Azioni</span>}
+            </div>
+            {pagedEvaluations.map((item) =>
+              item.kind === "submission" ? (
+                <ReviewRow
+                  key={item.submission.id}
+                  submission={item.submission}
+                  locale={locale}
+                  data={data}
+                  reload={reload}
+                  notify={notify}
+                  openStudent={openStudent}
+                />
+              ) : (
+                (() => {
+                  const { assignment, studentId } = item;
+                  const student = data.profiles.find(
+                    (item) => item.id === studentId,
+                  );
+                  const exercise = data.exercises.find(
+                    (item) => item.id === assignment.exercise_id,
+                  );
+                  const classroom = data.classes.find(
+                    (item) => item.id === assignment.class_id,
+                  );
+                  return (
+                    <div
+                      className="table-row"
+                      key={`unopened:${assignment.id}:${studentId}`}
+                    >
+                      <button
+                        className="report-student student-detail-link"
+                        onClick={() => openStudent(studentId)}
+                      >
+                        <strong>{student?.full_name || student?.email}</strong>
+                        <small>{student?.email}</small>
+                      </button>
+                      <span className="report-exercise">{exercise?.title}</span>
+                      <span>{classroom?.name || "—"}</span>
+                      <span className="submission-status status-unopened">
+                        Non aperto
+                      </span>
+                      <span className="ungraded-label">—</span>
+                      <span />
+                    </div>
+                  );
+                })()
+              ),
+            )}
+          </div>
+          <Pagination
+            page={evaluationPage}
+            total={evaluationItems.length}
+            onChange={setEvaluationPage}
+          />
+          {!visibleSubmissions.length && !unopenedPairs.length && (
+            <p className="empty-state">
+              {submissions.length
+                ? "Nessuna consegna corrisponde ai filtri selezionati."
+                : "Nessuna consegna disponibile."}
+            </p>
+          )}
+        </section>
+      )}
+      {data.profile.role === "teacher" && section === "classes" && (
+        <ClassReports data={data} />
+      )}
+      {data.profile.role === "teacher" && section === "alerts" && (
+        <ReportAlerts data={data} openStudent={openStudent} />
+      )}
+      {data.profile.role === "teacher" &&
+        section === "student" &&
+        selectedStudentId && (
+          <StudentReportDetail
+            data={data}
+            studentId={selectedStudentId}
+            onBack={() => setSection("deliveries")}
+          />
         )}
-      </section>
+    </section>
+  );
+}
+
+function Pagination({
+  page,
+  total,
+  onChange,
+}: {
+  page: number;
+  total: number;
+  onChange: (page: number) => void;
+}) {
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (pages <= 1) return null;
+  return (
+    <nav className="table-pagination" aria-label="Paginazione tabella">
+      <button
+        className="secondary"
+        disabled={page <= 1}
+        onClick={() => onChange(page - 1)}
+      >
+        Precedente
+      </button>
+      <span>
+        Pagina {page} di {pages}
+      </span>
+      <button
+        className="secondary"
+        disabled={page >= pages}
+        onClick={() => onChange(page + 1)}
+      >
+        Successiva
+      </button>
+    </nav>
+  );
+}
+
+function ClassReports({ data }: { data: Workspace }) {
+  return (
+    <section className="report-results panel">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">REPORT PER CLASSE</p>
+          <h3>Metriche delle classi</h3>
+        </div>
+      </div>
+      <div className="class-report-grid">
+        {data.classes.map((classroom) => {
+          const members = data.memberships.filter(
+            (item) => item.class_id === classroom.id,
+          );
+          const assignments = data.assignments.filter(
+            (item) => item.class_id === classroom.id,
+          );
+          const pairs = members.length * assignments.length;
+          const submitted = data.submissions.filter(
+            (submission) =>
+              assignments.some(
+                (assignment) =>
+                  assignment.id === submission.class_assignment_id,
+              ) && submission.status !== "draft",
+          );
+          const opened = data.assignmentViews.filter((view) =>
+            assignments.some(
+              (assignment) => assignment.id === view.class_assignment_id,
+            ),
+          );
+          const scores = submitted.flatMap((submission) => {
+            const assignment = assignments.find(
+              (item) => item.id === submission.class_assignment_id,
+            );
+            const value = scoreAsPercentage(
+              submission.score,
+              assignment?.grading_scale,
+            );
+            return value === null ? [] : [value];
+          });
+          return (
+            <article className="class-report-card" key={classroom.id}>
+              <header>
+                <div>
+                  <strong>{classroom.name}</strong>
+                  <small>{classroom.subject}</small>
+                </div>
+                <span>{members.length} studenti</span>
+              </header>
+              <div>
+                <span>
+                  <strong>{assignments.length}</strong>
+                  <small>Esercizi</small>
+                </span>
+                <span>
+                  <strong>
+                    {pairs ? Math.round((opened.length / pairs) * 100) : 0}%
+                  </strong>
+                  <small>Apertura</small>
+                </span>
+                <span>
+                  <strong>
+                    {pairs ? Math.round((submitted.length / pairs) * 100) : 0}%
+                  </strong>
+                  <small>Consegna</small>
+                </span>
+                <span>
+                  <strong>
+                    {scores.length
+                      ? Math.round(
+                          scores.reduce((sum, value) => sum + value, 0) /
+                            scores.length,
+                        )
+                      : "—"}
+                    {scores.length ? "%" : ""}
+                  </strong>
+                  <small>Media</small>
+                </span>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function ReportAlerts({
+  data,
+  openStudent,
+}: {
+  data: Workspace;
+  openStudent: (id: string) => void;
+}) {
+  const [now] = useState(() => Date.now());
+  const rows = data.profiles
+    .filter((profile) => profile.role === "student")
+    .map((student) => {
+      const classIds = data.memberships
+        .filter((item) => item.student_id === student.id)
+        .map((item) => item.class_id);
+      const assignments = data.assignments.filter((item) =>
+        classIds.includes(item.class_id),
+      );
+      const overdue = assignments.filter(
+        (assignment) =>
+          assignment.deadline &&
+          new Date(assignment.deadline).getTime() < now &&
+          !data.submissions.some(
+            (submission) =>
+              submission.student_id === student.id &&
+              submission.class_assignment_id === assignment.id &&
+              submission.status !== "draft",
+          ),
+      ).length;
+      const inactiveDays = student.last_seen_at
+        ? Math.floor(
+            (now - new Date(student.last_seen_at).getTime()) / 86_400_000,
+          )
+        : null;
+      const unopened = assignments.filter(
+        (assignment) =>
+          !data.assignmentViews.some(
+            (view) =>
+              view.student_id === student.id &&
+              view.class_assignment_id === assignment.id,
+          ) &&
+          !data.submissions.some(
+            (submission) =>
+              submission.student_id === student.id &&
+              submission.class_assignment_id === assignment.id,
+          ),
+      ).length;
+      return { student, overdue, inactiveDays, unopened };
+    })
+    .filter(
+      (row) =>
+        row.overdue >= 2 ||
+        row.unopened >= 3 ||
+        row.inactiveDays === null ||
+        row.inactiveDays >= 14,
+    )
+    .sort((a, b) => b.overdue - a.overdue || b.unopened - a.unopened);
+  return (
+    <section className="report-results panel">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">ALERT</p>
+          <h3>Studenti da attenzionare</h3>
+          <p className="quiet">
+            Indicatori orientativi basati su scadenze, aperture e ultimo
+            accesso.
+          </p>
+        </div>
+        <span className="result-count">{rows.length} alert</span>
+      </div>
+      <div className="alert-list">
+        {rows.map((row) => (
+          <article className="student-alert" key={row.student.id}>
+            <button onClick={() => openStudent(row.student.id)}>
+              <strong>{row.student.full_name || row.student.email}</strong>
+              <small>{row.student.email}</small>
+            </button>
+            <div>
+              {row.overdue >= 2 && (
+                <span className="alert-chip danger">
+                  {row.overdue} compiti scaduti
+                </span>
+              )}
+              {row.unopened >= 3 && (
+                <span className="alert-chip">{row.unopened} non aperti</span>
+              )}
+              {(row.inactiveDays === null || row.inactiveDays >= 14) && (
+                <span className="alert-chip">
+                  {row.inactiveDays === null
+                    ? "Mai connesso"
+                    : `${row.inactiveDays} giorni dall’accesso`}
+                </span>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+      {!rows.length && (
+        <p className="empty-state">
+          Nessuno studente supera le soglie di attenzione.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function StudentReportDetail({
+  data,
+  studentId,
+  onBack,
+}: {
+  data: Workspace;
+  studentId: string;
+  onBack: () => void;
+}) {
+  const student = data.profiles.find((item) => item.id === studentId);
+  const classIds = data.memberships
+    .filter((item) => item.student_id === studentId)
+    .map((item) => item.class_id);
+  const assignments = data.assignments.filter((item) =>
+    classIds.includes(item.class_id),
+  );
+  const submissions = data.submissions.filter(
+    (item) => item.student_id === studentId,
+  );
+  const completed = submissions.filter((item) => item.status !== "draft");
+  const opened = assignments.filter(
+    (assignment) =>
+      data.assignmentViews.some(
+        (view) =>
+          view.student_id === studentId &&
+          view.class_assignment_id === assignment.id,
+      ) ||
+      submissions.some(
+        (submission) => submission.class_assignment_id === assignment.id,
+      ),
+  ).length;
+  const scores = completed.flatMap((submission) => {
+    const assignment = assignments.find(
+      (item) => item.id === submission.class_assignment_id,
+    );
+    const score = scoreAsPercentage(
+      submission.score,
+      assignment?.grading_scale,
+    );
+    return score === null ? [] : [score];
+  });
+  const scoreAverage = scores.length
+    ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+    : null;
+  const [overview, setOverview] = useState(
+    data.profile.external_ai_enabled ? "Generazione overview…" : "",
+  );
+  useEffect(() => {
+    if (!data.profile.external_ai_enabled) return;
+    void getStudentOverviewWithAi(
+      `Esercizi assegnati: ${assignments.length}; aperti: ${opened}; consegnati: ${completed.length}; media percentuale: ${scoreAverage ?? "non disponibile"}; ultimo accesso: ${student?.last_seen_at || "mai"}.`,
+      true,
+    ).then(setOverview);
+  }, [
+    assignments.length,
+    completed.length,
+    data.profile.external_ai_enabled,
+    opened,
+    scoreAverage,
+    student?.last_seen_at,
+  ]);
+  return (
+    <section className="student-report-detail panel">
+      <button className="back" onClick={onBack}>
+        ← Torna ai report
+      </button>
+      <header>
+        <div>
+          <p className="eyebrow">DETTAGLIO STUDENTE</p>
+          <h2>{student?.full_name || student?.email}</h2>
+          <p>{student?.email}</p>
+        </div>
+        <span className="last-access">
+          Ultimo accesso
+          <strong>
+            {student?.last_seen_at
+              ? new Date(student.last_seen_at).toLocaleString("it-IT")
+              : "Mai"}
+          </strong>
+        </span>
+      </header>
+      <div className="student-detail-metrics">
+        <article>
+          <strong>{assignments.length}</strong>
+          <small>Assegnati</small>
+        </article>
+        <article>
+          <strong>{opened}</strong>
+          <small>Aperti</small>
+        </article>
+        <article>
+          <strong>{completed.length}</strong>
+          <small>Consegnati</small>
+        </article>
+        <article>
+          <strong>
+            {scores.length
+              ? `${Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)}%`
+              : "—"}
+          </strong>
+          <small>Media</small>
+        </article>
+      </div>
+      {data.profile.external_ai_enabled && (
+        <aside className="ai-student-overview">
+          <span className="material-symbols-rounded">auto_awesome</span>
+          <div>
+            <strong>Overview IA</strong>
+            <p>{overview}</p>
+          </div>
+        </aside>
+      )}
+      <div className="student-detail-classes">
+        <h3>Classi</h3>
+        <p>
+          {data.classes
+            .filter((item) => classIds.includes(item.id))
+            .map((item) => item.name)
+            .join(", ") || "Nessuna classe"}
+        </p>
+      </div>
+      <div className="table teacher-report-table">
+        <div className="table-row table-head">
+          <span>Esercizio</span>
+          <span>Classe</span>
+          <span>Stato</span>
+          <span>Valutazione</span>
+          <span />
+          <span />
+        </div>
+        {assignments.map((assignment) => {
+          const exercise = data.exercises.find(
+            (item) => item.id === assignment.exercise_id,
+          );
+          const classroom = data.classes.find(
+            (item) => item.id === assignment.class_id,
+          );
+          const submission = submissions.find(
+            (item) => item.class_assignment_id === assignment.id,
+          );
+          const viewed =
+            data.assignmentViews.some(
+              (view) =>
+                view.student_id === studentId &&
+                view.class_assignment_id === assignment.id,
+            ) || Boolean(submission);
+          return (
+            <div className="table-row" key={assignment.id}>
+              <span>{exercise?.title}</span>
+              <span>{classroom?.name}</span>
+              <span
+                className={`submission-status ${!viewed ? "status-unopened" : ""}`}
+              >
+                {!viewed
+                  ? "Non aperto"
+                  : submission
+                    ? statusLabels.it[submission.status]
+                    : "Aperto"}
+              </span>
+              <span>{submission?.score ?? "—"}</span>
+              <span />
+              <span />
+            </div>
+          );
+        })}
+      </div>
     </section>
   );
 }
@@ -470,12 +957,14 @@ function ReviewRow({
   data,
   reload,
   notify,
+  openStudent,
 }: {
   submission: Submission;
   locale: "it" | "en";
   data: Workspace;
   reload: () => Promise<void>;
   notify: (message: string) => void;
+  openStudent: (studentId: string) => void;
 }) {
   const assignment = data.assignments.find(
     (item) => item.id === submission.class_assignment_id,
@@ -535,10 +1024,13 @@ function ReviewRow({
   }
   return (
     <div className="table-row">
-      <span className="report-student">
+      <button
+        className="report-student student-detail-link"
+        onClick={() => openStudent(submission.student_id)}
+      >
         <strong>{student?.full_name || student?.email}</strong>
         <small>{student?.email}</small>
-      </span>
+      </button>
       <span className="report-exercise">{exercise?.title}</span>
       <span>{classroom?.name || "—"}</span>
       <span className={`submission-status status-${submission.status}`}>

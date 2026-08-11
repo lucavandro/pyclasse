@@ -88,6 +88,14 @@ export type AssignmentView = {
   student_id: string;
   first_opened_at: string;
 };
+export type CodeSnippet = {
+  id: string;
+  owner_id: string;
+  name: string;
+  code: string;
+  created_at: string;
+  updated_at: string;
+};
 export type Settings = {
   singleton: boolean;
   teacher_email: string | null;
@@ -109,4 +117,5 @@ export type Workspace = {
   submissions: Submission[];
   editorSessions: EditorSession[];
   assignmentViews: AssignmentView[];
+  codeSnippets: CodeSnippet[];
 };

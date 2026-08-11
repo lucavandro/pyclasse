@@ -1,6 +1,6 @@
 begin;
 
-select plan(64);
+select plan(65);
 
 select has_table('public', 'profiles', 'profiles table exists');
 select has_table('public', 'app_settings', 'app_settings table exists');
@@ -12,6 +12,7 @@ select has_table('public', 'tests', 'tests table exists');
 select has_table('public', 'submissions', 'submissions table exists');
 select has_table('public', 'editor_sessions', 'editor sessions table exists');
 select has_table('public', 'assignment_views', 'assignment views table exists');
+select has_table('public', 'code_snippets', 'personal code snippets table exists');
 
 select ok(
   (select bool_and(c.relrowsecurity)
@@ -20,7 +21,7 @@ select ok(
    where n.nspname = 'public'
      and c.relname = any(array[
        'profiles', 'app_settings', 'classes', 'class_members', 'exercises',
-       'class_assignments', 'tests', 'submissions', 'editor_sessions', 'assignment_views'
+       'class_assignments', 'tests', 'submissions', 'editor_sessions', 'assignment_views', 'code_snippets'
      ])),
   'RLS is enabled on every application table'
 );

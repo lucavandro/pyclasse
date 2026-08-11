@@ -6,6 +6,8 @@ Questo documento descrive misure tecniche e limiti del software; non costituisce
 
 PyClasse può conservare identità, email, appartenenza alle classi, codice sorgente, bozze, consegne, esiti, voti, scadenze e timestamp. Nel contesto scolastico questi dati possono riguardare minori. Le sessioni temporanee dell'editor registrano utente, contesto, codice corrente e scadenza esclusivamente per indicare l'attività corrente e per la condivisione volontaria in Code now. Alla prima apertura di un esercizio assegnato viene inoltre conservato un solo timestamp, usato per mostrare al docente l'avanzamento della classe; non vengono registrati accessi successivi, durata di lettura o interazioni con la traccia.
 
+I codici salvati volontariamente in Code now sono personali: RLS consente visualizzazione, modifica ed eliminazione esclusivamente al proprietario. Restano conservati fino alla cancellazione da parte dell'utente o alla cancellazione del profilo.
+
 ## Misure tecniche presenti
 
 - Row Level Security su tutte le tabelle applicative;
@@ -29,6 +31,7 @@ Lo studente salva una bozza nel database e il docente proprietario della classe 
 - Un provider OAuth può essere configurato dall'istituto.
 - I link esterni, incluso YouTube, non sono incorporati automaticamente.
 - Le funzioni IA sono opzionali e devono restare disattivate senza una decisione documentata dell'istituto.
+- L'overview IA dello studente viene richiesta soltanto quando il docente ha attivato l'IA e trasferisce al provider metriche didattiche aggregate, senza nome o email. Il testo generato è un supporto orientativo, non una decisione automatizzata né una diagnosi.
 
 ## Importazione ed esportazione degli esercizi
 

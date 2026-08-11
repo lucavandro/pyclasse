@@ -101,7 +101,11 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await expect(gradingScale).toHaveValue("10");
     await page.getByRole("button", { name: "Salva esercizio" }).click();
     await expect(page.getByText("Risposta universale")).toBeVisible();
-    await expect(page.getByText("Voto /10")).toBeVisible();
+    await expect(page.getByText("Classe E2E", { exact: true })).toBeVisible();
+    await expect(page.getByText("Voto /10")).toHaveCount(0);
+    await page.getByLabel("Cerca esercizio per nome").fill("universale");
+    await expect(page.getByText("Risposta universale")).toBeVisible();
+    await page.getByLabel("Cerca esercizio per nome").fill("");
     await page.getByLabel("Filtra per tag").selectOption("funzioni");
     await expect(page.getByText("Risposta universale")).toBeVisible();
     await page.getByRole("button", { name: "Impostazioni" }).click();

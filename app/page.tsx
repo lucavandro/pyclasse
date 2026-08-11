@@ -136,6 +136,14 @@ type AssignmentView = {
   student_id: string;
   first_opened_at: string;
 };
+type CodeSnippet = {
+  id: string;
+  owner_id: string;
+  name: string;
+  code: string;
+  created_at: string;
+  updated_at: string;
+};
 type Settings = {
   singleton: boolean;
   teacher_email: string | null;
@@ -157,6 +165,7 @@ type Workspace = {
   submissions: Submission[];
   editorSessions: EditorSession[];
   assignmentViews: AssignmentView[];
+  codeSnippets: CodeSnippet[];
 };
 
 const initials = (profile?: Profile | null) =>
@@ -214,6 +223,7 @@ async function fetchWorkspace(user: User): Promise<Workspace> {
     submissions,
     editorSessions,
     assignmentViews,
+    codeSnippets,
   ] = await Promise.all([
     supabase
       .from("app_settings")
@@ -262,6 +272,10 @@ async function fetchWorkspace(user: User): Promise<Workspace> {
     supabase
       .from("assignment_views")
       .select("class_assignment_id,student_id,first_opened_at"),
+    supabase
+      .from("code_snippets")
+      .select("id,owner_id,name,code,created_at,updated_at")
+      .order("updated_at", { ascending: false }),
   ]);
   const failure = [
     settings,
@@ -274,6 +288,7 @@ async function fetchWorkspace(user: User): Promise<Workspace> {
     submissions,
     editorSessions,
     assignmentViews,
+    codeSnippets,
   ].find((result) => result.error);
   if (failure?.error) throw failure.error;
   return {
@@ -288,6 +303,7 @@ async function fetchWorkspace(user: User): Promise<Workspace> {
     submissions: submissions.data as Submission[],
     editorSessions: editorSessions.data as EditorSession[],
     assignmentViews: assignmentViews.data as AssignmentView[],
+    codeSnippets: codeSnippets.data as CodeSnippet[],
   };
 }
 
@@ -1818,9 +1834,14 @@ function TeacherExercises({
     ...new Set(data.exercises.flatMap((item) => item.tags)),
   ].sort();
   const [tag, setTag] = useState("");
-  const visible = tag
-    ? data.exercises.filter((item) => item.tags.includes(tag))
-    : data.exercises;
+  const [exerciseQuery, setExerciseQuery] = useState("");
+  const visible = data.exercises.filter(
+    (item) =>
+      (!tag || item.tags.includes(tag)) &&
+      item.title
+        .toLocaleLowerCase()
+        .includes(exerciseQuery.trim().toLocaleLowerCase()),
+  );
   return (
     <section className="panel full-panel repository">
       <div className="panel-head exercise-library-head">
@@ -1842,6 +1863,16 @@ function TeacherExercises({
           </p>
         </div>
         <div className="exercise-library-tools">
+          <label className="exercise-name-search">
+            <Icon name="search" />
+            <input
+              type="search"
+              aria-label="Cerca esercizio per nome"
+              placeholder="Cerca per nome"
+              value={exerciseQuery}
+              onChange={(event) => setExerciseQuery(event.target.value)}
+            />
+          </label>
           <label className="exercise-filter">
             <Icon name="filter_alt" />
             <span>Filtra per tag</span>
@@ -1912,26 +1943,23 @@ function TeacherExercises({
                       <strong>
                         {data.classes.find((c) => c.id === a.class_id)?.name}
                       </strong>
-                      <small>
-                        {formatDate(a.deadline)} ·{" "}
-                        {a.grading_scale
-                          ? `Voto /${a.grading_scale}`
-                          : "Senza voto"}
-                      </small>
                     </span>
                   ))}
               </div>
-              <small>{formatDate(item.updated_at)}</small>
               {data.profile.role === "teacher" && (
                 <div className="exercise-row-actions">
                   <button
-                    className="secondary"
+                    className="icon-action"
+                    aria-label={`Modifica ${item.title}`}
+                    title="Modifica"
                     onClick={() => navigate("exercise-form", item.id)}
                   >
-                    Modifica
+                    <Icon name="edit" />
                   </button>
                   <button
-                    className="danger-button"
+                    className="icon-action revise"
+                    aria-label={`Elimina ${item.title}`}
+                    title="Elimina"
                     onClick={async () => {
                       if (
                         !window.confirm(
@@ -1951,7 +1979,7 @@ function TeacherExercises({
                       }
                     }}
                   >
-                    <Icon name="delete" /> Elimina
+                    <Icon name="delete" />
                   </button>
                 </div>
               )}

@@ -146,7 +146,7 @@ test("lo sviluppo locale include un dataset completo e credenziali documentate",
 
 test("Supabase include test pgTAP per schema, RLS e permessi", async () => {
   const sql = await read("supabase/tests/database.test.sql");
-  assert.match(sql, /select plan\(64\)/i);
+  assert.match(sql, /select plan\(65\)/i);
   assert.match(sql, /relrowsecurity/i);
   assert.match(sql, /not has_function_privilege\('anon'/i);
 });

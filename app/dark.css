@@ -2624,6 +2624,14 @@ body {
   gap: var(--space-5);
   margin-top: var(--space-8);
 }
+.dashboard-delivery-overview {
+  margin: 0;
+}
+.dashboard-delivery-overview .report-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
+  margin-top: var(--space-8);
+}
 .report-metric {
   display: flex;
   align-items: center;
@@ -3494,6 +3502,9 @@ body {
 @media (max-width: 900px) {
   .report-section-nav {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dashboard-delivery-overview .report-summary {
+    grid-template-columns: 1fr;
   }
 }
 @media (max-width: 560px) {

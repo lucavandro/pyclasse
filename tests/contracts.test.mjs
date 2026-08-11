@@ -199,6 +199,12 @@ test("le pagine interne hanno un handler server", async () => {
   assert.match(catchAll, /export \{ default \} from "\.\.\/page"/);
 });
 
+test("il contenuto delle pagine resta ancorato in alto", async () => {
+  const styles = await read("app/globals.css");
+  assert.match(styles, /\.content\s*\{[^}]*margin:\s*0 auto;/);
+  assert.doesNotMatch(styles, /\.content\s*\{[^}]*margin:\s*auto;/);
+});
+
 test("il Markdown non esegue HTML e i link esterni sono isolati", async () => {
   const markdown = await read("app/markdown-content.tsx");
   assert.match(markdown, /skipHtml/);

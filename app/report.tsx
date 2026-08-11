@@ -84,10 +84,6 @@ export function ReportV2({
           normalizedScores.length,
       )
     : null;
-  const waiting = submissions.filter(
-    (item) => item.status === "submitted",
-  ).length;
-  const reviewed = submissions.length - waiting;
   const visibleSubmissions = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
     return submissions.filter((submission) => {
@@ -311,56 +307,32 @@ export function ReportV2({
           })}
         </nav>
       )}
-      <div className="report-overview panel">
-        <div className="report-title-row">
-          <div>
-            <p className="eyebrow">DATI DELLE CONSEGNE</p>
-            <h2>Report</h2>
-            <p>
-              {data.profile.role === "teacher"
-                ? "Valuta le consegne e individua rapidamente ciò che richiede attenzione."
-                : "Consulta lo stato e la valutazione dei compiti consegnati."}
-            </p>
-          </div>
-          <span className="report-total">
-            <strong>{submissions.length}</strong>
-            <small>consegne</small>
-          </span>
-        </div>
-        <div className="report-summary">
-          {data.profile.role === "teacher" && (
-            <>
-              <article className="report-metric attention">
-                <span className="material-symbols-rounded" aria-hidden="true">
-                  pending_actions
-                </span>
-                <div>
-                  <strong>{waiting}</strong>
-                  <small>Da valutare</small>
-                </div>
-              </article>
-              <article className="report-metric">
-                <span className="material-symbols-rounded" aria-hidden="true">
-                  task_alt
-                </span>
-                <div>
-                  <strong>{reviewed}</strong>
-                  <small>Valutate</small>
-                </div>
-              </article>
-            </>
-          )}
-          <article className="report-metric">
-            <span className="material-symbols-rounded" aria-hidden="true">
-              monitoring
-            </span>
+      {data.profile.role === "student" && (
+        <div className="report-overview panel">
+          <div className="report-title-row">
             <div>
-              <strong>{average === null ? "—" : `${average}%`}</strong>
-              <small>Media dei compiti con voto</small>
+              <p className="eyebrow">DATI DELLE CONSEGNE</p>
+              <h2>Report</h2>
+              <p>Consulta lo stato e la valutazione dei compiti consegnati.</p>
             </div>
-          </article>
+            <span className="report-total">
+              <strong>{submissions.length}</strong>
+              <small>consegne</small>
+            </span>
+          </div>
+          <div className="report-summary">
+            <article className="report-metric">
+              <span className="material-symbols-rounded" aria-hidden="true">
+                monitoring
+              </span>
+              <div>
+                <strong>{average === null ? "—" : `${average}%`}</strong>
+                <small>Media dei compiti con voto</small>
+              </div>
+            </article>
+          </div>
         </div>
-      </div>
+      )}
 
       {data.profile.role === "teacher" && section === "progress" && (
         <section

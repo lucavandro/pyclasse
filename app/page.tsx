@@ -894,6 +894,10 @@ function Dashboard({
           normalizedScores.length,
       )
     : 0;
+  const waitingForReview = submitted.filter(
+    (item) => item.status === "submitted",
+  ).length;
+  const reviewedSubmissions = submitted.length - waitingForReview;
   const upcoming = published
     .filter(
       (item) =>
@@ -960,7 +964,16 @@ function Dashboard({
               : "Inizia creando o unendoti a una classe"}
           </h2>
           <p>{completion}% delle consegne previste risulta completato.</p>
-          <button className="text-link" onClick={() => navigate("report")}>
+          <button
+            className="text-link"
+            onClick={() =>
+              navigate(
+                data.profile.role === "teacher"
+                  ? "report-evaluations"
+                  : "report",
+              )
+            }
+          >
             Vedi il report completo →
           </button>
         </div>
@@ -975,6 +988,56 @@ function Dashboard({
           </div>
         </div>
       </section>
+      {data.profile.role === "teacher" && (
+        <section
+          className="report-overview dashboard-delivery-overview panel"
+          aria-labelledby="dashboard-delivery-title"
+        >
+          <div className="report-title-row">
+            <div>
+              <p className="eyebrow">DATI DELLE CONSEGNE</p>
+              <h2 id="dashboard-delivery-title">Stato delle consegne</h2>
+              <p>
+                Controlla il carico di valutazione e l’andamento complessivo
+                direttamente dalla panoramica.
+              </p>
+            </div>
+            <span className="report-total">
+              <strong>{submitted.length}</strong>
+              <small>consegne</small>
+            </span>
+          </div>
+          <div className="report-summary">
+            <article className="report-metric attention">
+              <span className="material-symbols-rounded" aria-hidden="true">
+                pending_actions
+              </span>
+              <div>
+                <strong>{waitingForReview}</strong>
+                <small>Da valutare</small>
+              </div>
+            </article>
+            <article className="report-metric">
+              <span className="material-symbols-rounded" aria-hidden="true">
+                task_alt
+              </span>
+              <div>
+                <strong>{reviewedSubmissions}</strong>
+                <small>Valutate</small>
+              </div>
+            </article>
+            <article className="report-metric">
+              <span className="material-symbols-rounded" aria-hidden="true">
+                monitoring
+              </span>
+              <div>
+                <strong>{normalizedScores.length ? `${avg}%` : "—"}</strong>
+                <small>Media dei compiti con voto</small>
+              </div>
+            </article>
+          </div>
+        </section>
+      )}
       <div
         className={`stats-grid${data.profile.role === "student" ? " student-stats" : ""}`}
       >

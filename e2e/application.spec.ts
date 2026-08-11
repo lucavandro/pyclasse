@@ -56,6 +56,10 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
 
   test("il docente crea classe ed esercizio persistenti", async ({ page }) => {
     await register(page, teacher);
+    await expect(
+      page.getByRole("heading", { name: "Stato delle consegne" }),
+    ).toBeVisible();
+    await expect(page.getByText("DATI DELLE CONSEGNE")).toBeVisible();
     await page.getByRole("button", { name: "Classi" }).click();
     await page.getByRole("button", { name: "Nuova classe" }).click();
     await page.getByLabel("Nome").fill("Classe E2E");
@@ -270,6 +274,9 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
       .getByRole("button", { name: "Report", exact: true })
       .click();
     await expect(teacherPage).toHaveURL(/\/reports\/valutazioni$/);
+    await expect(
+      teacherPage.getByRole("heading", { name: "Stato delle consegne" }),
+    ).toHaveCount(0);
     await teacherPage.getByRole("button", { name: /Avanzamento/ }).click();
     await expect(teacherPage).toHaveURL(/\/reports\/avanzamento$/);
     await teacherPage.goBack();

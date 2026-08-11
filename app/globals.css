@@ -194,7 +194,9 @@ nav {
   padding: 34px clamp(26px, 4vw, 64px) 60px;
   max-width: 1560px;
   width: 100%;
-  margin: auto;
+  /* Keep page headers anchored while preserving horizontal centering. `auto`
+     on both axes vertically centered short pages inside the shell grid. */
+  margin: 0 auto;
 }
 .topbar {
   display: flex;

@@ -47,6 +47,10 @@ type View =
   | "class-form"
   | "tasks"
   | "report"
+  | "report-evaluations"
+  | "report-progress"
+  | "report-classes"
+  | "report-alerts"
   | "monitor"
   | "code-now"
   | "settings"
@@ -318,6 +322,12 @@ export default function Home() {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(
     null,
   );
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
+    null,
+  );
+  const [exerciseSection, setExerciseSection] = useState<"brief" | "code">(
+    "brief",
+  );
   const [toast, setToast] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const userRef = useRef<User | null>(null);
@@ -366,20 +376,50 @@ export default function Home() {
 
   const syncRoute = useCallback(() => {
     const path = location.pathname.replace(/\/$/, "") || "/";
-    const classMatch = path.match(/^\/classes\/([0-9a-f-]+)(\/edit)?$/i);
-    const exerciseMatch = path.match(/^\/exercises\/([0-9a-f-]+)(\/edit)?$/i);
+    const classMatch = path.match(
+      /^\/classes\/([0-9a-f-]+)(?:\/(edit)|\/studenti\/([0-9a-f-]+))?$/i,
+    );
+    const exerciseMatch = path.match(
+      /^\/exercises\/([0-9a-f-]+)(?:\/(edit|traccia|editor))?$/i,
+    );
+    const reportMatch = path.match(
+      /^\/reports\/(valutazioni|avanzamento|classi|alert)(?:\/studenti\/([0-9a-f-]+))?$/i,
+    );
     if (classMatch) {
       setSelectedClassId(classMatch[1]);
+      setSelectedStudentId(classMatch[3] || null);
       setViewState(classMatch[2] ? "class-form" : "class-detail");
       return;
     }
     if (exerciseMatch) {
       setSelectedExerciseId(exerciseMatch[1]);
-      setViewState(exerciseMatch[2] ? "exercise-form" : "editor");
+      setExerciseSection(exerciseMatch[2] === "editor" ? "code" : "brief");
+      setViewState(exerciseMatch[2] === "edit" ? "exercise-form" : "editor");
+      return;
+    }
+    if (reportMatch) {
+      setSelectedStudentId(reportMatch[2] || null);
+      setViewState(
+        (
+          {
+            valutazioni: "report-evaluations",
+            avanzamento: "report-progress",
+            classi: "report-classes",
+            alert: "report-alerts",
+          } as const
+        )[
+          reportMatch[1].toLowerCase() as
+            | "valutazioni"
+            | "avanzamento"
+            | "classi"
+            | "alert"
+        ],
+      );
       return;
     }
     setSelectedClassId(null);
     setSelectedExerciseId(null);
+    setSelectedStudentId(null);
     setViewState((resolveRoute(path)?.view as View | undefined) ?? "home");
   }, []);
   useEffect(() => {
@@ -414,12 +454,46 @@ export default function Home() {
                     ? `/exercises/${id}`
                     : target === "report"
                       ? "/reports"
-                      : target === "monitor"
-                        ? "/monitoring"
-                        : target === "code-now"
-                          ? "/code-now"
-                          : "/settings";
+                      : target === "report-evaluations"
+                        ? "/reports/valutazioni"
+                        : target === "report-progress"
+                          ? "/reports/avanzamento"
+                          : target === "report-classes"
+                            ? "/reports/classi"
+                            : target === "report-alerts"
+                              ? "/reports/alert"
+                              : target === "monitor"
+                                ? "/monitoring"
+                                : target === "code-now"
+                                  ? "/code-now"
+                                  : "/settings";
     history.pushState({}, "", path);
+    syncRoute();
+  }
+  function navigateExerciseSection(section: "brief" | "code") {
+    if (!selectedExerciseId) return;
+    history.pushState(
+      {},
+      "",
+      `/exercises/${selectedExerciseId}/${section === "code" ? "editor" : "traccia"}`,
+    );
+    syncRoute();
+  }
+  function navigateReportStudent(studentId: string | null) {
+    const paths: Partial<Record<View, string>> = {
+      "report-evaluations": "valutazioni",
+      "report-progress": "avanzamento",
+      "report-classes": "classi",
+      "report-alerts": "alert",
+    };
+    const section = paths[view] || "valutazioni";
+    history.pushState(
+      {},
+      "",
+      studentId
+        ? `/reports/${section}/studenti/${studentId}`
+        : `/reports/${section}`,
+    );
     syncRoute();
   }
   function notify(message: string) {
@@ -476,7 +550,7 @@ export default function Home() {
                   : t("newExercise")
                 : view === "editor"
                   ? selectedExercise?.title || t("exercises")
-                  : view === "report"
+                  : view.startsWith("report")
                     ? t("report")
                     : view === "monitor"
                       ? t("monitor")
@@ -510,7 +584,9 @@ export default function Home() {
               ["classes", "groups", t("classes")],
               ["tasks", "code_blocks", t("exercises")],
               ["code-now", "terminal", "Code now"],
-              ["report", "analytics", t("report")],
+              ...(workspace.profile.role === "student"
+                ? [["report", "analytics", t("report")]]
+                : []),
               ...(workspace.profile.role === "teacher"
                 ? [["monitor", "monitoring", t("monitor")]]
                 : []),
@@ -526,6 +602,17 @@ export default function Home() {
               <b>{label}</b>
             </button>
           ))}
+          {workspace.profile.role === "teacher" && (
+            <button
+              className={
+                view.startsWith("report") ? "nav-item active" : "nav-item"
+              }
+              onClick={() => navigate("report-evaluations")}
+            >
+              <Icon name="analytics" />
+              <b>Report</b>
+            </button>
+          )}
         </nav>
         <div className="sidebar-bottom">
           <div className="profile">
@@ -597,6 +684,17 @@ export default function Home() {
             navigate={navigate}
             reload={reload}
             notify={notify}
+            selectedStudentId={selectedStudentId}
+            onStudentChange={(studentId) => {
+              history.pushState(
+                {},
+                "",
+                studentId
+                  ? `/classes/${selectedClass.id}/studenti/${studentId}`
+                  : `/classes/${selectedClass.id}`,
+              );
+              syncRoute();
+            }}
           />
         )}
         {view === "class-form" && (
@@ -643,11 +741,30 @@ export default function Home() {
                 navigate={navigate}
                 reload={reload}
                 notify={notify}
+                activeSection={exerciseSection}
+                onSectionChange={navigateExerciseSection}
               />
             );
           })()}
-        {view === "report" && (
-          <ReportV2 data={workspace} reload={reload} notify={notify} />
+        {view.startsWith("report") && (
+          <ReportV2
+            key={view}
+            data={workspace}
+            reload={reload}
+            notify={notify}
+            section={
+              view === "report-progress"
+                ? "progress"
+                : view === "report-classes"
+                  ? "classes"
+                  : view === "report-alerts"
+                    ? "alerts"
+                    : "evaluations"
+            }
+            selectedStudentId={selectedStudentId}
+            onStudentChange={navigateReportStudent}
+            onSectionChange={(target) => navigate(target)}
+          />
         )}
         {view === "monitor" && workspace.profile.role === "teacher" && (
           <MonitoringPage data={workspace} notify={notify} />
@@ -746,6 +863,7 @@ function Dashboard({
   data: Workspace;
   navigate: (v: View, id?: string) => void;
 }) {
+  const [dashboardNow] = useState(() => Date.now());
   const published = data.assignments.filter((item) => item.published_at);
   const submitted = data.submissions.filter((item) => item.status !== "draft");
   const studentCompletedIds = new Set(
@@ -783,6 +901,54 @@ function Dashboard({
     )
     .filter((item) => item.deadline && new Date(item.deadline) >= new Date())
     .slice(0, 3);
+  const alertCount =
+    data.profile.role === "teacher"
+      ? data.profiles.filter((profile) => {
+          if (profile.role !== "student") return false;
+          const classIds = data.memberships
+            .filter((item) => item.student_id === profile.id)
+            .map((item) => item.class_id);
+          const assignments = data.assignments.filter((item) =>
+            classIds.includes(item.class_id),
+          );
+          const overdue = assignments.filter(
+            (assignment) =>
+              assignment.deadline &&
+              new Date(assignment.deadline).getTime() < dashboardNow &&
+              !data.submissions.some(
+                (submission) =>
+                  submission.student_id === profile.id &&
+                  submission.class_assignment_id === assignment.id &&
+                  submission.status !== "draft",
+              ),
+          ).length;
+          const unopened = assignments.filter(
+            (assignment) =>
+              !data.assignmentViews.some(
+                (view) =>
+                  view.student_id === profile.id &&
+                  view.class_assignment_id === assignment.id,
+              ) &&
+              !data.submissions.some(
+                (submission) =>
+                  submission.student_id === profile.id &&
+                  submission.class_assignment_id === assignment.id,
+              ),
+          ).length;
+          const inactiveDays = profile.last_seen_at
+            ? Math.floor(
+                (dashboardNow - new Date(profile.last_seen_at).getTime()) /
+                  86_400_000,
+              )
+            : null;
+          return (
+            overdue >= 2 ||
+            unopened >= 3 ||
+            inactiveDays === null ||
+            inactiveDays >= 14
+          );
+        }).length
+      : 0;
   return (
     <div className="dashboard">
       <section className="hero-card">
@@ -841,6 +1007,26 @@ function Dashboard({
           icon="trending_up"
         />
       </div>
+      {data.profile.role === "teacher" && (
+        <button
+          className="dashboard-alert-shortcut"
+          onClick={() => navigate("report-alerts")}
+        >
+          <span className="material-symbols-rounded" aria-hidden="true">
+            notification_important
+          </span>
+          <span>
+            <strong>
+              {alertCount}{" "}
+              {alertCount === 1
+                ? "studente da attenzionare"
+                : "studenti da attenzionare"}
+            </strong>
+            <small>Scadenze, mancati accessi o attività non aperte</small>
+          </span>
+          <Icon name="arrow_forward" />
+        </button>
+      )}
       <section className="panel">
         <div className="panel-head">
           <div>
@@ -1044,18 +1230,19 @@ function ClassDetail({
   navigate,
   reload,
   notify,
+  selectedStudentId,
+  onStudentChange,
 }: {
   classroom: Classroom;
   data: Workspace;
   navigate: (v: View, id?: string) => void;
   reload: () => Promise<void>;
   notify: (v: string) => void;
+  selectedStudentId: string | null;
+  onStudentChange: (studentId: string | null) => void;
 }) {
   const [sortBy, setSortBy] = useState<"surname" | "last_seen">("surname");
   const [studentEmail, setStudentEmail] = useState("");
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
-    null,
-  );
   const members = data.memberships
     .filter((m) => m.class_id === classroom.id)
     .map((m) => ({
@@ -1186,7 +1373,7 @@ function ClassDetail({
               {data.profile.role === "teacher" ? (
                 <button
                   className="student-open"
-                  onClick={() => setSelectedStudentId(membership.student_id)}
+                  onClick={() => onStudentChange(membership.student_id)}
                   aria-label={`Apri il lavoro di ${displayName(profile)}`}
                 >
                   <span className="avatar blue">{initials(profile)}</span>
@@ -1197,7 +1384,7 @@ function ClassDetail({
               {data.profile.role === "teacher" ? (
                 <button
                   className="student-name student-open-name"
-                  onClick={() => setSelectedStudentId(membership.student_id)}
+                  onClick={() => onStudentChange(membership.student_id)}
                 >
                   <strong>{displayName(profile)}</strong>
                   <small>Iscritto: {formatDate(membership.joined_at)}</small>
@@ -1271,10 +1458,7 @@ function ClassDetail({
               <p className="eyebrow">LAVORO DELLO STUDENTE</p>
               <h3 id="student-work-title">{displayName(selectedStudent)}</h3>
             </div>
-            <button
-              className="secondary"
-              onClick={() => setSelectedStudentId(null)}
-            >
+            <button className="secondary" onClick={() => onStudentChange(null)}>
               Chiudi
             </button>
           </div>
@@ -1862,35 +2046,38 @@ function TeacherExercises({
               : "Organizza, filtra e assegna le attività Python alle tue classi."}
           </p>
         </div>
-        <div className="exercise-library-tools">
-          <label className="exercise-name-search">
-            <Icon name="search" />
-            <input
-              type="search"
-              aria-label="Cerca esercizio per nome"
-              placeholder="Cerca per nome"
-              value={exerciseQuery}
-              onChange={(event) => setExerciseQuery(event.target.value)}
-            />
-          </label>
-          <label className="exercise-filter">
-            <Icon name="filter_alt" />
-            <span>Filtra per tag</span>
-            <select
-              aria-label="Filtra per tag"
-              value={tag}
-              onChange={(event) => setTag(event.target.value)}
-            >
-              <option value="">Tutti</option>
-              {allTags.map((value) => (
-                <option key={value}>{value}</option>
-              ))}
-            </select>
-          </label>
-          <span className="repo-count">
-            {visible.length} {visible.length === 1 ? "esercizio" : "esercizi"}
-          </span>
-        </div>
+      </div>
+      <div
+        className="exercise-library-tools"
+        aria-label="Ricerca e filtri esercizi"
+      >
+        <label className="exercise-name-search">
+          <Icon name="search" />
+          <input
+            type="search"
+            aria-label="Cerca esercizio per nome"
+            placeholder="Cerca per nome"
+            value={exerciseQuery}
+            onChange={(event) => setExerciseQuery(event.target.value)}
+          />
+        </label>
+        <label className="exercise-filter">
+          <Icon name="filter_alt" />
+          <span>Filtra per tag</span>
+          <select
+            aria-label="Filtra per tag"
+            value={tag}
+            onChange={(event) => setTag(event.target.value)}
+          >
+            <option value="">Tutti</option>
+            {allTags.map((value) => (
+              <option key={value}>{value}</option>
+            ))}
+          </select>
+        </label>
+        <span className="repo-count">
+          {visible.length} {visible.length === 1 ? "esercizio" : "esercizi"}
+        </span>
       </div>
       {visible.length ? (
         visible.map((item) => {
@@ -2223,12 +2410,16 @@ function Editor({
   navigate,
   reload,
   notify,
+  activeSection,
+  onSectionChange,
 }: {
   exercise: Exercise;
   data: Workspace;
   navigate: (v: View, id?: string) => void;
   reload: () => Promise<void>;
   notify: (v: string) => void;
+  activeSection: "brief" | "code";
+  onSectionChange: (section: "brief" | "code") => void;
 }) {
   const assignment = data.assignments.find(
     (a) => a.exercise_id === exercise.id,
@@ -2245,7 +2436,6 @@ function Editor({
   const [output, setOutput] = useState("Pronto.");
   const [running, setRunning] = useState(false);
   const [passed, setPassed] = useState(0);
-  const [activeTab, setActiveTab] = useState<"brief" | "code">("brief");
   const workerRef = useRef<Worker | null>(null);
   useEffect(() => () => workerRef.current?.terminate(), []);
   useEffect(() => {
@@ -2398,19 +2588,19 @@ function Editor({
       >
         <button
           role="tab"
-          aria-selected={activeTab === "brief"}
+          aria-selected={activeSection === "brief"}
           aria-controls="exercise-brief-panel"
-          className={activeTab === "brief" ? "active" : ""}
-          onClick={() => setActiveTab("brief")}
+          className={activeSection === "brief" ? "active" : ""}
+          onClick={() => onSectionChange("brief")}
         >
           <Icon name="description" /> Traccia
         </button>
         <button
           role="tab"
-          aria-selected={activeTab === "code"}
+          aria-selected={activeSection === "code"}
           aria-controls="exercise-code-panel"
-          className={activeTab === "code" ? "active" : ""}
-          onClick={() => setActiveTab("code")}
+          className={activeSection === "code" ? "active" : ""}
+          onClick={() => onSectionChange("code")}
         >
           <Icon name="code" /> Editor e codice
         </button>
@@ -2419,7 +2609,7 @@ function Editor({
         className="brief workbench-panel"
         id="exercise-brief-panel"
         role="tabpanel"
-        hidden={activeTab !== "brief"}
+        hidden={activeSection !== "brief"}
       >
         <Suspense fallback={<p>{exercise.description}</p>}>
           <MarkdownContent>{exercise.description}</MarkdownContent>
@@ -2459,7 +2649,7 @@ function Editor({
         </div>
         <button
           className="primary brief-next"
-          onClick={() => setActiveTab("code")}
+          onClick={() => onSectionChange("code")}
         >
           Apri l’editor <Icon name="arrow_forward" />
         </button>
@@ -2468,7 +2658,7 @@ function Editor({
         className="workspace workbench-panel"
         id="exercise-code-panel"
         role="tabpanel"
-        hidden={activeTab !== "code"}
+        hidden={activeSection !== "code"}
       >
         <div className="editor-toolbar professional-toolbar">
           <span>

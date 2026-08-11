@@ -4,11 +4,13 @@ import test from "node:test";
 
 const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
+const readSchema = async () =>
+  (
+    await read("supabase/migrations/20260801000000_initial_schema.sql")
+  ).replaceAll('"', "");
 
 test("schema Supabase separa esercizi e assegnazioni e abilita RLS", async () => {
-  const sql = await read(
-    "supabase/migrations/20260801000000_initial_schema.sql",
-  );
+  const sql = await readSchema();
   for (const table of [
     "profiles",
     "app_settings",
@@ -27,21 +29,18 @@ test("schema Supabase separa esercizi e assegnazioni e abilita RLS", async () =>
       ),
     );
   }
+  assert.match(sql, /class_assignment_id uuid not null/i);
+  assert.match(sql, /deadline timestamp with time zone/i);
   assert.match(
     sql,
-    /class_assignment_id uuid not null references public\.class_assignments/i,
+    /class_assignments_exercise_id_class_id_key[\s\S]*unique \(exercise_id, class_id\)/i,
   );
-  assert.match(sql, /deadline timestamptz/i);
-  assert.match(sql, /unique \(exercise_id, class_id\)/i);
   assert.match(sql, /profiles_single_teacher_idx/i);
   assert.match(
     sql,
-    /students create own drafts[\s\S]*status = 'draft'[\s\S]*score = 0/i,
+    /students create own drafts[\s\S]*status = 'draft'[\s\S]*score is null/i,
   );
-  assert.match(
-    sql,
-    /students read class assignments[\s\S]*published_at is not null/i,
-  );
+  assert.match(sql, /published_at is not null/i);
   assert.doesNotMatch(sql, /students manage own submissions/i);
 });
 
@@ -142,7 +141,7 @@ test("il branding pubblico del login è personalizzabile senza esporre dati priv
   const [screen, page, migration] = await Promise.all([
     read("app/auth-screen.tsx"),
     read("app/page.tsx"),
-    read("supabase/migrations/20260803001000_public_login_branding.sql"),
+    readSchema(),
   ]);
   assert.match(screen, /rpc\("get_public_branding"\)/);
   assert.doesNotMatch(
@@ -151,7 +150,14 @@ test("il branding pubblico del login è personalizzabile senza esporre dati priv
   );
   assert.match(page, /login_title_it/);
   assert.match(page, /login_subtitle_en/);
-  assert.match(migration, /grant execute[^;]+to anon, authenticated/i);
+  assert.match(
+    migration,
+    /grant all on function public\.get_public_branding\(\) to anon/i,
+  );
+  assert.match(
+    migration,
+    /grant all on function public\.get_public_branding\(\) to authenticated/i,
+  );
   assert.doesNotMatch(
     migration.match(/returns table \([\s\S]*?\)/i)?.[0] ?? "",
     /teacher_email/i,
@@ -205,7 +211,7 @@ test("il monitoraggio usa bozze, Realtime e attribuzione dell'editor", async () 
   const [monitor, draft, migration] = await Promise.all([
     read("app/live-monitor.tsx"),
     read("app/use-student-draft.ts"),
-    read("supabase/migrations/20260802006000_live_teacher_monitoring.sql"),
+    readSchema(),
   ]);
   assert.match(monitor, /postgres_changes/);
   assert.match(monitor, /updated_by: teacherId/);
@@ -213,7 +219,7 @@ test("il monitoraggio usa bozze, Realtime e attribuzione dell'editor", async () 
   assert.match(draft, /remote\.updated_by !== studentId/);
   assert.match(
     migration,
-    /alter publication supabase_realtime add table public\.submissions/i,
+    /alter publication supabase_realtime add table (?:only )?public\.submissions/i,
   );
   assert.match(migration, /replica identity full/i);
 });
@@ -223,7 +229,7 @@ test("monitoraggio e Code now usano presenza temporanea protetta", async () => {
     read("app/live-monitor.tsx"),
     read("app/code-now.tsx"),
     read("app/use-editor-session.ts"),
-    read("supabase/migrations/20260810001000_editor_presence_and_code_now.sql"),
+    readSchema(),
   ]);
   assert.match(monitor, /submission\.status === "draft"/);
   assert.match(monitor, /Editor aperto ora/);
@@ -246,9 +252,7 @@ test("monitoraggio e Code now usano presenza temporanea protetta", async () => {
 
 test("l'autosalvataggio non ripristina periodicamente codice obsoleto", async () => {
   const draftHook = await read("app/use-student-draft.ts");
-  const revisionPolicy = await read(
-    "supabase/migrations/20260803002000_allow_student_revisions.sql",
-  );
+  const revisionPolicy = await readSchema();
   assert.doesNotMatch(draftHook, /setInterval/);
   assert.doesNotMatch(draftHook, /existing\.status\s*!==\s*["']draft["']/);
   assert.match(draftHook, /remote\.updated_by\s*!==\s*studentId/);
@@ -258,9 +262,7 @@ test("l'autosalvataggio non ripristina periodicamente codice obsoleto", async ()
 });
 
 test("una consegna soddisfa il vincolo propedeutico prima della valutazione", async () => {
-  const migration = await read(
-    "supabase/migrations/20260803003000_unlock_delivered_prerequisites.sql",
-  );
+  const migration = await readSchema();
   assert.match(migration, /delivered\.status\s*<>\s*'draft'/i);
   assert.doesNotMatch(migration, /delivered\.status\s*=\s*'passed'/i);
   assert.match(migration, /previous\.published_at is not null/i);

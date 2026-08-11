@@ -2,20 +2,21 @@
 -- Tutte le identità usano il dominio riservato .test e dati fittizi.
 -- Le credenziali sono documentate in docs/LOCAL_DEVELOPMENT_DATA.md.
 
+set search_path = public, extensions;
+
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
   confirmation_token, email_change, email_change_token_new, recovery_token
 )
 values
-  ('00000000-0000-0000-0000-000000000000', '10000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'teacher@pyclasse.test', crypt('Teacher2026!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"full_name":"Ada Docente"}', now(), now(), '', '', '', ''),
-  ('00000000-0000-0000-0000-000000000000', '20000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'student1@pyclasse.test', crypt('Student2026!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"full_name":"Giulia Bianchi"}', now(), now(), '', '', '', ''),
-  ('00000000-0000-0000-0000-000000000000', '20000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated', 'student2@pyclasse.test', crypt('Student2026!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"full_name":"Marco Verdi"}', now(), now(), '', '', '', ''),
-  ('00000000-0000-0000-0000-000000000000', '20000000-0000-0000-0000-000000000003', 'authenticated', 'authenticated', 'student3@pyclasse.test', crypt('Student2026!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"full_name":"Sara Conti"}', now(), now(), '', '', '', ''),
-  ('00000000-0000-0000-0000-000000000000', '20000000-0000-0000-0000-000000000004', 'authenticated', 'authenticated', 'student4@pyclasse.test', crypt('Student2026!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"full_name":"Luca Romano"}', now(), now(), '', '', '', ''),
-  ('00000000-0000-0000-0000-000000000000', '20000000-0000-0000-0000-000000000005', 'authenticated', 'authenticated', 'student5@pyclasse.test', crypt('Student2026!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"full_name":"Elena Esposito"}', now(), now(), '', '', '', '')
+  ('00000000-0000-0000-0000-000000000000', '10000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'teacher@pyclasse.test', extensions.crypt('Teacher2026!', extensions.gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"full_name":"Ada Docente"}', now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', '20000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'student1@pyclasse.test', extensions.crypt('Student2026!', extensions.gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"full_name":"Giulia Bianchi"}', now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', '20000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated', 'student2@pyclasse.test', extensions.crypt('Student2026!', extensions.gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"full_name":"Marco Verdi"}', now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', '20000000-0000-0000-0000-000000000003', 'authenticated', 'authenticated', 'student3@pyclasse.test', extensions.crypt('Student2026!', extensions.gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"full_name":"Sara Conti"}', now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', '20000000-0000-0000-0000-000000000004', 'authenticated', 'authenticated', 'student4@pyclasse.test', extensions.crypt('Student2026!', extensions.gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"full_name":"Luca Romano"}', now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', '20000000-0000-0000-0000-000000000005', 'authenticated', 'authenticated', 'student5@pyclasse.test', extensions.crypt('Student2026!', extensions.gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"full_name":"Elena Esposito"}', now(), now(), '', '', '', '')
 on conflict (id) do nothing;
-
 insert into auth.identities (
   id, user_id, provider_id, identity_data, provider,
   last_sign_in_at, created_at, updated_at

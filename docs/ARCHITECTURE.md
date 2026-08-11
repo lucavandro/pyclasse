@@ -1,5 +1,7 @@
 # Architettura
 
+Lo schema applicativo completo è definito dalla singola migrazione iniziale `supabase/migrations/20260801000000_initial_schema.sql`. Il progetto non è ancora pubblicato: le precedenti migrazioni incrementali sono state consolidate per mantenere equivalenti installazioni pulite e ambienti locali.
+
 ## Componenti
 
 - **Web app:** React/Next tramite vinext, interfaccia responsive e routing client.

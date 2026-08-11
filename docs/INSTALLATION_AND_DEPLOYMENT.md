@@ -120,7 +120,7 @@ Configura le variabili nel provider, pubblica la build e verifica login, rotte i
 
 ## Controlli post-deployment
 
-- ricarica direttamente `/classes`, `/exercises`, `/reports` e `/settings`;
+- ricarica direttamente `/classes`, `/exercises`, `/reports/valutazioni`, `/reports/avanzamento`, `/reports/classi`, `/reports/alert` e `/settings`;
 - verifica che uno studente non legga classi, test nascosti o consegne altrui;
 - prova autosalvataggio e intervento docente con due sessioni;
 - verifica che `/manifest.webmanifest`, `/sw.js` e `/offline.html` rispondano

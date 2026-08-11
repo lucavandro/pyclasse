@@ -246,12 +246,6 @@ function LiveDraft({
           <small>{exercise?.title} · in lavorazione</small>
         </div>
         <span className={active ? "activity-status active" : "activity-status"}>
-          <span
-            className="activity-status-icon material-symbols-rounded"
-            aria-hidden="true"
-          >
-            {active ? "sensors" : "schedule"}
-          </span>
           <span className="activity-status-copy">
             <strong>
               {active ? "Editor aperto ora" : "Lavoro aperto, non attivo"}

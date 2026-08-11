@@ -26,17 +26,36 @@ const statusLabels = {
 
 type ReportStatus = "all" | "unopened" | Exclude<SubmissionStatus, "draft">;
 type DeliverySort = "student" | "assigned" | "opened" | "completed";
-type ReportSection = "deliveries" | "classes" | "alerts" | "student";
-const PAGE_SIZE = 8;
+type ReportSection =
+  | "evaluations"
+  | "progress"
+  | "classes"
+  | "alerts"
+  | "student";
+const PAGE_SIZE = 25;
 
 export function ReportV2({
   data,
   reload,
   notify,
+  section: routeSection,
+  selectedStudentId,
+  onStudentChange,
+  onSectionChange,
 }: {
   data: Workspace;
   reload: () => Promise<void>;
   notify: (message: string) => void;
+  section: Exclude<ReportSection, "student">;
+  selectedStudentId: string | null;
+  onStudentChange: (studentId: string | null) => void;
+  onSectionChange: (
+    section:
+      | "report-evaluations"
+      | "report-progress"
+      | "report-classes"
+      | "report-alerts",
+  ) => void;
 }) {
   const { locale } = useLocale();
   const [classFilter, setClassFilter] = useState("all");
@@ -46,10 +65,7 @@ export function ReportV2({
   const [deliveryDirection, setDeliveryDirection] = useState<"asc" | "desc">(
     "asc",
   );
-  const [section, setSection] = useState<ReportSection>("deliveries");
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
-    null,
-  );
+  const section: ReportSection = selectedStudentId ? "student" : routeSection;
   const [summaryPage, setSummaryPage] = useState(1);
   const [evaluationPage, setEvaluationPage] = useState(1);
   const submissions = data.submissions.filter(
@@ -219,21 +235,82 @@ export function ReportV2({
     })),
     ...unopenedPairs.map((pair) => ({ kind: "unopened" as const, ...pair })),
   ];
+  const safeSummaryPage = Math.min(
+    summaryPage,
+    Math.max(1, Math.ceil(deliveryRows.length / PAGE_SIZE)),
+  );
+  const safeEvaluationPage = Math.min(
+    evaluationPage,
+    Math.max(1, Math.ceil(evaluationItems.length / PAGE_SIZE)),
+  );
   const pagedDeliveries = deliveryRows.slice(
-    (summaryPage - 1) * PAGE_SIZE,
-    summaryPage * PAGE_SIZE,
+    (safeSummaryPage - 1) * PAGE_SIZE,
+    safeSummaryPage * PAGE_SIZE,
   );
   const pagedEvaluations = evaluationItems.slice(
-    (evaluationPage - 1) * PAGE_SIZE,
-    evaluationPage * PAGE_SIZE,
+    (safeEvaluationPage - 1) * PAGE_SIZE,
+    safeEvaluationPage * PAGE_SIZE,
   );
   function openStudent(studentId: string) {
-    setSelectedStudentId(studentId);
-    setSection("student");
+    onStudentChange(studentId);
   }
 
   return (
     <section className="report-page">
+      {data.profile.role === "teacher" && (
+        <nav className="report-section-nav" aria-label="Sezioni report">
+          {(
+            [
+              [
+                "report-evaluations",
+                "fact_check",
+                "Valutazioni",
+                "Consegne e voti",
+              ],
+              [
+                "report-progress",
+                "trending_up",
+                "Avanzamento",
+                "Aperture e completamento",
+              ],
+              ["report-classes", "school", "Per classe", "Metriche aggregate"],
+              [
+                "report-alerts",
+                "notification_important",
+                "Alert",
+                "Studenti da attenzionare",
+              ],
+            ] as const
+          ).map(([target, icon, label, description]) => {
+            const active =
+              routeSection ===
+              (
+                {
+                  "report-evaluations": "evaluations",
+                  "report-progress": "progress",
+                  "report-classes": "classes",
+                  "report-alerts": "alerts",
+                } as const
+              )[target];
+            return (
+              <button
+                key={target}
+                className={active ? "active" : ""}
+                aria-current={active ? "page" : undefined}
+                onClick={() => onSectionChange(target)}
+              >
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  {icon}
+                </span>
+                <span>
+                  <strong>{label}</strong>
+                  <small>{description}</small>
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+      )}
       <div className="report-overview panel">
         <div className="report-title-row">
           <div>
@@ -285,30 +362,7 @@ export function ReportV2({
         </div>
       </div>
 
-      {data.profile.role === "teacher" && (
-        <nav className="report-section-nav" aria-label="Sezioni report">
-          <button
-            className={section === "deliveries" ? "active" : ""}
-            onClick={() => setSection("deliveries")}
-          >
-            Consegne
-          </button>
-          <button
-            className={section === "classes" ? "active" : ""}
-            onClick={() => setSection("classes")}
-          >
-            Report per classe
-          </button>
-          <button
-            className={section === "alerts" ? "active" : ""}
-            onClick={() => setSection("alerts")}
-          >
-            Alert
-          </button>
-        </nav>
-      )}
-
-      {data.profile.role === "teacher" && section === "deliveries" && (
+      {data.profile.role === "teacher" && section === "progress" && (
         <section
           className="report-results panel"
           aria-labelledby="delivery-summary-title"
@@ -319,6 +373,38 @@ export function ReportV2({
               <h3 id="delivery-summary-title">Avanzamento per studente</h3>
             </div>
             <span className="result-count">{deliveryRows.length} studenti</span>
+          </div>
+          <div
+            className="report-toolbar progress-toolbar"
+            aria-label="Filtri avanzamento"
+          >
+            <label className="report-search">
+              <span className="material-symbols-rounded" aria-hidden="true">
+                search
+              </span>
+              <input
+                aria-label="Cerca studente nell'avanzamento"
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Cerca studente"
+              />
+            </label>
+            <label>
+              <span>Classe</span>
+              <select
+                aria-label="Filtra avanzamento per classe"
+                value={classFilter}
+                onChange={(event) => setClassFilter(event.target.value)}
+              >
+                <option value="all">Tutte le classi</option>
+                {data.classes.map((classroom) => (
+                  <option key={classroom.id} value={classroom.id}>
+                    {classroom.name}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
           <div className="delivery-summary-table table">
             <div className="table-row table-head">
@@ -386,14 +472,14 @@ export function ReportV2({
             })}
           </div>
           <Pagination
-            page={summaryPage}
+            page={safeSummaryPage}
             total={deliveryRows.length}
             onChange={setSummaryPage}
           />
         </section>
       )}
 
-      {(data.profile.role === "student" || section === "deliveries") && (
+      {(data.profile.role === "student" || section === "evaluations") && (
         <section
           className="report-results panel"
           aria-labelledby="report-results-title"
@@ -523,7 +609,7 @@ export function ReportV2({
             )}
           </div>
           <Pagination
-            page={evaluationPage}
+            page={safeEvaluationPage}
             total={evaluationItems.length}
             onChange={setEvaluationPage}
           />
@@ -548,7 +634,7 @@ export function ReportV2({
           <StudentReportDetail
             data={data}
             studentId={selectedStudentId}
-            onBack={() => setSection("deliveries")}
+            onBack={() => onStudentChange(null)}
           />
         )}
     </section>
@@ -569,21 +655,27 @@ function Pagination({
   return (
     <nav className="table-pagination" aria-label="Paginazione tabella">
       <button
-        className="secondary"
+        className="pagination-button"
+        aria-label="Pagina precedente"
         disabled={page <= 1}
         onClick={() => onChange(page - 1)}
       >
-        Precedente
+        <span className="material-symbols-rounded" aria-hidden="true">
+          chevron_left
+        </span>
       </button>
       <span>
         Pagina {page} di {pages}
       </span>
       <button
-        className="secondary"
+        className="pagination-button"
+        aria-label="Pagina successiva"
         disabled={page >= pages}
         onClick={() => onChange(page + 1)}
       >
-        Successiva
+        <span className="material-symbols-rounded" aria-hidden="true">
+          chevron_right
+        </span>
       </button>
     </nav>
   );

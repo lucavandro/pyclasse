@@ -161,12 +161,20 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
       "Voto in decimi",
     );
     await page.getByRole("button", { name: "Inizia", exact: true }).click();
+    await expect(page).toHaveURL(/\/exercises\/[0-9a-f-]+$/i);
     await expect(
       page.getByRole("heading", { name: "Obiettivo" }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Video introduttivo" }),
     ).toHaveAttribute("href", "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+    await page.getByRole("tab", { name: "Editor e codice" }).click();
+    await expect(page).toHaveURL(/\/exercises\/[0-9a-f-]+\/editor$/i);
+    await page.goBack();
+    await expect(
+      page.getByRole("heading", { name: "Obiettivo" }),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/exercises\/[0-9a-f-]+$/i);
     await page.getByRole("tab", { name: "Editor e codice" }).click();
     const studentCode = page.locator(".cm-content");
     await studentCode.fill("def answer():\n    return 42");
@@ -261,6 +269,11 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await teacherPage
       .getByRole("button", { name: "Report", exact: true })
       .click();
+    await expect(teacherPage).toHaveURL(/\/reports\/valutazioni$/);
+    await teacherPage.getByRole("button", { name: /Avanzamento/ }).click();
+    await expect(teacherPage).toHaveURL(/\/reports\/avanzamento$/);
+    await teacherPage.goBack();
+    await expect(teacherPage).toHaveURL(/\/reports\/valutazioni$/);
     await expect(
       teacherPage
         .locator(".teacher-report-table")

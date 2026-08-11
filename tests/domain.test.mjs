@@ -19,7 +19,25 @@ test("risolve tutte le rotte stateful", () => {
     id: 7,
     edit: true,
   });
-  assert.deepEqual(resolveRoute("/exercises/7"), { view: "editor", id: 7 });
+  assert.deepEqual(resolveRoute("/exercises/7"), {
+    view: "editor",
+    id: 7,
+    exerciseSection: "brief",
+  });
+  assert.deepEqual(resolveRoute("/exercises/7/editor"), {
+    view: "editor",
+    id: 7,
+    exerciseSection: "code",
+  });
+  assert.deepEqual(resolveRoute("/reports/avanzamento/studenti/abc-def"), {
+    view: "report-progress",
+    studentId: "abc-def",
+  });
+  assert.deepEqual(resolveRoute("/classes/2/studenti/abc-def"), {
+    view: "class-detail",
+    id: 2,
+    studentId: "abc-def",
+  });
   assert.equal(resolveRoute("/settings/").view, "settings");
   assert.equal(resolveRoute("/sconosciuta").notFound, true);
 });
@@ -32,6 +50,10 @@ test("risolve tutte le rotte statiche anche con slash finale", () => {
     ["/exercises", "tasks"],
     ["/exercises/new", "exercise-form"],
     ["/reports", "report"],
+    ["/reports/valutazioni", "report-evaluations"],
+    ["/reports/avanzamento", "report-progress"],
+    ["/reports/classi", "report-classes"],
+    ["/reports/alert", "report-alerts"],
     ["/monitoring", "monitor"],
     ["/code-now", "code-now"],
     ["/settings", "settings"],

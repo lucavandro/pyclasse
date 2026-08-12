@@ -205,6 +205,12 @@ test("il contenuto delle pagine resta ancorato in alto", async () => {
   assert.doesNotMatch(styles, /\.content\s*\{[^}]*margin:\s*auto;/);
 });
 
+test("avanzamento e alert mostrano le classi degli studenti", async () => {
+  const report = await read("app/report.tsx");
+  assert.match(report, /classNames\.join\(", "\)/);
+  assert.match(report, /student-class-name/g);
+});
+
 test("il Markdown non esegue HTML e i link esterni sono isolati", async () => {
   const markdown = await read("app/markdown-content.tsx");
   assert.match(markdown, /skipHtml/);

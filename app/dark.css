@@ -3197,6 +3197,11 @@ body {
 }
 .delivery-summary-table {
   width: 100%;
+  overflow-x: auto;
+}
+.student-class-name {
+  color: var(--color-cyan) !important;
+  font-weight: var(--font-weight-emphasis);
 }
 .progress-toolbar {
   grid-template-columns: minmax(260px, 1fr) minmax(180px, 0.35fr);
@@ -3499,6 +3504,19 @@ body {
   border-bottom-color: var(--color-purple);
   color: var(--color-foreground);
 }
+.mobile-menu-trigger,
+.mobile-menu-backdrop {
+  display: none;
+}
+
+/* Tables remain contained even when a feature adds wider columns. */
+.table {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
 @media (max-width: 900px) {
   .report-section-nav {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3626,12 +3644,111 @@ body {
 }
 
 @media (max-width: 650px) {
-  .sidebar-head,
-  .hamburger {
+  body.mobile-menu-visible {
+    overflow: hidden;
+  }
+  .app-shell,
+  .app-shell.sidebar-collapsed {
+    display: block;
+  }
+  .app-shell .sidebar,
+  .app-shell.sidebar-collapsed .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: var(--layer-overlay);
+    width: min(82vw, 320px);
+    height: 100dvh;
+    padding: var(--space-7) var(--space-5);
+    border: 0;
+    border-right: var(--border-width) solid var(--color-current-line);
+    transform: translateX(-100%);
+    transition: transform var(--duration-normal) var(--easing-standard);
+    box-shadow: 18px 0 42px var(--shadow-color);
+  }
+  .mobile-menu-open .sidebar {
+    transform: translateX(0);
+  }
+  .sidebar-head {
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--space-7);
+  }
+  .sidebar-head .hamburger {
     display: none;
   }
-  .nav-item b {
-    display: none;
+  .app-shell .sidebar .brand,
+  .app-shell.sidebar-collapsed .sidebar .brand {
+    display: flex;
+  }
+  .app-shell .sidebar .brand > span:last-child,
+  .app-shell .sidebar .nav-item b,
+  .app-shell .sidebar .profile > div,
+  .app-shell.sidebar-collapsed .sidebar .brand > span:last-child,
+  .app-shell.sidebar-collapsed .sidebar .nav-item b,
+  .app-shell.sidebar-collapsed .sidebar .profile > div {
+    display: initial;
+  }
+  .app-shell .sidebar nav {
+    width: 100%;
+    flex: 1;
+    flex-direction: column;
+    justify-content: flex-start;
+    overflow-y: auto;
+  }
+  .app-shell .sidebar .nav-item,
+  .app-shell.sidebar-collapsed .sidebar .nav-item {
+    width: 100%;
+    min-height: var(--control-min-height);
+    flex: none;
+    justify-content: flex-start;
+    padding: var(--space-4);
+    font-size: var(--font-size-sm);
+  }
+  .app-shell .sidebar-bottom {
+    display: block;
+  }
+  .app-shell .sidebar .profile {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    flex-direction: initial;
+  }
+  .app-shell .sidebar .logout-button {
+    display: grid;
+  }
+  .mobile-menu-trigger {
+    display: grid;
+    flex: none;
+    width: var(--control-min-height);
+    height: var(--control-min-height);
+    place-items: center;
+    border: var(--border-width) solid var(--color-border-strong);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-control);
+    color: var(--color-foreground);
+  }
+  .mobile-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--layer-overlay) - 1);
+    border: 0;
+    background: var(--color-modal-overlay);
+  }
+  .mobile-menu-open .mobile-menu-backdrop {
+    display: block;
+  }
+  .topbar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+  .topbar-title {
+    min-width: 0;
+  }
+  .topbar .top-actions {
+    grid-column: 1 / -1;
+  }
+  .content {
+    padding-bottom: var(--space-8);
   }
   .student-task-metadata {
     grid-template-columns: 1fr;
@@ -3731,6 +3848,62 @@ body {
   .teacher-report-table .table-row {
     min-width: 860px;
   }
+  .teacher-report-table .table-row > :first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--color-surface);
+    box-shadow: 8px 0 14px var(--shadow-color-soft);
+  }
+  .teacher-report-table .table-head > :first-child {
+    background: var(--color-surface-sunken);
+  }
+  .delivery-summary-table {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+  .delivery-summary-table .table-head {
+    display: none;
+  }
+  .delivery-summary-table .table-row:not(.table-head) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4);
+    margin-bottom: var(--space-3);
+    padding: var(--space-5);
+    border: var(--border-width) solid var(--color-current-line);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-sunken);
+  }
+  .delivery-summary-table .report-student {
+    grid-column: 1 / -1;
+    padding-bottom: var(--space-3);
+    border-bottom: var(--border-width) solid var(--color-current-line);
+  }
+  .delivery-summary-table .table-row > span::before {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .delivery-summary-table .table-row > span:nth-child(2)::before {
+    content: "Assegnati";
+  }
+  .delivery-summary-table .table-row > span:nth-child(3)::before {
+    content: "Aperti";
+  }
+  .delivery-summary-table .table-row > span:nth-child(4)::before {
+    content: "Svolti";
+  }
+  .student-alert {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .student-alert > button,
+  .student-alert > div {
+    width: 100%;
+  }
   .student-report-table .table-head span:last-child,
   .student-report-grade {
     grid-column: 1 / -1;
@@ -3748,6 +3921,13 @@ body {
   .workbench-tabs button {
     flex: 1;
     justify-content: center;
+    min-width: max-content;
+  }
+  .workbench-tabs,
+  .task-status-filter,
+  .report-section-nav {
+    overflow-x: auto;
+    scrollbar-width: thin;
   }
   .professional-runbar {
     align-items: stretch;

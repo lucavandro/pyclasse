@@ -330,6 +330,7 @@ export default function Home() {
   );
   const [toast, setToast] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const userRef = useRef<User | null>(null);
 
   const reload = useCallback(async (currentUser?: User | null) => {
@@ -430,7 +431,21 @@ export default function Home() {
     return () => removeEventListener("popstate", syncRoute);
   }, [syncRoute]);
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+    document.body.classList.add("mobile-menu-visible");
+    addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.classList.remove("mobile-menu-visible");
+      removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileMenuOpen]);
+
   function navigate(target: View, id?: string) {
+    setMobileMenuOpen(false);
     if ((view === "editor" || view === "code-now") && target !== view)
       void supabase?.rpc("close_editor_session");
     const path =
@@ -560,9 +575,14 @@ export default function Home() {
 
   return (
     <main
-      className={`app-shell${sidebarCollapsed ? " sidebar-collapsed" : ""}`}
+      className={`app-shell${sidebarCollapsed ? " sidebar-collapsed" : ""}${mobileMenuOpen ? " mobile-menu-open" : ""}`}
     >
-      <aside className="sidebar">
+      <button
+        className="mobile-menu-backdrop"
+        aria-label="Chiudi menu"
+        onClick={() => setMobileMenuOpen(false)}
+      />
+      <aside className="sidebar" aria-label="Menu principale">
         <div className="sidebar-head">
           <button
             className="hamburger"
@@ -577,7 +597,7 @@ export default function Home() {
             <span>PyClasse</span>
           </button>
         </div>
-        <nav aria-label="Navigazione principale">
+        <nav id="main-navigation" aria-label="Navigazione principale">
           {(
             [
               ["home", "dashboard", t("overview")],
@@ -637,7 +657,16 @@ export default function Home() {
       </aside>
       <section className="content">
         <header className="topbar">
-          <div>
+          <button
+            className="mobile-menu-trigger"
+            aria-label="Apri menu"
+            aria-controls="main-navigation"
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen(true)}
+          >
+            <Icon name="menu" />
+          </button>
+          <div className="topbar-title">
             <p className="eyebrow">{schoolName}</p>
             <h1>{title}</h1>
           </div>

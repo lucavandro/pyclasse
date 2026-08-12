@@ -279,6 +279,36 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     ).toHaveCount(0);
     await teacherPage.getByRole("button", { name: /Avanzamento/ }).click();
     await expect(teacherPage).toHaveURL(/\/reports\/avanzamento$/);
+    await expect(
+      teacherPage
+        .locator(".delivery-summary-table")
+        .getByText("Classe E2E", { exact: true }),
+    ).toBeVisible();
+    await teacherPage.setViewportSize({ width: 390, height: 844 });
+    await expect(teacherPage.locator(".sidebar")).toHaveCSS(
+      "position",
+      "fixed",
+    );
+    await expect(teacherPage.locator(".sidebar")).not.toBeInViewport();
+    await teacherPage.getByRole("button", { name: "Apri menu" }).click();
+    await expect(teacherPage.locator(".sidebar")).toBeInViewport();
+    await expect(
+      teacherPage
+        .getByRole("navigation", { name: "Navigazione principale" })
+        .getByText("Report", { exact: true }),
+    ).toBeVisible();
+    await teacherPage.getByRole("button", { name: "Chiudi menu" }).click();
+    await expect(teacherPage.locator(".sidebar")).not.toBeInViewport();
+    await expect(
+      teacherPage.locator(".delivery-summary-table .table-head"),
+    ).toBeHidden();
+    await expect(
+      teacherPage.locator(".delivery-summary-table .table-row").nth(1),
+    ).toBeVisible();
+    await expect(
+      teacherPage.getByRole("navigation", { name: "Sezioni report" }),
+    ).toBeVisible();
+    await teacherPage.setViewportSize({ width: 1280, height: 900 });
     await teacherPage.goBack();
     await expect(teacherPage).toHaveURL(/\/reports\/valutazioni$/);
     await expect(

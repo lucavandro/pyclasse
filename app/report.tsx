@@ -407,6 +407,20 @@ export function ReportV2({
               const student = data.profiles.find(
                 (item) => item.id === row.studentId,
               );
+              const classNames = data.memberships
+                .filter((membership) => membership.student_id === row.studentId)
+                .filter(
+                  (membership) =>
+                    classFilter === "all" ||
+                    membership.class_id === classFilter,
+                )
+                .map(
+                  (membership) =>
+                    data.classes.find(
+                      (classroom) => classroom.id === membership.class_id,
+                    )?.name,
+                )
+                .filter((name): name is string => Boolean(name));
               return (
                 <div className="table-row" key={row.studentId}>
                   <button
@@ -415,6 +429,9 @@ export function ReportV2({
                   >
                     <strong>{student?.full_name || student?.email}</strong>
                     <small>{student?.email}</small>
+                    <small className="student-class-name">
+                      {classNames.join(", ") || "Nessuna classe"}
+                    </small>
                   </button>
                   <span>{row.assigned}</span>
                   <span>
@@ -786,7 +803,13 @@ function ReportAlerts({
               submission.class_assignment_id === assignment.id,
           ),
       ).length;
-      return { student, overdue, inactiveDays, unopened };
+      const classNames = classIds
+        .map(
+          (classId) =>
+            data.classes.find((classroom) => classroom.id === classId)?.name,
+        )
+        .filter((name): name is string => Boolean(name));
+      return { student, classNames, overdue, inactiveDays, unopened };
     })
     .filter(
       (row) =>
@@ -815,6 +838,9 @@ function ReportAlerts({
             <button onClick={() => openStudent(row.student.id)}>
               <strong>{row.student.full_name || row.student.email}</strong>
               <small>{row.student.email}</small>
+              <small className="student-class-name">
+                {row.classNames.join(", ") || "Nessuna classe"}
+              </small>
             </button>
             <div>
               {row.overdue >= 2 && (

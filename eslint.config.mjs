@@ -1,20 +1,49 @@
-import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
+import js from "@eslint/js";
+import globals from "globals";
+import tseslint from "typescript-eslint";
+import svelte from "eslint-plugin-svelte";
 
-const eslintConfig = defineConfig([
-  ...nextVitals,
-  ...nextTs,
-  // Override default ignores of eslint-config-next.
-  globalIgnores([
-    // Default ignores of eslint-config-next:
-    ".next/**",
-    "out/**",
-    "build/**",
-    // Generated runtime files created by `supabase start`.
-    "supabase/.temp/**",
-    "next-env.d.ts",
-  ]),
-]);
-
-export default eslintConfig;
+export default tseslint.config(
+  {
+    ignores: [
+      ".svelte-kit/**",
+      "dist/**",
+      "public/vendor/**",
+      "supabase/.temp/**",
+      "sources/**",
+    ],
+  },
+  { ...js.configs.recommended, languageOptions: { globals: globals.browser } },
+  ...tseslint.configs.recommended,
+  ...svelte.configs["flat/recommended"],
+  {
+    files: ["**/*.svelte", "**/*.svelte.ts"],
+    languageOptions: {
+      parserOptions: { parser: tseslint.parser },
+      globals: globals.browser,
+    },
+    rules: {
+      "svelte/no-navigation-without-resolve": "off",
+      "svelte/require-each-key": "off",
+      "svelte/no-at-html-tags": "off",
+      "svelte/prefer-svelte-reactivity": "off",
+    },
+  },
+  {
+    files: ["scripts/**", "tests/**", "*.config.*", "lib/**/*.mjs"],
+    languageOptions: { globals: globals.node },
+  },
+  {
+    files: ["public/*.js"],
+    languageOptions: { globals: globals.worker },
+  },
+  {
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+    },
+  },
+);

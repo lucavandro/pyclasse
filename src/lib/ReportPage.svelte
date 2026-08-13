@@ -1,0 +1,223 @@
+<script lang="ts">
+  import { getReports } from "$lib/data";
+  import { session } from "$lib/session.svelte";
+  import ReportNav from "$lib/ReportNav.svelte";
+  import type {
+    Profile,
+    Classroom,
+    Membership,
+    Exercise,
+    Assignment,
+    Submission,
+    AssignmentView,
+  } from "$lib/types";
+  let {
+    section,
+  }: { section: "evaluations" | "progress" | "classes" | "alerts" } = $props();
+  let profiles = $state<Profile[]>([]),
+    classes = $state<Classroom[]>([]),
+    memberships = $state<Membership[]>([]),
+    exercises = $state<Exercise[]>([]),
+    assignments = $state<Assignment[]>([]),
+    submissions = $state<Submission[]>([]),
+    views = $state<AssignmentView[]>([]),
+    loading = $state(true),
+    search = $state(""),
+    classFilter = $state(""),
+    statusFilter = $state("");
+  $effect(() => {
+    if (session.profile)
+      void getReports().then((x) => {
+        [
+          profiles,
+          classes,
+          memberships,
+          exercises,
+          assignments,
+          submissions,
+          views,
+        ] = x;
+        loading = false;
+      });
+  });
+  const rows = $derived(
+    submissions
+      .filter((s) => s.status !== "draft")
+      .filter((s) => session.profile?.role !== "teacher" || s.score !== null)
+      .filter(
+        (s) =>
+          session.profile?.role === "teacher" ||
+          s.student_id === session.profile?.id,
+      )
+      .map((s) => {
+        const a = assignments.find((x) => x.id === s.class_assignment_id);
+        return {
+          submission: s,
+          assignment: a,
+          exercise: exercises.find((x) => x.id === a?.exercise_id),
+          classroom: classes.find((x) => x.id === a?.class_id),
+          student: profiles.find((x) => x.id === s.student_id),
+        };
+      })
+      .filter(
+        (r) =>
+          (!search ||
+            `${r.student?.full_name} ${r.exercise?.title}`
+              .toLowerCase()
+              .includes(search.toLowerCase())) &&
+          (!classFilter || r.classroom?.id === classFilter) &&
+          (!statusFilter || r.submission.status === statusFilter),
+      ),
+  );
+</script>
+
+<header class="page-head">
+  <div>
+    <p class="eyebrow">REPORT</p>
+    <h1>
+      {section === "evaluations"
+        ? "Valutazioni"
+        : section === "progress"
+          ? "Avanzamento"
+          : section === "classes"
+            ? "Riepilogo classi"
+            : "Alert didattici"}
+    </h1>
+  </div>
+</header>
+<ReportNav />
+{#if loading}<div
+    class="spinner"
+  ></div>{:else if section === "evaluations"}<section class="panel">
+    <div class="filters">
+      <label
+        >Cerca studente o esercizio<input
+          aria-label="Cerca studente o esercizio"
+          bind:value={search}
+        /></label
+      ><label
+        >Classe<select
+          aria-label="Filtra report per classe"
+          bind:value={classFilter}
+          ><option value="">Tutte</option>{#each classes as c}<option
+              value={c.id}>{c.name}</option
+            >{/each}</select
+        ></label
+      ><label
+        >Stato<select
+          aria-label="Filtra report per stato"
+          bind:value={statusFilter}
+          ><option value="">Tutti</option><option value="submitted"
+            >Consegnato</option
+          ><option value="passed">Superato</option><option value="partial"
+            >Parziale</option
+          ><option value="failed">Non superato</option></select
+        ></label
+      >
+    </div>
+    <div
+      class:teacher-report-table={session.profile?.role === "teacher"}
+      class:student-report-table={session.profile?.role === "student"}
+      class="table"
+    >
+      <div class="table-head table-row" style="--columns:4">
+        <span
+          >{session.profile?.role === "teacher"
+            ? "Studente"
+            : "Esercizio"}</span
+        ><span>Classe</span><span>Stato</span><span>Voto</span>
+      </div>
+      {#each rows as r}<div class="table-row" style="--columns:4">
+          <span
+            >{session.profile?.role === "teacher"
+              ? r.student?.full_name || r.student?.email
+              : r.exercise?.title}</span
+          ><span>{r.classroom?.name}</span><span>{r.submission.status}</span
+          ><span>{r.submission.score ?? "Non ancora assegnato"}</span>
+        </div>{:else}<p class="empty-state">
+          Nessuna valutazione disponibile.
+        </p>{/each}
+    </div>
+  </section>
+{:else if section === "progress"}<section class="panel">
+    <div class="delivery-summary-table table">
+      <div class="table-head table-row" style="--columns:4">
+        <span>Studente</span><span class="student-class-name">Classe</span><span
+          >Consegnati</span
+        ><span>Da completare</span>
+      </div>
+      {#each profiles.filter((p) => p.role === "student") as student}{@const studentClasses =
+          memberships
+            .filter((m) => m.student_id === student.id)
+            .map((m) => classes.find((c) => c.id === m.class_id)?.name)
+            .filter(Boolean)}
+        <div class="table-row" style="--columns:4">
+          <span>{student.full_name || student.email}</span><span
+            class="student-class-name">{studentClasses.join(", ")}</span
+          ><span
+            >{submissions.filter(
+              (s) => s.student_id === student.id && s.status !== "draft",
+            ).length}</span
+          ><span
+            >{assignments.filter((a) =>
+              memberships.some(
+                (m) => m.student_id === student.id && m.class_id === a.class_id,
+              ),
+            ).length -
+              submissions.filter(
+                (s) => s.student_id === student.id && s.status !== "draft",
+              ).length}</span
+          >
+        </div>{/each}
+    </div>
+  </section>
+{:else if section === "classes"}<section class="cards">
+    {#each classes as c}<article class="card">
+        <h2>{c.name}</h2>
+        <p>{c.subject}</p>
+        <strong
+          >{memberships.filter((m) => m.class_id === c.id).length} studenti</strong
+        >
+      </article>{/each}
+  </section>
+{:else}<section class="panel">
+    <h2>Attività da osservare</h2>
+    {#each profiles.filter((p) => p.role === "student") as student}{@const unopened =
+        assignments.filter(
+          (a) =>
+            memberships.some(
+              (m) => m.student_id === student.id && m.class_id === a.class_id,
+            ) &&
+            !views.some(
+              (v) =>
+                v.student_id === student.id && v.class_assignment_id === a.id,
+            ),
+        )}{#if unopened.length}<article class="alert-row">
+          <strong>{student.full_name || student.email}</strong><span
+            >{unopened.length} attività non ancora aperte</span
+          >
+        </article>{/if}{/each}
+  </section>{/if}
+
+<style>
+  .filters {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .alert-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem 0;
+    border-bottom: var(--border);
+  }
+  @media (max-width: 700px) {
+    .filters {
+      grid-template-columns: 1fr;
+    }
+    .delivery-summary-table .table-head {
+      display: none;
+    }
+  }
+</style>

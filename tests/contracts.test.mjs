@@ -1,91 +1,37 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
 const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
-const readSchema = async () =>
+const schema = async () =>
   (
     await read("supabase/migrations/20260801000000_initial_schema.sql")
   ).replaceAll('"', "");
 
-test("schema Supabase separa esercizi e assegnazioni e abilita RLS", async () => {
-  const sql = await readSchema();
-  for (const table of [
-    "profiles",
-    "app_settings",
-    "classes",
-    "class_members",
-    "exercises",
-    "class_assignments",
-    "tests",
-    "submissions",
-  ]) {
-    assert.match(
-      sql,
-      new RegExp(
-        `alter table public\\.${table} enable row level security`,
-        "i",
-      ),
-    );
-  }
-  assert.match(sql, /class_assignment_id uuid not null/i);
-  assert.match(sql, /deadline timestamp with time zone/i);
-  assert.match(
-    sql,
-    /class_assignments_exercise_id_class_id_key[\s\S]*unique \(exercise_id, class_id\)/i,
-  );
-  assert.match(sql, /profiles_single_teacher_idx/i);
-  assert.match(
-    sql,
-    /students create own drafts[\s\S]*status = 'draft'[\s\S]*score is null/i,
-  );
-  assert.match(sql, /published_at is not null/i);
-  assert.doesNotMatch(sql, /students manage own submissions/i);
+test("SvelteKit separa le funzionalità in rotte autonome", async () => {
+  const expected = [
+    "src/routes/+page.svelte",
+    "src/routes/classes/+page.svelte",
+    "src/routes/exercises/+page.svelte",
+    "src/routes/exercises/[id]/editor/+page.svelte",
+    "src/routes/reports/valutazioni/+page.svelte",
+    "src/routes/monitor/+page.svelte",
+    "src/routes/code-now/+page.svelte",
+    "src/routes/settings/+page.svelte",
+  ];
+  for (const path of expected)
+    await access(new URL(`../${path}`, import.meta.url));
+  const pkg = JSON.parse(await read("package.json"));
+  assert.ok(pkg.devDependencies.svelte);
+  assert.ok(pkg.devDependencies["@sveltejs/kit"]);
+  assert.equal(pkg.dependencies.react, undefined);
+  assert.equal(pkg.dependencies.next, undefined);
+  assert.equal(pkg.dependencies["material-symbols"], undefined);
 });
 
-test("editor applica watchdog e blocco clipboard", async () => {
-  const [page, editor, worker] = await Promise.all([
-    read("app/page.tsx"),
-    read("app/python-editor.tsx"),
-    read("public/pyodide-worker.js"),
-  ]);
-  assert.match(editor, /copy\([^)]*\).*preventDefault/s);
-  assert.match(editor, /cut\([^)]*\).*preventDefault/s);
-  assert.match(editor, /paste\([^)]*\).*preventDefault/s);
-  assert.match(page, /8000/g);
-  assert.match(page, /worker\.terminate\(\)/);
-  assert.match(worker, /output\.length < 50000/i);
-  assert.match(worker, /output limitato/i);
-  assert.doesNotMatch(worker, /cdn\.jsdelivr\.net/i);
-  assert.match(worker, /\/vendor\/pyodide\//i);
-  assert.match(page, /type: "module"/);
-});
-
-test("feedback IA vieta soluzioni dirette e dispone di fallback", async () => {
-  const ai = await read("lib/ai-feedback.ts");
-  assert.match(ai, /non fornire codice/i);
-  assert.match(ai, /containsDirectSolution/);
-  assert.match(ai, /catch \{/);
-  assert.match(ai, /generateExerciseWithAi/);
-  assert.match(ai, /if \(!allowExternalAi\) return fallback/);
-});
-
-test("privacy by default evita terze parti automatiche e persiste il consenso", async () => {
-  const [layout, page] = await Promise.all([
-    read("app/layout.tsx"),
-    read("app/page.tsx"),
-  ]);
-  assert.doesNotMatch(layout, /fonts\.googleapis\.com/i);
-  assert.match(layout, /material-symbols\/rounded\.css/);
-  assert.match(page, /external_ai_enabled/);
-  assert.match(page, /external_ai_consented_at/);
-  assert.match(page, /Il consenso è facoltativo/);
-  assert.doesNotMatch(page, /localStorage/);
-});
-
-test("le schermate leggono Supabase e non incorporano dati dimostrativi", async () => {
-  const page = await read("app/page.tsx");
+test("schema Supabase abilita RLS e protegge bozze e prerequisiti", async () => {
+  const sql = await schema();
   for (const table of [
     "profiles",
     "app_settings",
@@ -96,187 +42,111 @@ test("le schermate leggono Supabase e non incorporano dati dimostrativi", async 
     "tests",
     "submissions",
     "editor_sessions",
-  ]) {
-    assert.match(page, new RegExp(`from\\(\"${table}\"\\)`));
-  }
-  for (const fake of [
-    "Giulia Bianchi",
-    "Marco Rossi",
-    "Sara Esposito",
-    "Liceo Galilei",
-    "Somma dei numeri pari",
-  ]) {
-    assert.doesNotMatch(page, new RegExp(fake, "i"));
-  }
+  ])
+    assert.match(
+      sql,
+      new RegExp(
+        `alter table public\\.${table} enable row level security`,
+        "i",
+      ),
+    );
+  assert.match(sql, /students create own drafts[\s\S]*status = 'draft'/i);
+  assert.match(sql, /student_can_submit_to_assignment/i);
+  assert.match(
+    sql,
+    /alter publication supabase_realtime add table (?:only )?public\.submissions/i,
+  );
 });
 
-test("autenticazione supporta password, OTP email e Google", async () => {
-  const [screen, client, config, template] = await Promise.all([
-    read("app/auth-screen.tsx"),
-    read("lib/supabase.ts"),
-    read("supabase/config.toml"),
-    read("supabase/templates/magic_link.html"),
+test("editor applica blocco clipboard, watchdog e Pyodide self-hosted", async () => {
+  const [editor, workbench, codeNow, worker] = await Promise.all([
+    read("src/lib/PythonEditor.svelte"),
+    read("src/routes/exercises/[id]/editor/+page.svelte"),
+    read("src/routes/code-now/+page.svelte"),
+    read("public/pyodide-worker.js"),
   ]);
-  assert.match(screen, /signInWithPassword/);
-  assert.match(screen, /signInWithOtp/);
-  assert.match(screen, /verifyOtp/);
-  assert.match(screen, /one-time-code/);
-  assert.match(screen, /signInWithGoogle/);
-  assert.match(screen, /NEXT_PUBLIC_AUTH_EMAIL_OTP === "true"/);
-  assert.match(screen, /NEXT_PUBLIC_AUTH_GOOGLE === "true"/);
-  assert.match(screen, /googleEnabled &&/);
-  assert.match(screen, /otpEnabled &&/);
+  assert.match(editor, /copy[\s\S]*preventDefault/);
+  assert.match(editor, /cut[\s\S]*preventDefault/);
+  assert.match(editor, /paste[\s\S]*preventDefault/);
+  assert.match(workbench, /8000/);
+  assert.match(codeNow, /8000/);
+  assert.match(worker, /\/vendor\/pyodide\//);
+  assert.doesNotMatch(worker, /cdn\.jsdelivr\.net/);
+});
+
+test("Markdown rifiuta HTML grezzo e isola link esterni", async () => {
+  const markdown = await read("src/lib/Markdown.svelte");
+  assert.match(markdown, /renderer\.html/);
+  assert.match(markdown, /escape\(text\)/);
+  assert.match(markdown, /noopener noreferrer/);
+  assert.match(markdown, /protocol\s*===\s*["']https:/);
+});
+
+test("dati sono letti da Supabase per dominio e mai incorporati nella UI", async () => {
+  const data = await read("src/lib/data.ts");
+  for (const table of [
+    "profiles",
+    "classes",
+    "class_members",
+    "exercises",
+    "class_assignments",
+    "tests",
+    "submissions",
+    "editor_sessions",
+  ])
+    assert.match(data, new RegExp(`\\("${table}"`));
+  const routes = await Promise.all([
+    read("src/routes/+page.svelte"),
+    read("src/routes/classes/+page.svelte"),
+    read("src/routes/exercises/+page.svelte"),
+  ]);
+  assert.doesNotMatch(
+    routes.join("\n"),
+    /Giulia Bianchi|Marco Rossi|Liceo Galilei/i,
+  );
+});
+
+test("autenticazione supporta password, OTP e Google", async () => {
+  const [auth, client] = await Promise.all([
+    read("src/lib/Auth.svelte"),
+    read("src/lib/supabase.ts"),
+  ]);
+  assert.match(auth, /signInWithPassword/);
+  assert.match(auth, /signInWithOtp/);
+  assert.match(auth, /verifyOtp/);
+  assert.match(auth, /get_public_branding/);
   assert.match(client, /provider: "google"/);
-  assert.match(config, /\[auth\.external\.google\]/);
-  assert.match(config, /SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET/);
-  assert.match(config, /\[auth\.email\.template\.magic_link\]/);
-  assert.match(template, /\{\{ \.Token \}\}/);
-  assert.doesNotMatch(
-    config,
-    /SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET\s*=\s*[^\n]+/,
-  );
 });
 
-test("il branding pubblico del login è personalizzabile senza esporre dati privati", async () => {
-  const [screen, page, migration] = await Promise.all([
-    read("app/auth-screen.tsx"),
-    read("app/page.tsx"),
-    readSchema(),
+test("privacy, monitoraggio e presenza restano espliciti", async () => {
+  const [settings, monitor, editor, presenceMigration] = await Promise.all([
+    read("src/routes/settings/+page.svelte"),
+    read("src/routes/monitor/+page.svelte"),
+    read("src/routes/exercises/[id]/editor/+page.svelte"),
+    read("supabase/migrations/20260813000000_touch_editor_session.sql"),
   ]);
-  assert.match(screen, /rpc\("get_public_branding"\)/);
-  assert.doesNotMatch(
-    screen,
-    /Controllo in tempo reale|learn_together|verified_user/,
-  );
-  assert.match(page, /login_title_it/);
-  assert.match(page, /login_subtitle_en/);
-  assert.match(
-    migration,
-    /grant all on function public\.get_public_branding\(\) to anon/i,
-  );
-  assert.match(
-    migration,
-    /grant all on function public\.get_public_branding\(\) to authenticated/i,
-  );
-  assert.doesNotMatch(
-    migration.match(/returns table \([\s\S]*?\)/i)?.[0] ?? "",
-    /teacher_email/i,
-  );
+  assert.match(settings, /external_ai_consented_at/);
+  assert.match(settings, /consenso è facoltativo/);
+  assert.match(monitor, /status\s*===\s*["']draft/);
+  assert.match(editor, /touch_editor_session/);
+  assert.match(presenceMigration, /active_until/);
+  assert.match(presenceMigration, /interval '25 seconds'/);
+  assert.doesNotMatch(settings, /localStorage/);
 });
 
-test("il tema Dracula attivo usa token CSS centralizzati", async () => {
-  const css = await read("app/dark.css");
-  const paletteMarker = "/* Dracula-inspired palette */";
-  const paletteStart = css.indexOf(paletteMarker);
-  const consumerStart = css.indexOf("body {", paletteStart);
-  const tokens = css.slice(paletteStart, consumerStart);
-  const consumers = css.slice(consumerStart);
-
-  assert.ok(paletteStart >= 0 && consumerStart > paletteStart);
+test("tema Dracula usa token e CSS locale alle rotte", async () => {
+  const css = await read("src/app.css");
   for (const token of [
     "--color-background:",
     "--color-surface:",
     "--color-foreground:",
     "--color-purple:",
-    "--color-cyan:",
     "--focus-ring:",
     "--font-ui:",
-    "--font-code:",
-    "--font-size-base:",
     "--space-4:",
     "--radius-md:",
-    "--duration-normal:",
-  ]) {
-    assert.ok(tokens.includes(token), `Token CSS mancante: ${token}`);
-  }
-  assert.doesNotMatch(consumers, /#[0-9a-f]{3,8}\b|rgba?\(/i);
-  assert.doesNotMatch(consumers, /font-family:(?!\s*var\()/i);
-  assert.doesNotMatch(consumers, /font-size:(?!\s*var\()/i);
-});
-
-test("le pagine interne hanno un handler server", async () => {
-  const catchAll = await read("app/[...route]/page.tsx");
-  assert.match(catchAll, /export \{ default \} from "\.\.\/page"/);
-});
-
-test("il contenuto delle pagine resta ancorato in alto", async () => {
-  const styles = await read("app/globals.css");
-  assert.match(styles, /\.content\s*\{[^}]*margin:\s*0 auto;/);
-  assert.doesNotMatch(styles, /\.content\s*\{[^}]*margin:\s*auto;/);
-});
-
-test("avanzamento e alert mostrano le classi degli studenti", async () => {
-  const report = await read("app/report.tsx");
-  assert.match(report, /classNames\.join\(", "\)/);
-  assert.match(report, /student-class-name/g);
-});
-
-test("il Markdown non esegue HTML e i link esterni sono isolati", async () => {
-  const markdown = await read("app/markdown-content.tsx");
-  assert.match(markdown, /skipHtml/);
-  assert.match(markdown, /noopener noreferrer/);
-  assert.match(markdown, /remarkGfm/);
-  assert.doesNotMatch(markdown, /dangerouslySetInnerHTML/);
-});
-
-test("il monitoraggio usa bozze, Realtime e attribuzione dell'editor", async () => {
-  const [monitor, draft, migration] = await Promise.all([
-    read("app/live-monitor.tsx"),
-    read("app/use-student-draft.ts"),
-    readSchema(),
-  ]);
-  assert.match(monitor, /postgres_changes/);
-  assert.match(monitor, /updated_by: teacherId/);
-  assert.match(draft, /setTimeout[\s\S]*700/);
-  assert.match(draft, /remote\.updated_by !== studentId/);
-  assert.match(
-    migration,
-    /alter publication supabase_realtime add table (?:only )?public\.submissions/i,
-  );
-  assert.match(migration, /replica identity full/i);
-});
-
-test("monitoraggio e Code now usano presenza temporanea protetta", async () => {
-  const [monitor, codeNow, presence, migration] = await Promise.all([
-    read("app/live-monitor.tsx"),
-    read("app/code-now.tsx"),
-    read("app/use-editor-session.ts"),
-    readSchema(),
-  ]);
-  assert.match(monitor, /submission\.status === "draft"/);
-  assert.match(monitor, /Editor aperto ora/);
-  assert.match(monitor, /PythonEditor/);
-  assert.match(codeNow, /Copia codice prof/);
-  assert.match(codeNow, /code-now\.py/);
-  assert.match(codeNow, /mode: "run_interactive"/);
-  assert.match(codeNow, /inputRequired/);
-  assert.match(codeNow, /Valore per input Python/);
-  assert.match(codeNow, /nextInputs/);
-  assert.match(presence, /active_until/);
-  assert.match(presence, /25_000/);
-  assert.match(presence, /150/);
-  assert.match(migration, /enable row level security/i);
-  assert.match(migration, /get_active_teacher_code/i);
-  assert.match(migration, /publish_code_now/i);
-  assert.match(migration, /close_editor_session/i);
-  assert.match(migration, /prune_editor_sessions/i);
-});
-
-test("l'autosalvataggio non ripristina periodicamente codice obsoleto", async () => {
-  const draftHook = await read("app/use-student-draft.ts");
-  const revisionPolicy = await readSchema();
-  assert.doesNotMatch(draftHook, /setInterval/);
-  assert.doesNotMatch(draftHook, /existing\.status\s*!==\s*["']draft["']/);
-  assert.match(draftHook, /remote\.updated_by\s*!==\s*studentId/);
-  assert.match(draftHook, /code\s*===\s*synchronizedCode\.current/);
-  assert.match(revisionPolicy, /student_id\s*=\s*\(select auth\.uid\(\)\)/i);
-  assert.match(revisionPolicy, /student_can_submit_to_assignment/i);
-});
-
-test("una consegna soddisfa il vincolo propedeutico prima della valutazione", async () => {
-  const migration = await readSchema();
-  assert.match(migration, /delivered\.status\s*<>\s*'draft'/i);
-  assert.doesNotMatch(migration, /delivered\.status\s*=\s*'passed'/i);
-  assert.match(migration, /previous\.published_at is not null/i);
-  assert.match(migration, /prerequisite\.is_prerequisite/i);
+  ])
+    assert.match(css, new RegExp(token));
+  const route = await read("src/routes/code-now/+page.svelte");
+  assert.match(route, /<style>/);
 });

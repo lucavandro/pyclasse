@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url";
 const supabaseCli = fileURLToPath(
   new URL("../node_modules/supabase/dist/supabase.js", import.meta.url),
 );
-const vinextCli = fileURLToPath(
-  new URL("../node_modules/vinext/dist/cli.js", import.meta.url),
+const viteCli = fileURLToPath(
+  new URL("../node_modules/vite/bin/vite.js", import.meta.url),
 );
 const playwrightCli = fileURLToPath(
   new URL("../node_modules/@playwright/test/cli.js", import.meta.url),
@@ -95,7 +95,7 @@ await waitForSupabase(status.API_URL, status.ANON_KEY);
 const baseURL = process.env.E2E_BASE_URL || "http://127.0.0.1:3100";
 const server = spawn(
   process.execPath,
-  [vinextCli, "dev", "--hostname", "127.0.0.1", "--port", "3100"],
+  [viteCli, "dev", "--host", "127.0.0.1", "--port", "3100"],
   {
     cwd: process.cwd(),
     env: {

@@ -2,7 +2,7 @@
 
 PyClasse adotta **Dracula Theme** come linguaggio cromatico unico. Ogni nuova
 schermata deve riutilizzare i token CSS esistenti e mantenere coerenza con
-`app/dark.css`; colori arbitrari vanno evitati.
+`src/app.css`; colori arbitrari vanno evitati.
 
 ## Palette
 
@@ -26,7 +26,7 @@ Il logo Google conserva i colori ufficiali del provider.
 ## Personalizzare la palette
 
 Tutti gli stili Dracula attivi leggono i colori dal blocco `:root` collocato
-sotto il commento `Dracula-inspired palette` in `app/dark.css`. Per creare una
+sotto il commento `Dracula-inspired palette` in `src/app.css`. Per creare una
 variante grafica Ã¨ quindi sufficiente modificare le variabili in quel blocco:
 non bisogna cambiare i singoli selettori o componenti.
 
@@ -88,7 +88,7 @@ modificare gli alias semantici, lasciando invariati i token usati dai selettori:
 ```
 
 Geist e Geist Mono sono distribuiti localmente da `public/fonts` e dichiarati
-con `@font-face` in `app/globals.css`, senza richieste a CDN o servizi Google.
+con `@font-face` in `src/app.css`, senza richieste a CDN o servizi Google.
 Sono assegnati rispettivamente a `--font-geist` e `--font-mono`. Per sostituirli
 alla fonte, aggiornare gli asset locali e mantenere `--font-ui` e `--font-code`
 come livello di astrazione. Nei nuovi componenti evitare valori ripetuti scritti

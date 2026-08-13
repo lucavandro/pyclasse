@@ -107,7 +107,7 @@ accetta mai chiavi privilegiate.
 
 ## Deployment
 
-La build è compatibile con Cloudflare/vinext. Prima di pubblicare:
+La build SvelteKit usa `@sveltejs/adapter-cloudflare`. Prima di pubblicare:
 
 ```bash
 npm ci

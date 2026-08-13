@@ -4,7 +4,7 @@ Lo schema applicativo completo è definito dalla singola migrazione iniziale `su
 
 ## Componenti
 
-- **Web app:** React/Next tramite vinext, interfaccia responsive e routing client.
+- **Web app:** Svelte 5 e SvelteKit, con adapter Cloudflare, routing file-based e chunk JavaScript/CSS distinti per rotta.
 - **Dati e identità:** Supabase Auth, PostgreSQL, RLS e Realtime.
 - **Editor Python:** CodeMirror caricato su richiesta; Pyodide eseguito in un Web Worker con watchdog di 8 secondi.
 - **Contenuti:** Markdown/GFM senza HTML grezzo; risorse esterne solo HTTPS.
@@ -21,13 +21,13 @@ Le migrazioni incrementali sono l'unica fonte autorevole dello schema. Un'instal
 1. Il primo account di un database pulito diventa docente.
 2. Il docente crea classe, esercizio, test e assegnazione.
 3. Lo studente entra tramite `join_class`, una funzione atomica che non espone le altre classi.
-4. L'editor salva la bozza e sincronizza gli interventi tramite Realtime, con polling breve di recupero dopo una disconnessione.
+4. L'editor salva la bozza e sincronizza gli interventi tramite Realtime; la presenza usa lease temporanee di un minuto, rinnovate mentre l'editor è aperto e chiuse esplicitamente in uscita.
 5. Il browser esegue Python localmente; la consegna è accettata solo dopo i test visibili.
 6. Il docente valuta la consegna, con voto opzionale separato dall'esito.
 
 ## Prestazioni
 
-Editor Python e parser Markdown sono suddivisi in chunk caricati solo nella schermata dell'esercizio. Le query iniziali sono parallele, gli indici coprono relazioni, tag, ordine propedeutico e monitoraggio Realtime. Gli autosalvataggi sono ritardati per evitare una scrittura per battuta.
+Editor Python e parser Markdown sono suddivisi in chunk caricati soltanto nelle rispettive rotte. Ogni schermata legge da Supabase solo i domini necessari e applica le restrizioni RLS del ruolo autenticato. Gli indici coprono relazioni, tag, ordine propedeutico e monitoraggio Realtime; gli autosalvataggi sono ritardati per evitare una scrittura per battuta. Gli stili delle funzionalità sono definiti nei componenti Svelte e vengono estratti in CSS associato ai singoli chunk; `src/app.css` contiene soltanto token, reset e primitive condivise.
 
 ## Confini di sicurezza
 

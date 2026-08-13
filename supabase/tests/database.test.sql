@@ -1,6 +1,6 @@
 begin;
 
-select plan(65);
+select plan(68);
 
 select has_table('public', 'profiles', 'profiles table exists');
 select has_table('public', 'app_settings', 'app_settings table exists');
@@ -84,6 +84,15 @@ select ok(
 select ok(
   not has_function_privilege('anon', 'public.close_editor_session()', 'EXECUTE'),
   'anonymous users cannot close editor sessions'
+);
+select has_function('public', 'touch_editor_session', array['uuid', 'text'], 'exercise presence heartbeat function exists');
+select ok(
+  has_function_privilege('authenticated', 'public.touch_editor_session(uuid,text)', 'EXECUTE'),
+  'authenticated students can refresh their exercise presence'
+);
+select ok(
+  not has_function_privilege('anon', 'public.touch_editor_session(uuid,text)', 'EXECUTE'),
+  'anonymous users cannot publish exercise presence'
 );
 select has_index('public', 'editor_sessions', 'editor_sessions_active_idx', 'active editor sessions are indexed');
 select ok(

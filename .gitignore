@@ -20,6 +20,9 @@
 /.vinext/
 /out/
 
+# sveltekit
+/.svelte-kit/
+
 # misc
 .DS_Store
 *.pem

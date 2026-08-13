@@ -44,7 +44,7 @@ di errore generica e mantiene disponibili gli asset già installati.
 - `public/manifest.webmanifest`: metadati di installazione;
 - `public/sw.js`: cache e fallback offline;
 - `public/offline.html`: schermata mostrata senza rete;
-- `app/pwa-register.tsx`: registrazione in produzione;
+- `src/routes/+layout.svelte`: registrazione in produzione;
 - `scripts/generate-pwa-icons.mjs`: generazione riproducibile delle icone.
 
 Lo smoke test Docker controlla che manifest, service worker, fallback e icone

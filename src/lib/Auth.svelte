@@ -87,6 +87,11 @@
 </script>
 
 <main class="auth-shell">
+  <div class="auth-brand">
+    <span class="brand-mark"
+      ><img src="/favicon.svg" alt="" width="34" height="34" /></span
+    ><strong>PyClasse</strong>
+  </div>
   <section class="auth-hero" aria-labelledby="auth-hero-title">
     <div class="hero-copy">
       <p class="eyebrow">PYTHON · CLASSROOM · TOGETHER</p>
@@ -127,11 +132,6 @@
   </section>
 
   <section class="auth-form-panel" aria-labelledby="auth-form-title">
-    <div class="auth-brand">
-      <span class="brand-mark"
-        ><img src="/favicon.svg" alt="" width="34" height="34" /></span
-      ><strong>PyClasse</strong>
-    </div>
     <div class="auth-card">
       <div class="auth-heading">
         <p class="eyebrow">
@@ -254,6 +254,7 @@
 
 <style>
   .auth-shell {
+    position: relative;
     min-height: 100svh;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -390,6 +391,7 @@
   }
   .auth-brand {
     position: absolute;
+    z-index: 2;
     top: clamp(1.5rem, 4vw, 3rem);
     left: clamp(1.5rem, 4vw, 4rem);
     display: flex;

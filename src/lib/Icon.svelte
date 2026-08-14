@@ -14,7 +14,11 @@
       | "menu"
       | "close"
       | "collapse"
-      | "logout";
+      | "logout"
+      | "play"
+      | "download"
+      | "upload"
+      | "test";
     size?: number;
   } = $props();
 </script>
@@ -56,5 +60,15 @@
   {:else if name === "collapse"}<path d="m14 7-5 5 5 5" />
   {:else if name === "logout"}<path
       d="M10 17l5-5-5-5M15 12H3M15 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"
-    />{/if}
+    />
+  {:else if name === "play"}<path d="m8 5 11 7-11 7V5Z" />
+  {:else if name === "download"}<path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path
+      d="M5 19h14"
+    />
+  {:else if name === "upload"}<path d="M12 16V4m0 0 4 4m-4-4-4 4" /><path
+      d="M5 20h14"
+    />
+  {:else if name === "test"}<path
+      d="M9 3h6M10 3v5l-5 9a3 3 0 0 0 2.6 4h8.8a3 3 0 0 0 2.6-4l-5-9V3"
+    /><path d="M8 15h8" />{/if}
 </svg>

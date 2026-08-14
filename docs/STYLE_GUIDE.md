@@ -37,7 +37,7 @@ Verde, giallo e rosso sono riservati rispettivamente a successo, attenzione ed e
 
 ### Accesso
 
-La schermata di accesso usa su desktop due metà verticali della stessa larghezza: il pannello editoriale occupa la metà sinistra e il form resta centrato nella metà destra. Sotto i 900 px il pannello editoriale viene rimosso e l’accesso usa tutta la larghezza disponibile. Il marchio PyClasse compare una sola volta, in una posizione stabile sopra il form; il pannello editoriale e la card di autenticazione non devono duplicare logo o nome. Il selettore della lingua appartiene al footer della card, dopo le informazioni su privacy e sicurezza: deve avere un’etichetta visibile e non può essere sovrapposto o posizionato in modo assoluto sopra i contenuti.
+La schermata di accesso usa su desktop due metà verticali della stessa larghezza: il pannello editoriale occupa la metà sinistra e il form resta centrato nella metà destra. Sotto i 900 px il pannello editoriale viene rimosso e l’accesso usa tutta la larghezza disponibile. Il marchio PyClasse compare una sola volta nell'angolo superiore sinistro della pagina e resta visibile anche su mobile; il pannello editoriale e la card di autenticazione non devono duplicare logo o nome. Il selettore della lingua appartiene al footer della card, dopo le informazioni su privacy e sicurezza: deve avere un’etichetta visibile e non può essere sovrapposto o posizionato in modo assoluto sopra i contenuti.
 
 ### Drawer
 
@@ -53,11 +53,15 @@ I pannelli raggruppano contenuti correlati; le card rappresentano oggetti naviga
 
 ### Form e tabelle
 
-Le etichette restano sempre visibili. Campi, select e textarea usano la stessa superficie e uno stato focus blu. Le tabelle hanno intestazione distinta, righe leggibili e contenitore scorrevole; su mobile possono trasformarsi in righe verticali quando le etichette restano comprensibili.
+Le etichette restano sempre visibili. Campi, select e textarea usano la stessa superficie e uno stato focus blu. Checkbox e radio usano il token `--control-check-size`, senza ereditare l'altezza minima dei campi testuali. Le tabelle hanno intestazione distinta e righe leggibili. Valutazioni e Avanzamento non aggiungono un pannello esterno alla tabella; su mobile le righe diventano blocchi verticali e ogni valore mostra la propria etichetta.
 
 ### Editor
 
 Editor Python, console e blocchi Markdown usano `--color-surface-subtle` e Geist Mono. Devono restare visivamente parte dell’applicazione senza imitare un tema esterno.
+
+Il cursore di inserimento è bianco. Esecuzione, test e, soltanto in Code now,
+download `.py` sono controlli compatti nell'intestazione dell'output; ogni
+pulsante con sola icona richiede `aria-label` e tooltip.
 
 Ogni editor Python deve attivare il parser `@codemirror/lang-python` e uno `HighlightStyle` esplicito. Keyword, funzioni, stringhe, numeri, commenti, operatori, tipi ed errori devono essere distinguibili con colori coerenti con la palette, mantenendo contrasto AA sullo sfondo dell’editor. Il syntax highlighting è presentazione locale: non deve inviare codice a servizi esterni.
 

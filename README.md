@@ -6,9 +6,11 @@ PyClasse è una piattaforma didattica **gratuita e accessibile** per assegnare e
 
 - classi con codice di iscrizione e ruoli docente/studente;
 - esercizi con tracce Markdown, test, tag, risorse HTTPS e ordine propedeutico;
+- scadenze per classe e archivio esercizi importabile/esportabile in JSON;
 - esecuzione Python locale tramite Pyodide in un Web Worker con timeout;
 - consegne senza voto o con voto in decimi/centesimi;
 - autosalvataggio e monitoraggio docente tramite Supabase Realtime;
+- report docente con dettaglio del lavoro per singolo studente;
 - interfaccia italiano/inglese con rilevamento della lingua;
 - autenticazione email/password, con OTP email e Google attivabili separatamente;
 - Row Level Security su tutte le tabelle applicative;
@@ -62,6 +64,7 @@ Le credenziali e gli scenari disponibili sono descritti in
 
 ## Documentazione
 
+- [Requisiti di prodotto e criteri di accettazione](docs/PRODUCT_REQUIREMENTS.md)
 - [Architettura](docs/ARCHITECTURE.md)
 - [Installazione e deployment](docs/INSTALLATION_AND_DEPLOYMENT.md)
 - [Funzioni didattiche](docs/LEARNING_AND_LOCALIZATION.md)

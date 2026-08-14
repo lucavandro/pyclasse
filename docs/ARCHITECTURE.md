@@ -24,6 +24,12 @@ Le migrazioni incrementali sono l'unica fonte autorevole dello schema. Un'instal
 4. L'editor salva la bozza e sincronizza gli interventi tramite Realtime; la presenza usa lease temporanee di un minuto, rinnovate mentre l'editor è aperto e chiuse esplicitamente in uscita.
 5. Il browser esegue Python localmente; la consegna è accettata solo dopo i test visibili.
 6. Il docente valuta la consegna, con voto opzionale separato dall'esito.
+7. I report aggregano esclusivamente righe consentite da RLS; la pagina per
+   singolo studente viene caricata soltanto per il ruolo docente e riusa profili,
+   appartenenze, assegnazioni, aperture e consegne già esistenti.
+8. L'archivio esporta contenuti didattici in un JSON locale versionato. In
+   importazione il browser valida l'intero file prima delle scritture e rimuove
+   gli esercizi creati nella stessa operazione se un inserimento fallisce.
 
 ## Prestazioni
 

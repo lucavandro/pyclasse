@@ -6,6 +6,7 @@
   import { supabase } from "$lib/supabase";
   import { session } from "$lib/session.svelte";
   import PythonEditor from "$lib/PythonEditor.svelte";
+  import Icon from "$lib/Icon.svelte";
   let data = $state<any>(null),
     code = $state(""),
     output = $state("Pronto."),
@@ -215,24 +216,31 @@
       />{/key}
     <div class="console">
       <header>
-        <strong>Output</strong><small
-          >{running ? "Esecuzione in corso…" : "Pronto"}</small
-        >
+        <div class="console-heading">
+          <strong>Output</strong><small
+            >{running ? "Esecuzione in corso…" : "Pronto"}</small
+          >
+        </div>
+        <div class="editor-actions" aria-label="Azioni di esecuzione">
+          <button
+            class="secondary icon-button"
+            aria-label="Esegui"
+            title="Esegui il codice"
+            disabled={running}
+            onclick={() => run("run_interactive")}
+            ><Icon name="play" size={18} /></button
+          >{#if data.exercise.verification_mode === "tests"}<button
+              class="secondary icon-button"
+              aria-label="Test"
+              title="Esegui i test"
+              disabled={running}
+              onclick={() => run("test")}><Icon name="test" size={18} /></button
+            >{/if}
+        </div>
       </header>
       <pre aria-live="polite">{output}</pre>
     </div>
     <div class="runbar">
-      <div>
-        <button
-          class="secondary"
-          disabled={running}
-          onclick={() => run("run_interactive")}>Esegui</button
-        >{#if data.exercise.verification_mode === "tests"}<button
-            class="secondary"
-            disabled={running}
-            onclick={() => run("test")}>Test</button
-          >{/if}
-      </div>
       <button
         class="primary"
         disabled={running || session.profile?.role !== "student" || !assignment}
@@ -272,12 +280,21 @@
     white-space: pre-wrap;
     font-family: var(--font-code);
   }
-  .runbar > div {
-    display: flex;
-    gap: 0.5rem;
-  }
   .runbar {
     border-top: var(--border);
+    justify-content: flex-end;
+  }
+  .console-heading {
+    display: grid;
+    gap: var(--space-1);
+  }
+  .editor-actions {
+    display: flex;
+    gap: var(--space-2);
+  }
+  .icon-button {
+    width: var(--control-min-height);
+    padding: 0;
   }
   [role="status"] {
     padding: 0 1rem 1rem;

@@ -26,19 +26,23 @@
     classFilter = $state(""),
     statusFilter = $state("");
   $effect(() => {
-    if (session.profile)
-      void getReports().then((x) => {
-        [
-          profiles,
-          classes,
-          memberships,
-          exercises,
-          assignments,
-          submissions,
-          views,
-        ] = x;
-        loading = false;
-      });
+    if (!session.profile) return;
+    if (session.profile.role !== "teacher" && section !== "evaluations") {
+      loading = false;
+      return;
+    }
+    void getReports().then((x) => {
+      [
+        profiles,
+        classes,
+        memberships,
+        exercises,
+        assignments,
+        submissions,
+        views,
+      ] = x;
+      loading = false;
+    });
   });
   const rows = $derived(
     submissions
@@ -93,9 +97,13 @@
   </div>
 </header>
 <ReportNav />
-{#if loading}<div
+{#if session.profile?.role !== "teacher" && section !== "evaluations"}<p
+    class="error"
+  >
+    Questa sezione è riservata al docente.
+  </p>{:else if loading}<div
     class="spinner"
-  ></div>{:else if section === "evaluations"}<section class="panel">
+  ></div>{:else if section === "evaluations"}<section class="report-area">
     <div class="filters">
       <label
         >Cerca studente o esercizio<input
@@ -125,7 +133,7 @@
     <div
       class:teacher-report-table={session.profile?.role === "teacher"}
       class:student-report-table={session.profile?.role === "student"}
-      class="table"
+      class="table report-table"
     >
       <div class="table-head table-row" style="--columns:4">
         <span
@@ -136,20 +144,28 @@
       </div>
       {#each rows as r}<div class="table-row" style="--columns:4">
           <span
-            >{session.profile?.role === "teacher"
-              ? r.student?.full_name || r.student?.email
-              : r.exercise?.title}</span
-          ><span>{r.classroom?.name}</span><span
+            data-label={session.profile?.role === "teacher"
+              ? "Studente"
+              : "Esercizio"}
+            >{#if session.profile?.role === "teacher" && r.student}<a
+                class="student-link"
+                href={`/reports/valutazioni/studenti/${r.student.id}`}
+                >{r.student.full_name || r.student.email}</a
+              >{:else}{r.exercise?.title}{/if}</span
+          ><span data-label="Classe">{r.classroom?.name}</span><span
+            data-label="Stato"
             class={`submission-status ${r.submission.status}`}
             >{statusLabel(r.submission.status)}</span
-          ><span>{r.submission.score ?? "Non ancora assegnato"}</span>
+          ><span data-label="Voto"
+            >{r.submission.score ?? "Non ancora assegnato"}</span
+          >
         </div>{:else}<p class="empty-state">
           Nessuna valutazione disponibile.
         </p>{/each}
     </div>
   </section>
-{:else if section === "progress"}<section class="panel">
-    <div class="delivery-summary-table table">
+{:else if section === "progress"}<section class="report-area">
+    <div class="delivery-summary-table table report-table">
       <div class="table-head table-row" style="--columns:4">
         <span>Studente</span><span class="student-class-name">Classe</span><span
           >Consegnati</span
@@ -161,13 +177,19 @@
             .map((m) => classes.find((c) => c.id === m.class_id)?.name)
             .filter(Boolean)}
         <div class="table-row" style="--columns:4">
-          <span>{student.full_name || student.email}</span><span
-            class="student-class-name">{studentClasses.join(", ")}</span
-          ><span
+          <span data-label="Studente"
+            ><a
+              class="student-link"
+              href={`/reports/avanzamento/studenti/${student.id}`}
+              >{student.full_name || student.email}</a
+            ></span
+          ><span data-label="Classe" class="student-class-name"
+            >{studentClasses.join(", ")}</span
+          ><span data-label="Consegnati"
             >{submissions.filter(
               (s) => s.student_id === student.id && s.status !== "draft",
             ).length}</span
-          ><span
+          ><span data-label="Da completare"
             >{assignments.filter((a) =>
               memberships.some(
                 (m) => m.student_id === student.id && m.class_id === a.class_id,
@@ -202,9 +224,13 @@
                 v.student_id === student.id && v.class_assignment_id === a.id,
             ),
         )}{#if unopened.length}<article class="alert-row">
-          <strong>{student.full_name || student.email}</strong><span
-            >{unopened.length} attività non ancora aperte</span
-          >
+          <strong
+            ><a
+              class="student-link"
+              href={`/reports/alert/studenti/${student.id}`}
+              >{student.full_name || student.email}</a
+            ></strong
+          ><span>{unopened.length} attività non ancora aperte</span>
         </article>{/if}{/each}
   </section>{/if}
 
@@ -214,6 +240,12 @@
     grid-template-columns: 2fr 1fr 1fr;
     gap: 1rem;
     margin-bottom: 1rem;
+  }
+  .report-area {
+    min-width: 0;
+  }
+  .student-link {
+    font-weight: 700;
   }
   .alert-row {
     display: flex;
@@ -246,8 +278,35 @@
     .filters {
       grid-template-columns: 1fr;
     }
-    .delivery-summary-table .table-head {
-      display: none;
+    .report-table {
+      gap: var(--space-3);
+      border: 0;
+      overflow: visible;
+      background: transparent;
+    }
+    .report-table .table-row:not(.table-head) {
+      gap: var(--space-3);
+      border: var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      background: var(--color-surface-subtle);
+    }
+    .report-table .table-row:not(.table-head) > span {
+      display: grid;
+      grid-template-columns: minmax(6.5rem, 0.45fr) minmax(0, 1fr);
+      gap: var(--space-3);
+      align-items: center;
+    }
+    .report-table .table-row:not(.table-head) > span::before {
+      color: var(--color-muted);
+      content: attr(data-label);
+      font-size: var(--font-size-xs);
+      font-weight: 720;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .report-table .submission-status {
+      width: 100%;
     }
   }
 </style>

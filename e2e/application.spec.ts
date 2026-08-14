@@ -54,6 +54,9 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
       1,
     );
     expect(formPanelBox!.x).toBeCloseTo(heroBox!.width, 0);
+    const brandBox = await page.locator(".auth-brand").boundingBox();
+    expect(brandBox).not.toBeNull();
+    expect(brandBox!.x).toBeLessThan(heroBox!.width);
     const cardBox = await page.locator(".auth-card").boundingBox();
     expect(cardBox).not.toBeNull();
     expect(cardBox!.x).toBeGreaterThanOrEqual(formPanelBox!.x);
@@ -134,6 +137,14 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await page
       .getByRole("checkbox", { name: "Classe E2E", exact: true })
       .check();
+    const assignmentCheckbox = page.getByRole("checkbox", {
+      name: "Classe E2E",
+      exact: true,
+    });
+    const checkboxBox = await assignmentCheckbox.boundingBox();
+    expect(checkboxBox).not.toBeNull();
+    expect(checkboxBox!.height).toBeLessThanOrEqual(20);
+    await page.getByLabel("Scadenza per Classe E2E").fill("2026-12-18T18:00");
     const gradingScale = page.getByLabel("Scala voto per Classe E2E");
     await expect(gradingScale).toHaveValue("");
     await gradingScale.selectOption("10");
@@ -147,6 +158,69 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await page.getByLabel("Cerca esercizio per nome").fill("");
     await page.getByLabel("Filtra per tag").selectOption("funzioni");
     await expect(page.getByText("Risposta universale")).toBeVisible();
+    const exportDownload = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Esporta JSON" }).click();
+    expect((await exportDownload).suggestedFilename()).toMatch(
+      /^pyclasse-exercises-\d{4}-\d{2}-\d{2}\.json$/,
+    );
+    await page.getByRole("button", { name: "Importa JSON" }).click();
+    const importDialog = page.getByRole("dialog", {
+      name: "Importa esercizi",
+    });
+    await expect(importDialog).toBeVisible();
+    await page.getByLabel("File JSON da importare").setInputFiles({
+      name: "non-valido.json",
+      mimeType: "application/json",
+      buffer: Buffer.from("{non valido"),
+    });
+    await expect(importDialog.getByRole("alert")).toContainText(
+      "sintassi JSON errata",
+    );
+    await page.getByLabel("File JSON da importare").setInputFiles({
+      name: "esercizio-importato.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify({
+          format: "pyclasse-exercises",
+          version: 1,
+          exercises: [
+            {
+              title: "Esercizio importato E2E",
+              description: "Esercizio fittizio per il test di importazione.",
+              description_format: "markdown",
+              resource_url: null,
+              resource_label: null,
+              constraints: "Stampa un valore.",
+              starter_code: "print(1)",
+              verification_mode: "tests",
+              max_points: 10,
+              is_prerequisite: false,
+              tags: ["importazione"],
+              tests: [
+                {
+                  position: 1,
+                  input_data: "",
+                  expected_output: "1",
+                  is_hidden: false,
+                  points: 10,
+                },
+              ],
+            },
+          ],
+        }),
+      ),
+    });
+    await expect(importDialog.getByText("File valido")).toBeVisible();
+    await importDialog
+      .getByRole("button", { name: "Importa esercizi" })
+      .click();
+    await expect(page.locator("p.success[role='status']")).toContainText(
+      "1 esercizi importati",
+    );
+    await page.getByLabel("Filtra per tag").selectOption("");
+    await expect(
+      page.getByRole("heading", { name: "Esercizio importato E2E" }),
+    ).toBeVisible();
     await page.getByRole("button", { name: "Impostazioni" }).click();
     const studioLink = page.getByRole("link", {
       name: "Apri amministrazione Supabase",
@@ -326,6 +400,24 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
         .locator(".delivery-summary-table")
         .getByText("Classe E2E", { exact: true }),
     ).toBeVisible();
+    await expect(teacherPage.locator("section.report-area")).not.toHaveClass(
+      /panel/,
+    );
+    await teacherPage
+      .getByRole("link", { name: student.name, exact: true })
+      .click();
+    await expect(
+      teacherPage.getByRole("heading", { name: student.name }),
+    ).toBeVisible();
+    await expect(
+      teacherPage.getByRole("heading", { name: "Attività assegnate" }),
+    ).toBeVisible();
+    await teacherPage
+      .getByText("Mostra il codice dello studente", { exact: true })
+      .click();
+    await expect(teacherPage.getByText("revisione in corso")).toBeVisible();
+    await teacherPage.getByRole("link", { name: "Torna al report" }).click();
+    await expect(teacherPage).toHaveURL(/\/reports\/avanzamento$/);
     await teacherPage.setViewportSize({ width: 390, height: 844 });
     await expect(teacherPage.locator(".sidebar")).toHaveCSS(
       "position",
@@ -347,6 +439,14 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await expect(
       teacherPage.locator(".delivery-summary-table .table-row").nth(1),
     ).toBeVisible();
+    const studentCell = teacherPage
+      .locator('.delivery-summary-table [data-label="Studente"]')
+      .first();
+    expect(
+      await studentCell.evaluate(
+        (element) => getComputedStyle(element, "::before").content,
+      ),
+    ).toContain("Studente");
     await expect(
       teacherPage.getByRole("navigation", { name: "Sezioni report" }),
     ).toBeVisible();
@@ -354,7 +454,7 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
       teacherPage.getByRole("tab", { name: "Avanzamento" }),
     ).toHaveAttribute("aria-selected", "true");
     await teacherPage.setViewportSize({ width: 1280, height: 900 });
-    await teacherPage.goBack();
+    await teacherPage.getByRole("tab", { name: "Valutazioni" }).click();
     await expect(teacherPage).toHaveURL(/\/reports\/valutazioni$/);
     await expect(
       teacherPage

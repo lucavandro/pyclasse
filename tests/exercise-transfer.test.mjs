@@ -67,6 +67,17 @@ test("rejects malformed, unsupported and insecure imports", () => {
       ),
     /deve usare HTTPS/,
   );
+  assert.throws(
+    () =>
+      parseExerciseTransfer(
+        JSON.stringify({
+          format: "pyclasse-exercises",
+          version: 1,
+          exercises: [{ ...validExercise, title: "" }],
+        }),
+      ),
+    /titolo.*obbligatorio/,
+  );
 });
 
 test("export contains reusable teaching data but no ownership or assignment data", () => {

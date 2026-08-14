@@ -122,6 +122,11 @@
   }
   .editor :global(.cm-content) {
     padding: 1rem;
+    caret-color: #fff;
+  }
+  .editor :global(.cm-cursor),
+  .editor :global(.cm-dropCursor) {
+    border-left-color: #fff;
   }
   .editor :global(.cm-gutters) {
     background: #0e1b2d;

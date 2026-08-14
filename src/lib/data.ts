@@ -45,6 +45,8 @@ export const getExercises = () =>
       "id,class_assignment_id,student_id,code,status,score,submitted_at,updated_at,updated_by",
     ),
   ]);
+export const getExerciseTransferData = () =>
+  Promise.all([rows<Exercise>("exercises"), rows<ExerciseTest>("tests")]);
 export const getExercise = async (id: string) => {
   if (!supabase) throw new Error("Supabase non configurato");
   const [exercise, tests, assignments, submissions, classes] =

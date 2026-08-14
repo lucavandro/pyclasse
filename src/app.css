@@ -64,6 +64,7 @@
   --radius-lg: 1rem;
   --radius-xl: 1.25rem;
   --control-min-height: 2.75rem;
+  --control-check-size: 1rem;
   --duration-fast: 120ms;
   --duration-normal: 180ms;
   --easing-standard: cubic-bezier(0.2, 0, 0, 1);
@@ -273,6 +274,18 @@ textarea:focus {
 input::placeholder,
 textarea::placeholder {
   color: var(--color-subtle);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  width: var(--control-check-size);
+  min-width: var(--control-check-size);
+  height: var(--control-check-size);
+  min-height: var(--control-check-size);
+  margin: 0;
+  padding: 0;
+  accent-color: var(--color-primary);
+  box-shadow: none;
 }
 
 select option {

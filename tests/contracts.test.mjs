@@ -16,6 +16,7 @@ test("SvelteKit separa le funzionalità in rotte autonome", async () => {
     "src/routes/exercises/+page.svelte",
     "src/routes/exercises/[id]/editor/+page.svelte",
     "src/routes/reports/valutazioni/+page.svelte",
+    "src/routes/reports/[section]/studenti/[id]/+page.svelte",
     "src/routes/monitor/+page.svelte",
     "src/routes/code-now/+page.svelte",
     "src/routes/settings/+page.svelte",
@@ -75,10 +76,41 @@ test("editor applica blocco clipboard, watchdog e Pyodide self-hosted", async ()
   assert.match(editor, /tags\.function/);
   assert.match(editor, /tags\.string/);
   assert.match(editor, /tags\.comment/);
+  assert.match(editor, /caret-color:\s*#fff/);
+  assert.match(editor, /\.cm-cursor/);
   assert.match(workbench, /8000/);
   assert.match(codeNow, /8000/);
+  assert.match(
+    codeNow,
+    /class="code-now-console console"[\s\S]*aria-label="Run"/,
+  );
+  assert.match(codeNow, /aria-label="Scarica \.py"/);
   assert.match(worker, /\/vendor\/pyodide\//);
   assert.doesNotMatch(worker, /cdn\.jsdelivr\.net/);
+});
+
+test("scadenze, report studente e trasferimento JSON sono esposti dalla UI", async () => {
+  const [form, reports, studentDetail, archive, requirements] =
+    await Promise.all([
+      read("src/lib/ExerciseForm.svelte"),
+      read("src/lib/ReportPage.svelte"),
+      read("src/routes/reports/[section]/studenti/[id]/+page.svelte"),
+      read("src/routes/exercises/+page.svelte"),
+      read("docs/PRODUCT_REQUIREMENTS.md"),
+    ]);
+  assert.match(form, /type="datetime-local"/);
+  assert.match(form, /deadline:\s*deadlines\[c\.id\]/);
+  assert.match(reports, /class="report-area"/);
+  assert.match(reports, /href={`\/reports\/valutazioni\/studenti\//);
+  assert.match(reports, /data-label="Da completare"/);
+  assert.match(studentDetail, /session\.profile\.role !== "teacher"/);
+  assert.match(studentDetail, /Mostra il codice dello studente/);
+  assert.match(archive, /class="drop-zone"/);
+  assert.match(archive, /accept="\.json,application\/json"/);
+  assert.match(archive, /parseExerciseTransfer/);
+  assert.match(archive, /buildExerciseTransfer/);
+  assert.match(requirements, /LOGIN-001/);
+  assert.match(requirements, /TRANSFER-001/);
 });
 
 test("Markdown rifiuta HTML grezzo e isola link esterni", async () => {

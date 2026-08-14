@@ -19,10 +19,17 @@
     classes = $state<Classroom[]>([]),
     selected = $state<Record<string, boolean>>({}),
     scales = $state<Record<string, string>>({}),
+    deadlines = $state<Record<string, string>>({}),
     error = $state(""),
     busy = $state(false),
     aiPrompt = $state(""),
     loaded = false;
+  const toLocalDateTime = (value: string | null) => {
+    if (!value) return "";
+    const date = new Date(value);
+    const offset = date.getTimezoneOffset() * 60_000;
+    return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+  };
   $effect(() => {
     if (!session.profile || loaded) return;
     loaded = true;
@@ -49,6 +56,7 @@
         for (const a of d.assignments) {
           selected[a.class_id] = true;
           scales[a.class_id] = a.grading_scale ? String(a.grading_scale) : "";
+          deadlines[a.class_id] = toLocalDateTime(a.deadline);
         }
       }
     })();
@@ -118,6 +126,9 @@
         position: i + 1,
         published_at: new Date().toISOString(),
         grading_scale: scales[c.id] ? Number(scales[c.id]) : null,
+        deadline: deadlines[c.id]
+          ? new Date(deadlines[c.id]).toISOString()
+          : null,
       }));
     if (assignments.length) {
       const ar = await supabase.from("class_assignments").insert(assignments);
@@ -279,7 +290,7 @@
   <section class="panel">
     <h2>Assegna alle classi</h2>
     {#each classes as c}<div class="assignment">
-        <label
+        <label class="assignment-toggle"
           ><input
             type="checkbox"
             aria-label={c.name}
@@ -293,6 +304,13 @@
             ><option value="">Nessun voto</option><option value="10">10</option
             ><option value="100">100</option></select
           ></label
+        ><label
+          >Scadenza per {c.name}<input
+            type="datetime-local"
+            aria-label={`Scadenza per ${c.name}`}
+            bind:value={deadlines[c.id]}
+            disabled={!selected[c.id]}
+          /></label
         >
       </div>{:else}<p class="empty-state">Crea prima una classe.</p>{/each}
   </section>
@@ -311,9 +329,13 @@
     align-items: center;
   }
   .prerequisite-control input,
-  .verification-card input,
-  .assignment input {
+  .verification-card input {
     width: auto;
+  }
+  .assignment-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
   }
   .prerequisite-control small {
     grid-column: 2;
@@ -340,7 +362,7 @@
   .test-row,
   .assignment {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(10rem, 0.75fr) repeat(2, minmax(0, 1fr));
     gap: 1rem;
     align-items: center;
     margin: 1rem 0;

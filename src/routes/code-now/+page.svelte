@@ -4,6 +4,7 @@
   import { getSnippets } from "$lib/data";
   import { session } from "$lib/session.svelte";
   import PythonEditor from "$lib/PythonEditor.svelte";
+  import Icon from "$lib/Icon.svelte";
   import type { CodeSnippet } from "$lib/types";
   let code = $state("# Scrivi qui il tuo codice Python\n"),
     output = $state("Pronto."),
@@ -153,10 +154,7 @@
     {#if session.profile?.role === "student"}<button
         class="secondary"
         onclick={() => void copyTeacher()}>Copia codice prof</button
-      >{/if}<button class="secondary" onclick={download}>Scarica .py</button
-    ><button class="primary" disabled={running} onclick={() => run([])}
-      >Run</button
-    >
+      >{/if}
   </div>
 </header>
 <section class="panel code-panel">
@@ -178,9 +176,25 @@
     />{/key}
   <div class="code-now-console console">
     <header>
-      <strong>Output</strong><small
-        >{running ? "Esecuzione in corso…" : "Pronto"}</small
-      >
+      <div class="console-heading">
+        <strong>Output</strong><small
+          >{running ? "Esecuzione in corso…" : "Pronto"}</small
+        >
+      </div>
+      <div class="editor-actions" aria-label="Azioni del codice">
+        <button
+          class="secondary icon-button"
+          aria-label="Scarica .py"
+          title="Scarica il codice in formato .py"
+          onclick={download}><Icon name="download" size={18} /></button
+        ><button
+          class="primary icon-button"
+          aria-label="Run"
+          title="Esegui il codice"
+          disabled={running}
+          onclick={() => run([])}><Icon name="play" size={18} /></button
+        >
+      </div>
     </header>
     <pre>{output}</pre>
     {#if inputPrompt !== null}<form
@@ -249,6 +263,18 @@
     display: flex;
     justify-content: space-between;
     padding: 0.8rem 1rem;
+  }
+  .console-heading {
+    display: grid;
+    gap: var(--space-1);
+  }
+  .editor-actions {
+    display: flex;
+    gap: var(--space-2);
+  }
+  .icon-button {
+    width: var(--control-min-height);
+    padding: 0;
   }
   .console pre {
     min-height: 100px;

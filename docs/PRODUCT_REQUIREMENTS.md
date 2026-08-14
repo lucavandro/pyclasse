@@ -13,12 +13,13 @@ Su desktop il logo PyClasse compare nell'angolo superiore sinistro della
 pagina, sopra il pannello editoriale. Su mobile resta visibile nello stesso
 angolo della schermata di accesso. Il marchio non viene duplicato.
 
-### LOGIN-002 — Qualità del pannello di accesso
+### LOGIN-002 — Qualità dell'area di accesso
 
-Il pannello destro usa una gerarchia visiva distinta, uno stato di accesso
-protetto e indicazioni sintetiche sulle garanzie di privacy e separazione dei
-ruoli. Gli errori di autenticazione sono comprensibili e non espongono messaggi
-tecnici del servizio di identità.
+La parte destra mostra direttamente il contenuto di accesso, senza card,
+cornice, sfondo o ombra attorno al form. Mantiene una gerarchia visiva distinta,
+uno stato di accesso protetto e indicazioni sintetiche sulle garanzie di privacy
+e separazione dei ruoli. Gli errori di autenticazione sono comprensibili e non
+espongono messaggi tecnici del servizio di identità.
 
 ## Editor Python
 

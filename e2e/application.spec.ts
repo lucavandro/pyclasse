@@ -57,10 +57,10 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     const brandBox = await page.locator(".auth-brand").boundingBox();
     expect(brandBox).not.toBeNull();
     expect(brandBox!.x).toBeLessThan(heroBox!.width);
-    const cardBox = await page.locator(".auth-card").boundingBox();
-    expect(cardBox).not.toBeNull();
-    expect(cardBox!.x).toBeGreaterThanOrEqual(formPanelBox!.x);
-    expect(cardBox!.x + cardBox!.width).toBeLessThanOrEqual(
+    const contentBox = await page.locator(".auth-content").boundingBox();
+    expect(contentBox).not.toBeNull();
+    expect(contentBox!.x).toBeGreaterThanOrEqual(formPanelBox!.x);
+    expect(contentBox!.x + contentBox!.width).toBeLessThanOrEqual(
       formPanelBox!.x + formPanelBox!.width,
     );
     await expect(
@@ -75,10 +75,15 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
       "background-color",
       "rgb(7, 17, 31)",
     );
-    await expect(page.locator(".auth-card")).toHaveCSS(
-      "border-radius",
-      "22.4px",
+    await expect(page.locator(".auth-content")).toHaveCSS(
+      "background-color",
+      "rgba(0, 0, 0, 0)",
     );
+    await expect(page.locator(".auth-content")).toHaveCSS(
+      "border-top-style",
+      "none",
+    );
+    await expect(page.locator(".auth-content")).toHaveCSS("box-shadow", "none");
     await expect(page.getByText("Accesso aula protetto")).toBeVisible();
     await expect(page.getByText("Spazi separati per ruolo")).toBeVisible();
     await page.getByLabel("Email").fill("inesistente@pyclasse.test");

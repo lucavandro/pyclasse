@@ -161,7 +161,7 @@
   <section class="auth-form-panel" aria-labelledby="auth-form-title">
     <div class="panel-orbit orbit-one" aria-hidden="true"></div>
     <div class="panel-orbit orbit-two" aria-hidden="true"></div>
-    <div class="auth-card">
+    <div class="auth-content">
       <div class="access-status">
         <span aria-hidden="true"></span>
         {locale === "en" ? "Secure classroom access" : "Accesso aula protetto"}
@@ -481,35 +481,10 @@
     border-radius: 0.9rem;
     background: rgb(46 158 255 / 12%);
   }
-  .auth-card {
+  .auth-content {
     position: relative;
     z-index: 1;
     width: min(100%, 460px);
-    border: 1px solid rgb(104 196 255 / 22%);
-    border-radius: 1.4rem;
-    padding: clamp(1.5rem, 4vw, 2.25rem);
-    background: linear-gradient(
-      145deg,
-      rgb(22 39 62 / 94%),
-      rgb(11 24 41 / 96%)
-    );
-    box-shadow:
-      0 2rem 5rem rgb(0 0 0 / 38%),
-      inset 0 1px rgb(255 255 255 / 5%);
-  }
-  .auth-card::before {
-    position: absolute;
-    top: 0;
-    left: 12%;
-    width: 48%;
-    height: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      var(--color-primary-soft),
-      transparent
-    );
-    content: "";
   }
   .access-status {
     display: flex;
@@ -609,11 +584,6 @@
     .auth-form-panel {
       place-items: start center;
       padding-top: 6.25rem;
-    }
-    .auth-card {
-      border-color: rgb(54 81 111 / 60%);
-      padding: var(--space-6);
-      box-shadow: var(--shadow-md);
     }
     .auth-brand {
       top: var(--space-6);

@@ -202,6 +202,8 @@ test("autenticazione supporta password, OTP e Google", async () => {
   assert.doesNotMatch(auth, /\.language\s*\{[\s\S]*position:\s*absolute/);
   assert.match(auth, /grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(auth, /class="auth-form-panel"/);
+  assert.match(auth, /class="auth-content"/);
+  assert.doesNotMatch(auth, /class="auth-card"/);
   assert.match(auth, /friendlyAuthError/);
   assert.match(auth, /Accesso aula protetto/);
   assert.match(client, /provider: "google"/);

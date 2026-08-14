@@ -1,17 +1,18 @@
 <script lang="ts">
   import { onDestroy, untrack } from "svelte";
+  import type { RealtimeChannel } from "@supabase/supabase-js";
   import { supabase } from "$lib/supabase";
-  import { getSnippets } from "$lib/data";
+  import { getCodeNowSettings, getSnippets } from "$lib/data";
   import { session } from "$lib/session.svelte";
   import PythonEditor from "$lib/PythonEditor.svelte";
   import Icon from "$lib/Icon.svelte";
   import type { CodeSnippet } from "$lib/types";
   import { m } from "$lib/paraglide/messages.js";
   import { formatDate } from "$lib/format";
+
   let code = $state<string>(m.code_now_starter()),
     output = $state<string>(m.editor_ready_output()),
     running = $state(false),
-    shared = $state(false),
     inputs = $state<string[]>([]),
     inputPrompt = $state<string | null>(null),
     inputValue = $state(""),
@@ -19,42 +20,64 @@
     snippetName = $state(""),
     activeId = $state<string | null>(null),
     editorVersion = $state(0),
+    sharingEnabled = $state(false),
+    sharingReady = $state(false),
+    sharingSaving = $state(false),
+    saving = $state(false),
+    saveName = $state(""),
+    saveError = $state(""),
+    saveFeedback = $state(""),
+    saveDialog: HTMLDialogElement,
     worker: Worker | null = null,
-    timer: any;
+    sharingChannel: RealtimeChannel | null = null,
+    timer: ReturnType<typeof setInterval> | undefined;
+
   $effect(() => {
     const profile = session.profile;
-    if (profile) {
-      void getSnippets().then((x) => (snippets = x));
-      if (profile.role !== "teacher") return;
-      const beat = () =>
-        supabase?.from("editor_sessions").upsert({
-          user_id: profile.id,
-          context: "code_now",
-          class_assignment_id: null,
-          code: untrack(() => code),
-          active_until: new Date(Date.now() + 60_000).toISOString(),
-          updated_at: new Date().toISOString(),
-        });
-      void beat();
-      timer = setInterval(() => void beat(), 10000);
-      return () => clearInterval(timer);
+    const client = supabase;
+    if (!profile || !client) return;
+
+    void getSnippets()
+      .then((items) => (snippets = items))
+      .catch(() => (output = m.code_now_load_error()));
+    void getCodeNowSettings()
+      .then((settings) => {
+        sharingEnabled = settings?.sharing_enabled ?? false;
+        sharingReady = true;
+      })
+      .catch(() => {
+        sharingReady = true;
+        output = m.code_now_sharing_error();
+      });
+
+    if (!sharingChannel) {
+      sharingChannel = client
+        .channel(`code-now-sharing-${profile.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "code_now_settings",
+          },
+          (payload) => {
+            sharingEnabled = Boolean(payload.new.sharing_enabled);
+            sharingReady = true;
+          },
+        )
+        .subscribe();
     }
+
+    if (profile.role !== "teacher") return;
+    const beat = () =>
+      client.rpc("publish_code_now", {
+        current_code: untrack(() => code),
+      });
+    void beat();
+    timer = setInterval(() => void beat(), 10_000);
+    return () => clearInterval(timer);
   });
-  $effect(() => {
-    if (session.profile?.role === "teacher" && supabase) {
-      const current = code;
-      const handle = setTimeout(
-        () =>
-          void supabase!
-            .rpc("publish_code_now", { current_code: current })
-            .then(({ error }) => {
-              if (!error) shared = true;
-            }),
-        150,
-      );
-      return () => clearTimeout(handle);
-    }
-  });
+
   function run(provided: string[] = []) {
     worker?.terminate();
     worker = new Worker("/pyodide-worker.js", { type: "module" });
@@ -67,16 +90,17 @@
       running = false;
       output = m.editor_timeout();
     }, 8000);
-    worker.onmessage = (e) => {
+    worker.onmessage = (event) => {
       clearTimeout(watchdog);
       running = false;
-      if (e.data.ok && e.data.inputRequired) {
-        output = e.data.output || m.code_now_waiting_value();
-        inputPrompt = e.data.prompt || m.code_now_enter_value();
-      } else
-        output = e.data.ok
-          ? e.data.output || m.editor_no_output()
-          : m.editor_error({ error: e.data.error });
+      if (event.data.ok && event.data.inputRequired) {
+        output = event.data.output || m.code_now_waiting_value();
+        inputPrompt = event.data.prompt || m.code_now_enter_value();
+      } else {
+        output = event.data.ok
+          ? event.data.output || m.editor_no_output()
+          : m.editor_error({ error: event.data.error });
+      }
       worker?.terminate();
     };
     worker.postMessage({
@@ -86,60 +110,124 @@
       tests: [],
     });
   }
+
   async function copyTeacher() {
-    if (!supabase) return;
-    const r = await supabase.rpc("get_active_teacher_code");
-    if (typeof r.data === "string") {
-      code = r.data;
+    if (!supabase || !sharingEnabled) return;
+    const result = await supabase.rpc("get_active_teacher_code");
+    if (typeof result.data === "string") {
+      code = result.data;
+      activeId = null;
+      snippetName = "";
       editorVersion += 1;
     } else output = m.code_now_teacher_unavailable();
   }
+
   async function publish(value: string) {
     if (!supabase || session.profile?.role !== "teacher") return;
     const result = await supabase.rpc("publish_code_now", {
       current_code: value,
     });
-    if (!result.error) shared = true;
+    if (result.error) output = m.code_now_sharing_error();
   }
+
+  async function toggleSharing(value: boolean) {
+    if (!supabase || session.profile?.role !== "teacher" || sharingSaving)
+      return;
+    sharingSaving = true;
+    const result = await supabase
+      .from("code_now_settings")
+      .update({
+        sharing_enabled: value,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("singleton", true);
+    sharingSaving = false;
+    if (result.error) {
+      output = m.code_now_sharing_error();
+      return;
+    }
+    sharingEnabled = value;
+  }
+
   function download() {
     const url = URL.createObjectURL(
       new Blob([code], { type: "text/x-python" }),
     );
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "code-now.py";
-    a.click();
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "code-now.py";
+    anchor.click();
     URL.revokeObjectURL(url);
   }
-  async function save() {
-    if (!supabase || !session.profile || !snippetName.trim()) return;
+
+  function openSaveDialog() {
+    saveName = snippetName;
+    saveError = "";
+    saveFeedback = "";
+    saveDialog.showModal();
+  }
+
+  async function save(mode: "update" | "copy") {
+    if (!supabase || !session.profile || saving) return;
+    const name = saveName.trim();
+    if (!name) {
+      saveError = m.code_now_name_required();
+      return;
+    }
+
+    saving = true;
+    saveError = "";
     const payload = {
       owner_id: session.profile.id,
-      name: snippetName.trim(),
+      name,
       code,
       updated_at: new Date().toISOString(),
     };
-    const r = activeId
-      ? await supabase
-          .from("code_snippets")
-          .update(payload)
-          .eq("id", activeId)
-          .select()
-          .single()
-      : await supabase.from("code_snippets").insert(payload).select().single();
-    if (!r.error) {
-      activeId = r.data.id;
-      snippets = [r.data, ...snippets.filter((x) => x.id !== r.data.id)];
+    const result =
+      mode === "update" && activeId
+        ? await supabase
+            .from("code_snippets")
+            .update(payload)
+            .eq("id", activeId)
+            .select()
+            .single()
+        : await supabase
+            .from("code_snippets")
+            .insert(payload)
+            .select()
+            .single();
+    saving = false;
+    if (result.error) {
+      saveError = m.code_now_save_error();
+      return;
     }
+
+    const saved = result.data as CodeSnippet;
+    activeId = saved.id;
+    snippetName = saved.name;
+    snippets = [saved, ...snippets.filter((item) => item.id !== saved.id)];
+    saveFeedback =
+      mode === "copy"
+        ? m.code_now_copy_created({ name: saved.name })
+        : m.code_now_saved_as({ name: saved.name });
+    saveDialog.close();
   }
+
   async function remove(id: string) {
     if (!supabase || !confirm(m.code_now_delete_confirm())) return;
-    await supabase.from("code_snippets").delete().eq("id", id);
-    snippets = snippets.filter((x) => x.id !== id);
+    const result = await supabase.from("code_snippets").delete().eq("id", id);
+    if (result.error) return;
+    snippets = snippets.filter((item) => item.id !== id);
+    if (activeId === id) {
+      activeId = null;
+      snippetName = "";
+    }
   }
+
   onDestroy(() => {
     worker?.terminate();
     clearInterval(timer);
+    if (sharingChannel && supabase) void supabase.removeChannel(sharingChannel);
     void supabase?.rpc("close_editor_session");
   });
 </script>
@@ -149,28 +237,35 @@
     <p class="eyebrow">{m.code_now_lab_eyebrow()}</p>
     <h1>{m.code_now_title()}</h1>
     <p>{m.code_now_browser_intro()}</p>
-    {#if session.profile?.role === "teacher" && shared}<span class="success"
-        >{m.code_now_teacher_shared()}</span
-      >{/if}
   </div>
   <div class="actions">
-    {#if session.profile?.role === "student"}<button
-        class="secondary"
-        onclick={() => void copyTeacher()}>{m.code_now_copy_teacher()}</button
-      >{/if}
+    {#if session.profile?.role === "teacher"}<label class="share-control">
+        <input
+          type="checkbox"
+          checked={sharingEnabled}
+          disabled={!sharingReady || sharingSaving}
+          oninput={(event) => void toggleSharing(event.currentTarget.checked)}
+        />
+        <span>{m.code_now_share_with_students()}</span>
+      </label>{:else if session.profile?.role === "student"}<div
+        class="student-share"
+        aria-live="polite"
+      >
+        <button
+          class="secondary"
+          disabled={!sharingReady || !sharingEnabled}
+          onclick={() => void copyTeacher()}>{m.code_now_copy_teacher()}</button
+        >
+        <small
+          >{sharingEnabled
+            ? m.code_now_teacher_available()
+            : m.code_now_teacher_disabled()}</small
+        >
+      </div>{/if}
   </div>
 </header>
+
 <section class="panel code-panel">
-  <div class="savebar">
-    <label
-      >{m.code_now_snippet_name()}<input
-        bind:value={snippetName}
-        placeholder={m.code_now_name_placeholder()}
-      /></label
-    ><button class="secondary" onclick={() => void save()}
-      >{activeId ? m.code_now_update() : m.code_now_save()}</button
-    >
-  </div>
   {#key editorVersion}<PythonEditor
       bind:value={code}
       ariaLabel={m.code_now_editor_aria()}
@@ -191,6 +286,11 @@
           title={m.code_now_download_title()}
           onclick={download}><Icon name="download" size={18} /></button
         ><button
+          class="secondary icon-button"
+          aria-label={m.code_now_save_aria()}
+          title={m.code_now_save_title()}
+          onclick={openSaveDialog}><Icon name="save" size={18} /></button
+        ><button
           class="primary icon-button"
           aria-label={m.common_run()}
           title={m.editor_run_title()}
@@ -202,8 +302,8 @@
     <pre>{output}</pre>
     {#if inputPrompt !== null}<form
         class="input-form"
-        onsubmit={(e) => {
-          e.preventDefault();
+        onsubmit={(event) => {
+          event.preventDefault();
           const nextInputs = [...inputs, inputValue];
           inputValue = "";
           run(nextInputs);
@@ -218,44 +318,121 @@
       </form>{/if}
   </div>
 </section>
+
 <section class="panel saved">
   <h2>{m.code_now_saved_codes()}</h2>
-  {#each snippets as s}<article>
+  {#each snippets as snippet}<article class:active={activeId === snippet.id}>
       <button
         class="quiet open"
+        aria-current={activeId === snippet.id ? "true" : undefined}
         onclick={() => {
-          activeId = s.id;
-          snippetName = s.name;
-          code = s.code;
+          activeId = snippet.id;
+          snippetName = snippet.name;
+          code = snippet.code;
+          editorVersion += 1;
         }}
-        ><strong>{s.name}</strong><small>{formatDate(s.updated_at)}</small
+        ><strong>{snippet.name}</strong><small
+          >{formatDate(snippet.updated_at)}</small
         ></button
       ><button
-        aria-label={m.code_now_delete_named({ name: s.name })}
+        aria-label={m.code_now_delete_named({ name: snippet.name })}
         class="quiet danger"
-        onclick={() => void remove(s.id)}>{m.common_delete()}</button
+        onclick={() => void remove(snippet.id)}>{m.common_delete()}</button
       >
     </article>{:else}<p class="empty-state">
       {m.code_now_none_saved()}
     </p>{/each}
 </section>
 
+<dialog
+  class="save-dialog"
+  aria-labelledby="save-dialog-title"
+  bind:this={saveDialog}
+  onclose={() => (saveError = "")}
+>
+  <div class="dialog-head">
+    <div>
+      <p class="eyebrow">{m.code_now_save_dialog_eyebrow()}</p>
+      <h2 id="save-dialog-title">
+        {activeId
+          ? m.code_now_save_dialog_existing()
+          : m.code_now_save_dialog_new()}
+      </h2>
+    </div>
+    <button
+      class="quiet close-button"
+      aria-label={m.code_now_close_save_dialog()}
+      title={m.code_now_close_save_dialog()}
+      onclick={() => saveDialog.close()}><Icon name="close" size={20} /></button
+    >
+  </div>
+  <p>
+    {activeId ? m.code_now_save_existing_intro() : m.code_now_save_new_intro()}
+  </p>
+  <form
+    onsubmit={(event) => {
+      event.preventDefault();
+      void save("update");
+    }}
+  >
+    <label
+      >{m.code_now_snippet_name()}<input
+        bind:value={saveName}
+        maxlength="120"
+        autocomplete="off"
+        placeholder={m.code_now_name_placeholder()}
+      /></label
+    >
+    {#if saveError}<p class="error" role="alert">{saveError}</p>{/if}
+    <div class="dialog-actions">
+      <button type="button" class="quiet" onclick={() => saveDialog.close()}
+        >{m.common_cancel()}</button
+      >
+      {#if activeId}<button
+          type="button"
+          class="secondary"
+          disabled={saving}
+          onclick={() => void save("copy")}
+          ><Icon name="copy" size={18} />{m.code_now_create_copy()}</button
+        >{/if}
+      <button class="primary" disabled={saving}
+        >{saving
+          ? m.code_now_saving()
+          : activeId
+            ? m.code_now_save_changes()
+            : m.code_now_save()}</button
+      >
+    </div>
+  </form>
+</dialog>
+
+{#if saveFeedback}<p class="toast" role="status">{saveFeedback}</p>{/if}
+
 <style>
-  .actions,
-  .savebar {
+  .actions {
     display: flex;
-    align-items: end;
-    gap: 0.6rem;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+  .share-control {
+    display: flex;
+    align-items: center;
+    min-height: var(--control-min-height);
+    grid-template-columns: auto 1fr;
+    gap: var(--space-3);
+    border: var(--border-strong);
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-surface-subtle);
+  }
+  .student-share {
+    display: grid;
+    justify-items: end;
+    gap: var(--space-2);
   }
   .code-panel {
     padding: 0;
     overflow: hidden;
-  }
-  .savebar {
-    padding: 1rem;
-  }
-  .savebar label {
-    flex: 1;
   }
   .console {
     border-top: var(--border);
@@ -264,7 +441,8 @@
   .console header {
     display: flex;
     justify-content: space-between;
-    padding: 0.8rem 1rem;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-4);
   }
   .console-heading {
     display: grid;
@@ -274,50 +452,93 @@
     display: flex;
     gap: var(--space-2);
   }
-  .icon-button {
+  .icon-button,
+  .close-button {
     width: var(--control-min-height);
     padding: 0;
   }
   .console pre {
     min-height: 100px;
     margin: 0;
-    padding: 1rem;
+    padding: var(--space-4);
     font-family: var(--font-code);
     white-space: pre-wrap;
   }
   .input-form {
     display: flex;
     align-items: end;
-    gap: 0.7rem;
-    padding: 1rem;
+    gap: var(--space-3);
+    padding: var(--space-4);
   }
   .input-form label {
     flex: 1;
   }
   .saved {
-    margin-top: 1rem;
+    margin-top: var(--space-4);
   }
   .saved article {
     display: flex;
     border-bottom: var(--border);
   }
+  .saved article.active {
+    background: var(--color-primary-surface);
+  }
   .open {
     flex: 1;
     display: grid;
+    min-width: 0;
     text-align: left;
     justify-content: start;
+  }
+  .open strong {
+    overflow-wrap: anywhere;
+  }
+  .save-dialog {
+    width: min(92vw, 32rem);
+    border: var(--border-strong);
+    border-radius: var(--radius-xl);
+    padding: clamp(var(--space-5), 4vw, var(--space-8));
+    color: var(--color-foreground);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-lg);
+  }
+  .save-dialog::backdrop {
+    background: rgb(0 0 0 / 72%);
+    backdrop-filter: blur(3px);
+  }
+  .dialog-head,
+  .dialog-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-4);
+  }
+  .dialog-head h2 {
+    margin-bottom: var(--space-4);
+  }
+  .dialog-actions {
+    justify-content: flex-end;
+    margin-top: var(--space-5);
   }
   @media (max-width: 700px) {
     .actions,
     .page-head {
       align-items: stretch;
     }
-    .actions {
-      flex-wrap: wrap;
+    .share-control,
+    .student-share,
+    .student-share button {
+      width: 100%;
     }
-    .savebar {
+    .student-share {
+      justify-items: stretch;
+    }
+    .dialog-actions {
+      flex-direction: column-reverse;
       align-items: stretch;
-      flex-direction: column;
+    }
+    .dialog-actions button {
+      width: 100%;
     }
   }
 </style>

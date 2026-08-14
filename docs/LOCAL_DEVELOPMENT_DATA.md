@@ -35,6 +35,12 @@ filtraggio, editor, valutazione, report e monitoraggio in tempo reale.
 Le scadenze sono calcolate rispetto al momento del reset, perciò rimangono utili
 anche in futuro.
 
+La raccolta **Codici salvati** di Code now contiene due esempi personali per il
+docente e un esempio per ciascuno dei cinque studenti. Ogni account vede
+esclusivamente le proprie fixture grazie alle policy RLS. La condivisione del
+codice docente parte abilitata e può essere disattivata dal relativo controllo
+per verificare l'aggiornamento Realtime in una seconda sessione studente.
+
 ## Ripristino
 
 Con Supabase locale già avviato:

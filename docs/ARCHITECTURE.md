@@ -16,7 +16,7 @@ applicano gli stessi file in ordine.
 
 ## Modello dati
 
-`profiles` separa docente e studenti; `classes` e `class_members` gestiscono l'appartenenza; `exercises` contiene la traccia canonica; `class_assignments` aggiunge classe, ordine, scadenza e scala di voto opzionale (`10`, `100` o `NULL`); `tests` contiene i casi visibili; `submissions` contiene bozze, consegne, esiti e attribuzione dell'ultimo aggiornamento; `editor_sessions` conserva soltanto la presenza editor temporanea e il codice condivisibile durante Code now. `app_branding_translations` conserva esclusivamente il testo pubblico personalizzabile della pagina di accesso, una riga per locale.
+`profiles` separa docente e studenti; `classes` e `class_members` gestiscono l'appartenenza; `exercises` contiene la traccia canonica; `class_assignments` aggiunge classe, ordine, scadenza e scala di voto opzionale (`10`, `100` o `NULL`); `tests` contiene i casi visibili; `submissions` contiene bozze, consegne, esiti e attribuzione dell'ultimo aggiornamento; `editor_sessions` conserva soltanto la presenza editor temporanea e il codice condivisibile durante Code now; `code_now_settings` conserva il solo interruttore globale di disponibilità e il relativo timestamp; `code_snippets` contiene i codici personali salvati dall'utente. `app_branding_translations` conserva esclusivamente il testo pubblico personalizzabile della pagina di accesso, una riga per locale.
 
 Le migrazioni incrementali sono l'unica fonte autorevole dello schema. Un'installazione pulita le applica tutte in ordine e non carica identità o dati didattici fittizi.
 
@@ -34,6 +34,13 @@ Le migrazioni incrementali sono l'unica fonte autorevole dello schema. Un'instal
 8. L'archivio esporta contenuti didattici in un JSON locale versionato. In
    importazione il browser valida l'intero file prima delle scritture e rimuove
    gli esercizi creati nella stessa operazione se un inserimento fallisce.
+9. In Code now il docente pubblica una sessione temporanea, ma l'RPC di lettura
+   restituisce il codice agli studenti solo quando `code_now_settings` abilita
+   la condivisione. Le variazioni dell'interruttore arrivano ai client tramite
+   Realtime senza trasmettere il contenuto dell'editor.
+10. Il salvataggio di Code now crea o aggiorna una riga personale in
+    `code_snippets`; il modal permette anche di rinominare il codice o crearne
+    una copia con un nuovo identificativo.
 
 ## Prestazioni
 

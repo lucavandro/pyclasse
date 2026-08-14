@@ -354,17 +354,75 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await teacherPage
       .getByLabel("Editor Code now")
       .fill('print("codice condiviso dal docente")');
+    await teacherPage.getByRole("button", { name: "Salva codice" }).click();
+    const saveDialog = teacherPage.getByRole("dialog");
     await expect(
-      teacherPage.getByText("Codice docente disponibile agli studenti"),
+      saveDialog.getByRole("heading", { name: "Salva questo codice" }),
+    ).toBeVisible();
+    await saveDialog.getByRole("button", { name: "Salva codice" }).click();
+    await expect(saveDialog.getByRole("alert")).toContainText(
+      "Inserisci un nome",
+    );
+    await saveDialog.getByLabel("Nome del codice").fill("Demo condivisione");
+    await saveDialog.getByRole("button", { name: "Salva codice" }).click();
+    await expect(teacherPage.getByRole("status")).toContainText(
+      "Codice salvato come Demo condivisione",
+    );
+    await teacherPage.getByRole("button", { name: "Salva codice" }).click();
+    await saveDialog
+      .getByLabel("Nome del codice")
+      .fill("Demo condivisione rinominata");
+    await saveDialog.getByRole("button", { name: "Salva modifiche" }).click();
+    await expect(
+      teacherPage
+        .locator(".saved .open")
+        .filter({ hasText: "Demo condivisione rinominata" }),
+    ).toBeVisible();
+    await teacherPage.getByRole("button", { name: "Salva codice" }).click();
+    await saveDialog
+      .getByLabel("Nome del codice")
+      .fill("Copia demo condivisione");
+    await saveDialog.getByRole("button", { name: "Crea una copia" }).click();
+    await expect(
+      teacherPage
+        .locator(".saved .open")
+        .filter({ hasText: "Copia demo condivisione" }),
     ).toBeVisible();
     await login(studentPage, student);
     await studentPage.getByRole("button", { name: "Code now" }).click();
+    const sharingToggle = teacherPage.getByLabel(
+      "Rendi disponibile agli studenti",
+    );
+    await sharingToggle.uncheck();
+    await expect(
+      studentPage.getByText("Il docente ha disattivato la condivisione"),
+    ).toBeVisible();
+    await expect(
+      studentPage.getByRole("button", { name: "Copia codice docente" }),
+    ).toBeDisabled();
+    await sharingToggle.check();
+    await expect(
+      studentPage.getByText("Il codice del docente è disponibile"),
+    ).toBeVisible();
     await studentPage
       .getByRole("button", { name: "Copia codice docente" })
       .click();
     await expect(studentPage.getByLabel("Editor Code now")).toContainText(
       "codice condiviso dal docente",
     );
+    await studentPage.getByRole("button", { name: "Salva codice" }).click();
+    const studentSaveDialog = studentPage.getByRole("dialog");
+    await studentSaveDialog
+      .getByLabel("Nome del codice")
+      .fill("Copia personale studente");
+    await studentSaveDialog
+      .getByRole("button", { name: "Salva codice" })
+      .click();
+    await expect(
+      studentPage
+        .locator(".saved .open")
+        .filter({ hasText: "Copia personale studente" }),
+    ).toBeVisible();
     await expect(
       studentPage.getByRole("button", { name: "Esegui" }),
     ).toBeVisible();

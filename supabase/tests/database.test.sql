@@ -1,6 +1,6 @@
 begin;
 
-select plan(77);
+select plan(88);
 
 select has_table('public', 'profiles', 'profiles table exists');
 select has_table('public', 'app_settings', 'app_settings table exists');
@@ -13,6 +13,19 @@ select has_table('public', 'submissions', 'submissions table exists');
 select has_table('public', 'editor_sessions', 'editor sessions table exists');
 select has_table('public', 'assignment_views', 'assignment views table exists');
 select has_table('public', 'code_snippets', 'personal code snippets table exists');
+select is(
+  (select count(*)::integer from public.code_snippets where owner_id = '10000000-0000-0000-0000-000000000001'),
+  2,
+  'the local teacher has two saved Code now fixtures'
+);
+select is(
+  (select count(*)::integer from public.code_snippets where owner_id::text like '20000000-0000-0000-0000-00000000000%'),
+  5,
+  'local students have saved Code now fixtures'
+);
+select has_table('public', 'code_now_settings', 'Code now sharing settings table exists');
+select has_column('public', 'code_now_settings', 'sharing_enabled', 'Code now sharing can be disabled');
+select col_default_is('public', 'code_now_settings', 'sharing_enabled', 'true', 'Code now sharing starts enabled');
 
 select ok(
   (select bool_and(c.relrowsecurity)
@@ -21,7 +34,7 @@ select ok(
    where n.nspname = 'public'
      and c.relname = any(array[
        'profiles', 'app_settings', 'classes', 'class_members', 'exercises',
-       'class_assignments', 'tests', 'submissions', 'editor_sessions', 'assignment_views', 'code_snippets'
+       'class_assignments', 'tests', 'submissions', 'editor_sessions', 'assignment_views', 'code_snippets', 'code_now_settings'
      ])),
   'RLS is enabled on every application table'
 );
@@ -98,6 +111,33 @@ select has_index('public', 'editor_sessions', 'editor_sessions_active_idx', 'act
 select ok(
   (select exists(select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'editor_sessions')),
   'editor sessions are published to Supabase Realtime'
+);
+select ok(
+  (select exists(select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'code_now_settings')),
+  'Code now sharing settings are published to Supabase Realtime'
+);
+select ok(
+  (select qual like '%is_teacher%' and with_check like '%is_teacher%'
+   from pg_policies
+   where schemaname = 'public' and tablename = 'code_now_settings'
+     and policyname = 'teacher updates Code now sharing'),
+  'only the teacher can change Code now sharing'
+);
+select ok(
+  pg_get_functiondef('public.get_active_teacher_code()'::regprocedure) like '%sharing_enabled%',
+  'teacher code retrieval checks the current sharing setting'
+);
+select ok(
+  pg_get_functiondef('public.publish_code_now(text)'::regprocedure) like '%60 seconds%',
+  'Code now tolerates background-tab heartbeat throttling'
+);
+select ok(
+  not has_table_privilege('anon', 'public.code_now_settings', 'SELECT'),
+  'anonymous users cannot read Code now sharing settings'
+);
+select ok(
+  has_table_privilege('authenticated', 'public.code_now_settings', 'SELECT'),
+  'authenticated users can read Code now sharing settings'
 );
 
 select has_index('public', 'class_assignments', 'class_assignments_class_idx', 'class assignments class foreign key is indexed');

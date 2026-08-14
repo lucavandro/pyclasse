@@ -4,6 +4,7 @@ import type {
   AssignmentView,
   BrandingTranslation,
   Classroom,
+  CodeNowSettings,
   CodeSnippet,
   EditorSession,
   Exercise,
@@ -218,6 +219,17 @@ export const getSnippets = () =>
     "code_snippets",
     "id,owner_id,name,code,created_at,updated_at",
   );
+
+export async function getCodeNowSettings(): Promise<CodeNowSettings | null> {
+  if (!supabase) return null;
+  const result = await supabase
+    .from("code_now_settings")
+    .select("singleton,sharing_enabled,updated_at")
+    .eq("singleton", true)
+    .maybeSingle();
+  if (result.error) throw result.error;
+  return result.data as CodeNowSettings | null;
+}
 
 export async function getBrandingTranslations(): Promise<
   BrandingTranslation[]

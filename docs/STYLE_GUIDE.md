@@ -60,8 +60,10 @@ Le etichette restano sempre visibili. Campi, select e textarea usano la stessa s
 Editor Python, console e blocchi Markdown usano `--color-surface-subtle` e Geist Mono. Devono restare visivamente parte dell’applicazione senza imitare un tema esterno.
 
 Il cursore di inserimento è bianco. Esecuzione, test e, soltanto in Code now,
-download `.py` sono controlli compatti nell'intestazione dell'output; ogni
-pulsante con sola icona richiede `aria-label` e tooltip.
+download `.py` e salvataggio sono controlli compatti nell'intestazione
+dell'output; ogni pulsante con sola icona richiede `aria-label` e tooltip. Il
+salvataggio apre un modal essenziale con etichetta visibile e azioni distinte
+per aggiornare o creare una copia.
 
 Ogni editor Python deve attivare il parser `@codemirror/lang-python` e uno `HighlightStyle` esplicito. Keyword, funzioni, stringhe, numeri, commenti, operatori, tipi ed errori devono essere distinguibili con colori coerenti con la palette, mantenendo contrasto AA sullo sfondo dell’editor. Il syntax highlighting è presentazione locale: non deve inviare codice a servizi esterni.
 

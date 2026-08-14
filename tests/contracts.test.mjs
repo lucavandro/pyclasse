@@ -1,20 +1,23 @@
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
+import { access, readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 
 const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
-const schema = async () =>
-  (
-    await Promise.all([
-      read("supabase/migrations/20260801000000_initial_schema.sql"),
-      read(
-        "supabase/migrations/20260814000000_harden_teacher_authorization.sql",
-      ),
-    ])
+const schema = async () => {
+  const migrations = (
+    await readdir(new URL("../supabase/migrations", import.meta.url))
+  )
+    .filter((name) => name.endsWith(".sql"))
+    .sort();
+  return (
+    await Promise.all(
+      migrations.map((name) => read(`supabase/migrations/${name}`)),
+    )
   )
     .join("\n")
     .replaceAll('"', "");
+};
 
 test("SvelteKit separa le funzionalità in rotte autonome", async () => {
   const expected = [
@@ -50,6 +53,7 @@ test("schema Supabase abilita RLS e protegge bozze e prerequisiti", async () => 
     "tests",
     "submissions",
     "editor_sessions",
+    "code_now_settings",
   ])
     assert.match(
       sql,
@@ -63,6 +67,10 @@ test("schema Supabase abilita RLS e protegge bozze e prerequisiti", async () => 
   assert.match(
     sql,
     /alter publication supabase_realtime add table (?:only )?public\.submissions/i,
+  );
+  assert.match(
+    sql,
+    /alter publication supabase_realtime add table (?:only )?public\.code_now_settings/i,
   );
 });
 
@@ -92,8 +100,29 @@ test("editor applica blocco clipboard, watchdog e Pyodide self-hosted", async ()
     /class="code-now-console console"[\s\S]*m\.common_run\(\)/,
   );
   assert.match(codeNow, /m\.code_now_download_aria\(\)/);
+  assert.match(codeNow, /m\.code_now_save_aria\(\)/);
+  assert.match(codeNow, /<dialog[\s\S]*m\.code_now_create_copy\(\)/);
+  assert.match(codeNow, /table: "code_now_settings"/);
+  assert.match(codeNow, /sharing_enabled/);
   assert.match(worker, /\/vendor\/pyodide\//);
   assert.doesNotMatch(worker, /cdn\.jsdelivr\.net/);
+});
+
+test("il seed include codici salvati personali per docente e studenti", async () => {
+  const seed = await read("supabase/seed.sql");
+  assert.match(seed, /insert into public\.code_snippets/i);
+  const snippetSeed = seed
+    .slice(seed.indexOf("insert into public.code_snippets"))
+    .split("on conflict")[0];
+  assert.equal(
+    [...snippetSeed.matchAll(/10000000-0000-0000-0000-000000000001/g)].length,
+    2,
+  );
+  for (let index = 1; index <= 5; index += 1)
+    assert.match(
+      snippetSeed,
+      new RegExp(`20000000-0000-0000-0000-00000000000${index}`),
+    );
 });
 
 test("scadenze, report studente e trasferimento JSON sono esposti dalla UI", async () => {

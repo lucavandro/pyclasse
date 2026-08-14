@@ -6,7 +6,7 @@ Questo documento descrive misure tecniche e limiti del software; non costituisce
 
 PyClasse può conservare identità, email, appartenenza alle classi, codice sorgente, bozze, consegne, esiti, voti, scadenze e timestamp. Nel contesto scolastico questi dati possono riguardare minori. Le sessioni temporanee dell'editor registrano utente, contesto, codice corrente e scadenza esclusivamente per indicare l'attività corrente e per la condivisione volontaria in Code now. Alla prima apertura di un esercizio assegnato viene inoltre conservato un solo timestamp, usato per mostrare al docente l'avanzamento della classe; non vengono registrati accessi successivi, durata di lettura o interazioni con la traccia.
 
-I codici salvati volontariamente in Code now sono personali: RLS consente visualizzazione, modifica ed eliminazione esclusivamente al proprietario. Restano conservati fino alla cancellazione da parte dell'utente o alla cancellazione del profilo.
+I codici salvati volontariamente in Code now sono personali: RLS consente visualizzazione, modifica ed eliminazione esclusivamente al proprietario. Restano conservati fino alla cancellazione da parte dell'utente o alla cancellazione del profilo. L'impostazione Realtime di Code now conserva soltanto un booleano di disponibilità e il timestamp dell'ultima modifica, senza codice, identità studente o dati di classe.
 
 La preferenza dell'interfaccia viene conservata nel cookie first-party
 `PARAGLIDE_LOCALE` per mantenere la lingua scelta, con durata massima di 400
@@ -31,7 +31,7 @@ selettore. Non è usato per analytics, profilazione o decisioni didattiche.
 
 ## Monitoraggio in tempo reale
 
-Lo studente salva una bozza nel database e il docente proprietario della classe può visualizzarla e modificarla. RLS limita la lettura allo studente interessato e al docente autorizzato; il database attribuisce ogni modifica all'utente autenticato. I lavori consegnati non compaiono nel monitoraggio. Una sessione editor scade dopo 25 secondi senza heartbeat, viene marcata immediatamente come scaduta alla chiusura ordinaria e le sessioni scadute vengono rimosse al successivo accesso all'applicazione. In Code now un utente con ruolo studente può richiedere il codice dell'unico docente dell'installazione soltanto mentre la relativa sessione è attiva. L'istituto deve documentare finalità, base giuridica, retention e modalità di intervento dei docenti.
+Lo studente salva una bozza nel database e il docente proprietario della classe può visualizzarla e modificarla. RLS limita la lettura allo studente interessato e al docente autorizzato; il database attribuisce ogni modifica all'utente autenticato. I lavori consegnati non compaiono nel monitoraggio. Una sessione dell'editor esercizi scade dopo 25 secondi senza heartbeat; la sessione docente di Code now usa una lease di 60 secondi per tollerare il rallentamento delle schede in secondo piano. Entrambe vengono marcate immediatamente come scadute alla chiusura ordinaria e le sessioni scadute vengono rimosse al successivo accesso all'applicazione. In Code now un utente con ruolo studente può richiedere il codice dell'unico docente dell'installazione soltanto mentre la relativa sessione è attiva e l'impostazione di disponibilità è abilitata. La disattivazione viene notificata in tempo reale e l'RPC smette immediatamente di restituire il codice. L'istituto deve documentare finalità, base giuridica, retention e modalità di intervento dei docenti.
 
 ## Servizi esterni
 

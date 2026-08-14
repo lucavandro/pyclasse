@@ -40,8 +40,22 @@ sufficiente sullo sfondo scuro.
 
 I controlli per eseguire codice e test si trovano nell'intestazione dell'output.
 Sono pulsanti compatti con icona, nome accessibile e tooltip nativo. In Code now
-anche il download `.py` si trova nello stesso gruppo; il download non compare
-negli editor degli esercizi.
+anche il download `.py` e il salvataggio si trovano nello stesso gruppo; il
+download non compare negli editor degli esercizi.
+
+### CODE-NOW-001 — Raccolta personale
+
+Docente e studenti possono salvare codice tramite un modal accessibile. Per un
+nuovo codice il nome è obbligatorio; per un codice selezionato si possono
+aggiornare contenuto e nome oppure creare una copia indipendente. RLS limita
+lettura e scrittura al proprietario.
+
+### CODE-NOW-002 — Disponibilità controllata dal docente
+
+Il docente può abilitare o disabilitare la possibilità per gli studenti di
+copiare il codice della sua sessione attiva. Lo stato viene applicato anche
+nell'RPC del database e propagato agli studenti con Supabase Realtime, senza
+ricaricare la pagina e senza includere il contenuto dell'editor nell'evento.
 
 ## Esercizi
 

@@ -17,6 +17,8 @@
       | "logout"
       | "play"
       | "download"
+      | "save"
+      | "copy"
       | "upload"
       | "test";
     size?: number;
@@ -65,6 +67,16 @@
   {:else if name === "download"}<path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path
       d="M5 19h14"
     />
+  {:else if name === "save"}<path
+      d="M5 3h12l2 2v16H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"
+    /><path d="M7 3v6h8V3M7 21v-7h10v7" />
+  {:else if name === "copy"}<rect
+      x="8"
+      y="8"
+      width="12"
+      height="12"
+      rx="2"
+    /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
   {:else if name === "upload"}<path d="M12 16V4m0 0 4 4m-4-4-4 4" /><path
       d="M5 20h14"
     />

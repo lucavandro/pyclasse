@@ -96,6 +96,11 @@ export type CodeSnippet = {
   created_at: string;
   updated_at: string;
 };
+export type CodeNowSettings = {
+  singleton: boolean;
+  sharing_enabled: boolean;
+  updated_at: string;
+};
 export type Settings = {
   singleton: boolean;
   teacher_email: string | null;

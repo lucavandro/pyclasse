@@ -171,3 +171,16 @@ values
   ('70000000-0000-0000-0000-000000000006', '60000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000003', E'def somma_valori(numeri):\n    return 0', 'draft', null, '[]', null, now() - interval '2 hours'),
   ('70000000-0000-0000-0000-000000000007', '60000000-0000-0000-0000-000000000005', '20000000-0000-0000-0000-000000000005', E'class Rettangolo:\n    pass', 'draft', null, '[]', null, now() - interval '30 minutes')
 on conflict (id) do nothing;
+
+insert into public.code_snippets (
+  id, owner_id, name, code, created_at, updated_at
+)
+values
+  ('80000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'Esempio docente: tabellina', E'numero = 7\nfor fattore in range(1, 11):\n    print(numero, "x", fattore, "=", numero * fattore)', now() - interval '8 days', now() - interval '2 days'),
+  ('80000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'Esempio docente: saluto', E'nome = input("Come ti chiami? ")\nprint(f"Ciao, {nome}!")', now() - interval '5 days', now() - interval '1 day'),
+  ('80000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000001', 'Prova con le liste', E'numeri = [2, 4, 6, 8]\nprint(sum(numeri))', now() - interval '4 days', now() - interval '12 hours'),
+  ('80000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000002', 'Il mio primo ciclo', E'for indice in range(5):\n    print(indice)', now() - interval '3 days', now() - interval '10 hours'),
+  ('80000000-0000-0000-0000-000000000005', '20000000-0000-0000-0000-000000000003', 'Conteggio parole', E'testo = "python rende visibili le idee"\nprint(len(testo.split()))', now() - interval '2 days', now() - interval '8 hours'),
+  ('80000000-0000-0000-0000-000000000006', '20000000-0000-0000-0000-000000000004', 'Area del rettangolo', E'base = 8\naltezza = 5\nprint(base * altezza)', now() - interval '1 day', now() - interval '6 hours'),
+  ('80000000-0000-0000-0000-000000000007', '20000000-0000-0000-0000-000000000005', 'Numeri pari', E'for numero in range(2, 11, 2):\n    print(numero)', now() - interval '12 hours', now() - interval '4 hours')
+on conflict (id) do nothing;

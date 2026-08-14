@@ -146,26 +146,13 @@
         <li>Privacy by default</li>
       </ul>
     </div>
-    <div class="code-preview" aria-hidden="true">
-      <div class="code-toolbar"><span></span><span></span><span></span></div>
-      <pre><code
-          ><span class="code-keyword">def</span> <span class="code-function"
-            >impara</span
-          >(insieme):
-    curiosità = <span class="code-string">"infinita"</span>
-    <span class="code-keyword">return</span> insieme + curiosità</code
-        ></pre>
-    </div>
+    
   </section>
 
   <section class="auth-form-panel" aria-labelledby="auth-form-title">
     <div class="panel-orbit orbit-one" aria-hidden="true"></div>
     <div class="panel-orbit orbit-two" aria-hidden="true"></div>
     <div class="auth-content">
-      <div class="access-status">
-        <span aria-hidden="true"></span>
-        {locale === "en" ? "Secure classroom access" : "Accesso aula protetto"}
-      </div>
       <div class="auth-heading">
         <p class="eyebrow">
           {locale === "en" ? "YOUR SPACE" : "IL TUO SPAZIO"}

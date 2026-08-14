@@ -10,7 +10,9 @@ test("autorileva l'inglese del browser e permette il cambio lingua", async ({
   await expect(
     page.getByRole("heading", { name: "Welcome back" }),
   ).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await page.getByLabel("Language").selectOption("it");
   await expect(page.getByRole("heading", { name: "Bentornato" })).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "it");
   await context.close();
 });

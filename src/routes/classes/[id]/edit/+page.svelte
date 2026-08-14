@@ -4,6 +4,7 @@
   import { supabase } from "$lib/supabase";
   import { getClasses } from "$lib/data";
   import { session } from "$lib/session.svelte";
+  import { m } from "$lib/paraglide/messages.js";
   let name = $state(""),
     subject = $state(""),
     joinCode = $state(""),
@@ -35,7 +36,7 @@
   }
 </script>
 
-<header class="page-head"><h1>Modifica classe</h1></header>
+<header class="page-head"><h1>{m.classes_edit()}</h1></header>
 <form
   class="panel form-grid"
   onsubmit={(e) => {
@@ -43,17 +44,26 @@
     void save();
   }}
 >
-  <label>Nome<input aria-label="Nome" bind:value={name} required /></label
+  <label
+    >{m.common_name()}<input
+      aria-label={m.common_name()}
+      bind:value={name}
+      required
+    /></label
   ><label
-    >Materia<input aria-label="Materia" bind:value={subject} required /></label
+    >{m.classes_subject()}<input
+      aria-label={m.classes_subject()}
+      bind:value={subject}
+      required
+    /></label
   ><label
-    >Codice di iscrizione<input
-      aria-label="Codice di iscrizione"
+    >{m.classes_enrollment_code()}<input
+      aria-label={m.classes_enrollment_code()}
       bind:value={joinCode}
       required
     /></label
   >{#if error}<p class="error">{error}</p>{/if}<button
     class="primary"
-    disabled={busy}>Salva classe</button
+    disabled={busy}>{m.classes_save()}</button
   >
 </form>

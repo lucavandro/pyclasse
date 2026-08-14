@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { m } from "$lib/paraglide/messages.js";
   let {
     value = $bindable(""),
-    ariaLabel = "Editor Python",
+    ariaLabel = m.editor_python_aria(),
     allowClipboard = false,
     onChange,
   }: {

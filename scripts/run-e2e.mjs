@@ -1,4 +1,5 @@
 import { execFileSync, spawn } from "node:child_process";
+import { createServer } from "node:net";
 import { fileURLToPath } from "node:url";
 
 const supabaseCli = fileURLToPath(
@@ -82,6 +83,30 @@ async function waitForSupabase(url, anonKey) {
   );
 }
 
+async function getAvailableBaseUrl() {
+  if (process.env.E2E_BASE_URL) return process.env.E2E_BASE_URL;
+
+  const port = await new Promise((resolve, reject) => {
+    const probe = createServer();
+    probe.unref();
+    probe.once("error", reject);
+    probe.listen(0, "127.0.0.1", () => {
+      const address = probe.address();
+      if (!address || typeof address === "string") {
+        probe.close();
+        reject(new Error("Impossibile trovare una porta E2E libera."));
+        return;
+      }
+      probe.close((error) => {
+        if (error) reject(error);
+        else resolve(address.port);
+      });
+    });
+  });
+
+  return `http://127.0.0.1:${port}`;
+}
+
 // The scenarios create their own isolated identities. The local demo dataset is
 // restored in the finally block so running E2E never leaves development empty.
 resetDatabase({ seed: false });
@@ -92,10 +117,19 @@ if (!status.API_URL || !status.ANON_KEY)
   throw new Error("Supabase locale non ha restituito API_URL e ANON_KEY.");
 await waitForSupabase(status.API_URL, status.ANON_KEY);
 
-const baseURL = process.env.E2E_BASE_URL || "http://127.0.0.1:3100";
+const baseURL = await getAvailableBaseUrl();
+const serverUrl = new URL(baseURL);
 const server = spawn(
   process.execPath,
-  [viteCli, "dev", "--host", "127.0.0.1", "--port", "3100"],
+  [
+    viteCli,
+    "dev",
+    "--host",
+    serverUrl.hostname,
+    "--port",
+    serverUrl.port,
+    "--strictPort",
+  ],
   {
     cwd: process.cwd(),
     env: {

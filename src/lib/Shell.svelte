@@ -5,18 +5,20 @@
   import { supabase } from "$lib/supabase";
   import { session } from "$lib/session.svelte";
   import Icon from "$lib/Icon.svelte";
+  import LocaleSelector from "$lib/LocaleSelector.svelte";
+  import { m } from "$lib/paraglide/messages.js";
   let { children }: { children: Snippet } = $props();
   let collapsed = $state(false),
     mobile = $state(false);
   const teacher = $derived(session.profile?.role === "teacher");
   const nav = $derived([
-    ["/", "Home", "home"],
-    ["/classes", "Classi", "classes"],
-    ["/exercises", "Esercizi", "exercises"],
-    ["/reports/valutazioni", "Report", "reports"],
-    ...(teacher ? [["/monitor", "Monitoraggio", "monitor"]] : []),
-    ["/code-now", "Code now", "code"],
-    ["/settings", "Impostazioni", "settings"],
+    ["/", m.nav_home(), "home"],
+    ["/classes", m.nav_classes(), "classes"],
+    ["/exercises", m.nav_exercises(), "exercises"],
+    ["/reports/valutazioni", m.nav_reports(), "reports"],
+    ...(teacher ? [["/monitor", m.nav_monitor(), "monitor"]] : []),
+    ["/code-now", m.nav_code_now(), "code"],
+    ["/settings", m.nav_settings(), "settings"],
   ]);
   async function logout() {
     await supabase?.auth.signOut();
@@ -27,7 +29,7 @@
 <main class:sidebar-collapsed={collapsed} class="app-shell">
   <button
     class="mobile-toggle"
-    aria-label={mobile ? "Chiudi menu" : "Apri menu"}
+    aria-label={mobile ? m.nav_close_menu() : m.nav_open_menu()}
     onclick={() => (mobile = !mobile)}
     ><Icon name={mobile ? "close" : "menu"} size={22} /></button
   >
@@ -35,17 +37,17 @@
     class:open={mobile}
     class:collapsed
     class="sidebar"
-    aria-label="Menu applicazione"
+    aria-label={m.nav_app_menu()}
   >
     <a class="logo" href="/"
       ><span class="logo-mark"
         ><img src="/favicon.svg" alt="" width="30" height="30" /></span
       ><span class="brand-copy"
-        ><strong>PyClasse</strong><small>Python classroom</small></span
+        ><strong>PyClasse</strong><small>{m.brand_tagline()}</small></span
       ></a
     >
-    <p class="nav-label">Workspace</p>
-    <nav aria-label="Navigazione principale">
+    <p class="nav-label">{m.nav_workspace()}</p>
+    <nav aria-label={m.nav_main()}>
       {#each nav as item}<a
           href={item[0]}
           role="button"
@@ -63,6 +65,7 @@
           ></a
         >{/each}
     </nav>
+    <div class="shell-language"><LocaleSelector /></div>
     <div class="account">
       <span class="avatar" aria-hidden="true"
         >{(session.profile?.full_name || session.profile?.email || "P")
@@ -72,25 +75,27 @@
       <span class="account-copy"
         ><strong>{session.profile?.full_name || session.profile?.email}</strong
         ><small
-          >{session.profile?.role === "teacher" ? "Docente" : "Studente"}</small
+          >{session.profile?.role === "teacher"
+            ? m.account_teacher()
+            : m.account_student()}</small
         ></span
       ><button
-        aria-label="Esci dall'account"
-        title="Esci"
+        aria-label={m.account_logout()}
+        title={m.account_logout()}
         class="quiet"
         onclick={() => void logout()}><Icon name="logout" size={18} /></button
       >
     </div>
     <button
       class="collapse quiet"
-      aria-label={collapsed ? "Espandi menu" : "Comprimi menu"}
+      aria-label={collapsed ? m.nav_expand() : m.nav_collapse()}
       onclick={() => (collapsed = !collapsed)}
-      ><Icon name="collapse" size={18} /><span>Comprimi</span></button
+      ><Icon name="collapse" size={18} /><span>{m.nav_collapse()}</span></button
     >
   </aside>
   {#if mobile}<button
       class="backdrop"
-      aria-label="Chiudi sfondo menu"
+      aria-label={m.nav_close_backdrop()}
       onclick={() => (mobile = false)}
     ></button>{/if}
   <section class="content">{@render children()}</section>
@@ -190,7 +195,7 @@
     color: var(--color-primary-soft);
   }
   .account {
-    margin-top: auto;
+    margin-top: var(--space-3);
     display: flex;
     align-items: center;
     gap: 0.65rem;
@@ -242,6 +247,11 @@
     justify-content: flex-start;
     color: var(--color-muted);
   }
+  .shell-language {
+    margin-top: auto;
+    border-top: var(--border);
+    padding: var(--space-4) var(--space-2) 0;
+  }
   .content {
     max-width: 1380px;
     margin: 0 auto;
@@ -258,6 +268,9 @@
   .sidebar-collapsed .nav-label,
   .sidebar-collapsed .account-copy,
   .sidebar-collapsed .collapse span {
+    display: none;
+  }
+  .sidebar-collapsed .shell-language {
     display: none;
   }
   .sidebar-collapsed .logo,
@@ -320,6 +333,9 @@
     .sidebar-collapsed .account-copy,
     .sidebar-collapsed .collapse span {
       display: initial;
+    }
+    .sidebar-collapsed .shell-language {
+      display: block;
     }
     .sidebar-collapsed .logo,
     .sidebar-collapsed .sidebar nav a,

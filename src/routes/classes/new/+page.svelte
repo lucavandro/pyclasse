@@ -2,6 +2,7 @@
   import { goto } from "$app/navigation";
   import { supabase } from "$lib/supabase";
   import { session } from "$lib/session.svelte";
+  import { m } from "$lib/paraglide/messages.js";
   let name = $state(""),
     subject = $state(""),
     joinCode = $state(""),
@@ -28,8 +29,8 @@
 
 <header class="page-head">
   <div>
-    <p class="eyebrow">NUOVA CLASSE</p>
-    <h1>Crea una classe</h1>
+    <p class="eyebrow">{m.classes_new_eyebrow()}</p>
+    <h1>{m.classes_create()}</h1>
   </div>
 </header>
 <form
@@ -40,31 +41,31 @@
   }}
 >
   <label
-    >Nome<input
-      aria-label="Nome"
+    >{m.common_name()}<input
+      aria-label={m.common_name()}
       bind:value={name}
       maxlength="120"
       required
     /></label
   ><label
-    >Materia<input
-      aria-label="Materia"
+    >{m.classes_subject()}<input
+      aria-label={m.classes_subject()}
       bind:value={subject}
       maxlength="120"
       required
     /></label
   ><label
-    >Codice di iscrizione<input
-      aria-label="Codice di iscrizione"
+    >{m.classes_enrollment_code()}<input
+      aria-label={m.classes_enrollment_code()}
       bind:value={joinCode}
       maxlength="20"
       required
     /></label
   >{#if error}<p class="error">{error}</p>{/if}
   <div class="actions">
-    <a class="button secondary" href="/classes">Annulla</a><button
+    <a class="button secondary" href="/classes">{m.common_cancel()}</a><button
       class="primary"
-      disabled={busy}>Salva classe</button
+      disabled={busy}>{m.classes_save()}</button
     >
   </div>
 </form>

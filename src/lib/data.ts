@@ -2,6 +2,7 @@ import { supabase } from "$lib/supabase";
 import type {
   Assignment,
   AssignmentView,
+  BrandingTranslation,
   Classroom,
   CodeSnippet,
   EditorSession,
@@ -9,7 +10,6 @@ import type {
   ExerciseTest,
   Membership,
   Profile,
-  Settings,
   Submission,
 } from "$lib/types";
 
@@ -219,20 +219,14 @@ export const getSnippets = () =>
     "id,owner_id,name,code,created_at,updated_at",
   );
 
-type LoginSettings = Pick<
-  Settings,
-  | "login_title_it"
-  | "login_subtitle_it"
-  | "login_title_en"
-  | "login_subtitle_en"
->;
-
-export async function getSettings(): Promise<LoginSettings | null> {
-  if (!supabase) return null;
+export async function getBrandingTranslations(): Promise<
+  BrandingTranslation[]
+> {
+  if (!supabase) return [];
   const result = await supabase
-    .from("app_settings")
-    .select("login_title_it,login_subtitle_it,login_title_en,login_subtitle_en")
-    .maybeSingle();
+    .from("app_branding_translations")
+    .select("locale,title,subtitle")
+    .order("locale");
   if (result.error) throw result.error;
-  return result.data as LoginSettings | null;
+  return result.data as BrandingTranslation[];
 }

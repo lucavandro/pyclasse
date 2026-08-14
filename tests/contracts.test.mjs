@@ -89,9 +89,9 @@ test("editor applica blocco clipboard, watchdog e Pyodide self-hosted", async ()
   assert.match(codeNow, /8000/);
   assert.match(
     codeNow,
-    /class="code-now-console console"[\s\S]*aria-label="Run"/,
+    /class="code-now-console console"[\s\S]*m\.common_run\(\)/,
   );
-  assert.match(codeNow, /aria-label="Scarica \.py"/);
+  assert.match(codeNow, /m\.code_now_download_aria\(\)/);
   assert.match(worker, /\/vendor\/pyodide\//);
   assert.doesNotMatch(worker, /cdn\.jsdelivr\.net/);
 });
@@ -109,9 +109,9 @@ test("scadenze, report studente e trasferimento JSON sono esposti dalla UI", asy
   assert.match(form, /deadline:\s*deadlines\[c\.id\]/);
   assert.match(reports, /class="report-area"/);
   assert.match(reports, /href={`\/reports\/valutazioni\/studenti\//);
-  assert.match(reports, /data-label="Da completare"/);
+  assert.match(reports, /m\.reports_to_complete\(\)/);
   assert.match(studentDetail, /session\.profile\.role !== "teacher"/);
-  assert.match(studentDetail, /Mostra il codice dello studente/);
+  assert.match(studentDetail, /m\.reports_show_code\(\)/);
   assert.match(archive, /class="drop-zone"/);
   assert.match(archive, /accept="\.json,application\/json"/);
   assert.match(archive, /parseExerciseTransfer/);
@@ -165,8 +165,8 @@ test("funzioni di classe e valutazione sono raggiungibili dall'interfaccia", asy
     read("src/routes/reports/[section]/studenti/[id]/+page.svelte"),
   ]);
   assert.match(classDetail, /add_student_to_class/);
-  assert.match(classDetail, /Email dello studente/);
-  assert.match(studentDetail, /Salva valutazione/);
+  assert.match(classDetail, /m\.classes_student_email\(\)/);
+  assert.match(studentDetail, /m\.reports_save_evaluation\(\)/);
   assert.match(studentDetail, /grading_scale/);
 });
 
@@ -205,7 +205,7 @@ test("autenticazione supporta password, OTP e Google", async () => {
   assert.match(auth, /class="auth-content"/);
   assert.doesNotMatch(auth, /class="auth-card"/);
   assert.match(auth, /friendlyAuthError/);
-  assert.match(auth, /Accesso aula protetto/);
+  assert.match(auth, /m\.auth_privacy_notice\(\)/);
   assert.match(client, /provider: "google"/);
 });
 
@@ -217,15 +217,14 @@ test("privacy, monitoraggio e presenza restano espliciti", async () => {
     read("supabase/migrations/20260813000000_touch_editor_session.sql"),
   ]);
   assert.match(settings, /external_ai_consented_at/);
-  assert.match(settings, /consenso è facoltativo/);
+  assert.match(settings, /m\.settings_consent_help\(\)/);
   assert.match(monitor, /status\s*===\s*["']draft/);
   assert.match(editor, /touch_editor_session/);
   assert.match(presenceMigration, /active_until/);
   assert.match(presenceMigration, /interval '25 seconds'/);
   assert.doesNotMatch(settings, /localStorage/);
   assert.doesNotMatch(settings, /bind:value=\{schoolName\}/);
-  assert.doesNotMatch(settings, /aria-label="Language"/);
-  assert.match(settings, /Anteprima pagina di accesso/);
+  assert.match(settings, /m\.settings_login_preview\(\)/);
 });
 
 test("sistema visivo usa palette del logo e CSS locale alle rotte", async () => {
@@ -253,7 +252,7 @@ test("sistema visivo usa palette del logo e CSS locale alle rotte", async () => 
   assert.match(css, /#0c79d8/i);
   assert.match(css, /#68c4ff/i);
   assert.match(css, /prefers-reduced-motion/);
-  assert.match(shell, /aria-label="Menu applicazione"/);
+  assert.match(shell, /m\.nav_app_menu\(\)/);
   assert.match(shell, /nav-icon/);
   assert.match(icon, /aria-hidden="true"/);
   assert.match(reportNav, /role="tablist"/);

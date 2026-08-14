@@ -7,9 +7,11 @@
   import { session } from "$lib/session.svelte";
   import PythonEditor from "$lib/PythonEditor.svelte";
   import Icon from "$lib/Icon.svelte";
+  import { m } from "$lib/paraglide/messages.js";
+  import { formatDate } from "$lib/format";
   let data = $state<any>(null),
     code = $state(""),
-    output = $state("Pronto."),
+    output = $state<string>(m.editor_ready_output()),
     running = $state(false),
     passed = $state(0),
     status = $state(""),
@@ -99,20 +101,23 @@
     worker?.terminate();
     worker = new Worker("/pyodide-worker.js", { type: "module" });
     running = true;
-    output = mode === "test" ? "Esecuzione test…" : "Esecuzione…";
+    output = mode === "test" ? m.editor_running_tests() : m.editor_running();
     const timer = setTimeout(() => {
       worker?.terminate();
       running = false;
-      output = "Esecuzione interrotta dopo 8 secondi.";
+      output = m.editor_timeout();
     }, 8000);
     worker.onmessage = (e) => {
       clearTimeout(timer);
       running = false;
-      if (!e.data.ok) output = `Errore:\n${e.data.error}`;
+      if (!e.data.ok) output = m.editor_error({ error: e.data.error });
       else if (mode === "test") {
         passed = e.data.tests.passed;
-        output = `${e.data.tests.passed} test su ${e.data.tests.total} superati.`;
-      } else output = e.data.output || "(nessun output)";
+        output = m.editor_test_result({
+          passed: e.data.tests.passed,
+          total: e.data.tests.total,
+        });
+      } else output = e.data.output || m.editor_no_output();
       worker?.terminate();
     };
     worker.postMessage({
@@ -131,12 +136,12 @@
       data.exercise.verification_mode === "tests" &&
       (!data.tests.length || passed !== data.tests.length)
     ) {
-      status = "Supera tutti i test prima della consegna";
+      status = m.editor_all_tests_required();
       return;
     }
     if (data.exercise.verification_mode === "ai") {
       running = true;
-      status = "Verifica IA in corso…";
+      status = m.editor_ai_in_progress();
       const { verifySolutionWithAi } = await import(
         "../../../../../lib/ai-feedback"
       );
@@ -148,7 +153,7 @@
       running = false;
       output = verification.feedback;
       if (!verification.passed) {
-        status = "La soluzione non ha superato la verifica";
+        status = m.editor_ai_failed();
         return;
       }
     }
@@ -165,7 +170,7 @@
       })
       .eq("class_assignment_id", assignment.id)
       .eq("student_id", session.profile.id);
-    status = r.error ? r.error.message : "Soluzione consegnata";
+    status = r.error ? r.error.message : m.editor_submitted();
   }
   onDestroy(() => {
     worker?.terminate();
@@ -181,58 +186,64 @@
 
 {#if !data}<div class="spinner"></div>{:else}<a
     class="button quiet"
-    href="/exercises">← Torna ai compiti</a
+    href="/exercises">{m.exercise_back_assignments()}</a
   >
   <header class="page-head">
     <div>
-      <p class="eyebrow">ESERCIZIO PYTHON</p>
+      <p class="eyebrow">{m.exercise_python_eyebrow()}</p>
       <h1>{data.exercise.title}</h1>
       <p>
         {assignment?.deadline
-          ? `Scadenza ${new Date(assignment.deadline).toLocaleString("it-IT")}`
-          : "Nessuna scadenza"} · {data.tests.length} test
+          ? m.editor_deadline({
+              date: formatDate(assignment.deadline, {
+                dateStyle: "medium",
+                timeStyle: "short",
+              }),
+            })
+          : m.common_no_deadline()} · {m.editor_test_count({
+          count: data.tests.length,
+        })}
       </p>
     </div>
   </header>
   <div class="tabs" role="tablist">
     <a role="tab" aria-selected="false" href={`/exercises/${data.exercise.id}`}
-      >Traccia</a
+      >{m.exercise_prompt_tab()}</a
     ><a
       role="tab"
       aria-selected="true"
       class="active"
-      href={`/exercises/${data.exercise.id}/editor`}>Editor e codice</a
+      href={`/exercises/${data.exercise.id}/editor`}
+      >{m.exercise_editor_tab()}</a
     >
   </div>
   <section class="panel workspace">
     <div class="toolbar">
-      <strong>main.py</strong><small
-        >Python nel browser · salvataggio automatico</small
-      >
+      <strong>main.py</strong><small>{m.editor_autosave()}</small>
     </div>
     {#key editorVersion}<PythonEditor
         bind:value={code}
-        ariaLabel="Editor Python"
+        ariaLabel={m.editor_python_aria()}
       />{/key}
     <div class="console">
       <header>
         <div class="console-heading">
-          <strong>Output</strong><small
-            >{running ? "Esecuzione in corso…" : "Pronto"}</small
+          <strong>{m.common_output()}</strong><small
+            >{running ? m.editor_running() : m.common_ready()}</small
           >
         </div>
-        <div class="editor-actions" aria-label="Azioni di esecuzione">
+        <div class="editor-actions" aria-label={m.editor_execution_actions()}>
           <button
             class="secondary icon-button"
-            aria-label="Esegui"
-            title="Esegui il codice"
+            aria-label={m.common_run()}
+            title={m.editor_run_title()}
             disabled={running}
             onclick={() => run("run_interactive")}
             ><Icon name="play" size={18} /></button
           >{#if data.exercise.verification_mode === "tests"}<button
               class="secondary icon-button"
-              aria-label="Test"
-              title="Esegui i test"
+              aria-label={m.common_test()}
+              title={m.editor_test_title()}
               disabled={running}
               onclick={() => run("test")}><Icon name="test" size={18} /></button
             >{/if}
@@ -244,12 +255,12 @@
       <button
         class="primary"
         disabled={running || session.profile?.role !== "student" || !assignment}
-        onclick={() => void submit()}>Consegna soluzione</button
+        onclick={() => void submit()}>{m.editor_submit()}</button
       >
     </div>
     {#if status}<p
         role="status"
-        class:success={status === "Soluzione consegnata"}
+        class:success={status === m.editor_submitted()}
       >
         {status}
       </p>{/if}

@@ -2,18 +2,35 @@
 
 ## Lingua
 
-Al primo caricamento PyClasse legge la lingua preferita del browser. L'italiano
-usa i testi italiani della schermata di accesso; le altre lingue usano l'inglese
-di fallback. Il selettore “Language” nella schermata di accesso cambia questi
-testi prima dell'autenticazione. L'area autenticata è attualmente in italiano:
-finché non sarà disponibile una localizzazione completa non presenta una
-preferenza lingua che darebbe un risultato soltanto apparente.
+PyClasse usa Paraglide JS per tutta l'interfaccia SvelteKit. I cataloghi
+versionati si trovano in `messages/{locale}.json`; Paraglide genera funzioni
+TypeScript tipizzate e applica lo stesso locale durante rendering server,
+idratazione e navigazione. Titolo, metadati, etichette accessibili, messaggi di
+stato e formattazione di date seguono la lingua corrente. I contenuti didattici
+scritti da docenti e studenti non vengono tradotti automaticamente.
 
-Il docente può personalizzare dalle Impostazioni il titolo e il sottotitolo
-della pagina di accesso, separatamente per italiano e inglese. Prima del login
-l'applicazione legge esclusivamente questi quattro testi attraverso la funzione
-Supabase `get_public_branding`; email del docente e altre impostazioni private
-non vengono esposte agli utenti anonimi.
+Il locale viene risolto nell'ordine seguente: cookie funzionale impostato dal
+selettore, preferenze `Accept-Language`/browser e infine italiano. Il selettore è
+disponibile sia prima sia dopo l'autenticazione; il middleware aggiorna
+`<html lang>` e `dir`. Le rotte applicative non includono un prefisso di lingua,
+perciò i collegamenti esistenti e i flussi privati restano stabili.
+
+Il docente personalizza titolo e sottotitolo della pagina di accesso per ogni
+locale configurato. `app_branding_translations` conserva una riga per lingua;
+RLS consente la modifica soltanto al docente. Prima del login la funzione
+`get_public_branding(target_locale)` restituisce esclusivamente locale, titolo e
+sottotitolo, usando l'italiano come fallback. Email del docente e altre
+impostazioni non vengono esposte agli utenti anonimi.
+
+### Aggiungere una lingua
+
+1. aggiungere il codice lingua a `project.inlang/settings.json`;
+2. creare `messages/<locale>.json` con le stesse chiavi del catalogo italiano;
+3. eseguire l'app o la build per rigenerare `src/lib/paraglide`;
+4. inserire dal pannello Impostazioni il branding del nuovo locale.
+
+`tests/i18n.test.mjs` impedisce cataloghi con chiavi mancanti e il ritorno di
+rilevamento, formattazione o colonne Supabase legate a una lingua specifica.
 
 ## Voto opzionale
 
@@ -66,10 +83,10 @@ Ogni esercizio può avere una risorsa esterna opzionale, per esempio una pagina 
 
 ## Copertura automatica
 
-I test unitari verificano rilevamento lingua, normalizzazione tag, limiti delle
-scale di voto e tutte le diramazioni del blocco propedeutico. I test del database
-verificano schema, default, vincoli e policy; gli E2E coprono i flussi reali con
-Supabase locale, inclusa la selezione del voto in decimi.
+I test unitari verificano cataloghi, integrazione Paraglide, normalizzazione tag,
+limiti delle scale di voto e tutte le diramazioni del blocco propedeutico. I test
+del database verificano schema, fallback pubblico, vincoli e policy; gli E2E
+coprono il cambio lingua e i flussi reali con Supabase locale.
 
 ## Monitoraggio in tempo reale
 

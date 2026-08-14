@@ -11,6 +11,7 @@
     Submission,
     AssignmentView,
   } from "$lib/types";
+  import { m } from "$lib/paraglide/messages.js";
   let {
     section,
   }: { section: "evaluations" | "progress" | "classes" | "alerts" } = $props();
@@ -75,24 +76,24 @@
   );
   const statusLabel = (status: string) =>
     ({
-      submitted: "Consegnato",
-      passed: "Superato",
-      partial: "Parziale",
-      failed: "Non superato",
+      submitted: m.reports_submitted(),
+      passed: m.reports_passed(),
+      partial: m.reports_partial(),
+      failed: m.reports_failed(),
     })[status] || status;
 </script>
 
 <header class="page-head">
   <div>
-    <p class="eyebrow">REPORT</p>
+    <p class="eyebrow">{m.reports_eyebrow()}</p>
     <h1>
       {section === "evaluations"
-        ? "Valutazioni"
+        ? m.reports_title_evaluations()
         : section === "progress"
-          ? "Avanzamento"
+          ? m.reports_title_progress()
           : section === "classes"
-            ? "Riepilogo classi"
-            : "Alert didattici"}
+            ? m.reports_title_classes()
+            : m.reports_alert_title()}
     </h1>
   </div>
 </header>
@@ -100,33 +101,33 @@
 {#if session.profile?.role !== "teacher" && section !== "evaluations"}<p
     class="error"
   >
-    Questa sezione è riservata al docente.
+    {m.reports_teacher_only()}
   </p>{:else if loading}<div
     class="spinner"
   ></div>{:else if section === "evaluations"}<section class="report-area">
     <div class="filters">
       <label
-        >Cerca studente o esercizio<input
-          aria-label="Cerca studente o esercizio"
+        >{m.reports_search()}<input
+          aria-label={m.reports_search()}
           bind:value={search}
         /></label
       ><label
-        >Classe<select
-          aria-label="Filtra report per classe"
+        >{m.common_class()}<select
+          aria-label={m.reports_filter_report_class()}
           bind:value={classFilter}
-          ><option value="">Tutte</option>{#each classes as c}<option
+          ><option value="">{m.common_all()}</option>{#each classes as c}<option
               value={c.id}>{c.name}</option
             >{/each}</select
         ></label
       ><label
-        >Stato<select
-          aria-label="Filtra report per stato"
+        >{m.common_status()}<select
+          aria-label={m.reports_filter_report_status()}
           bind:value={statusFilter}
-          ><option value="">Tutti</option><option value="submitted"
-            >Consegnato</option
-          ><option value="passed">Superato</option><option value="partial"
-            >Parziale</option
-          ><option value="failed">Non superato</option></select
+          ><option value="">{m.common_all()}</option><option value="submitted"
+            >{m.reports_submitted()}</option
+          ><option value="passed">{m.reports_passed()}</option><option
+            value="partial">{m.reports_partial()}</option
+          ><option value="failed">{m.reports_failed()}</option></select
         ></label
       >
     </div>
@@ -138,38 +139,42 @@
       <div class="table-head table-row" style="--columns:4">
         <span
           >{session.profile?.role === "teacher"
-            ? "Studente"
-            : "Esercizio"}</span
-        ><span>Classe</span><span>Stato</span><span>Voto</span>
+            ? m.reports_student()
+            : m.reports_exercise()}</span
+        ><span>{m.common_class()}</span><span>{m.common_status()}</span><span
+          >{m.common_grade()}</span
+        >
       </div>
       {#each rows as r}<div class="table-row" style="--columns:4">
           <span
             data-label={session.profile?.role === "teacher"
-              ? "Studente"
-              : "Esercizio"}
+              ? m.reports_student()
+              : m.reports_exercise()}
             >{#if session.profile?.role === "teacher" && r.student}<a
                 class="student-link"
                 href={`/reports/valutazioni/studenti/${r.student.id}`}
                 >{r.student.full_name || r.student.email}</a
               >{:else}{r.exercise?.title}{/if}</span
-          ><span data-label="Classe">{r.classroom?.name}</span><span
-            data-label="Stato"
+          ><span data-label={m.common_class()}>{r.classroom?.name}</span><span
+            data-label={m.common_status()}
             class={`submission-status ${r.submission.status}`}
             >{statusLabel(r.submission.status)}</span
-          ><span data-label="Voto"
-            >{r.submission.score ?? "Non ancora assegnato"}</span
+          ><span data-label={m.common_grade()}
+            >{r.submission.score ?? m.reports_not_assigned()}</span
           >
         </div>{:else}<p class="empty-state">
-          Nessuna valutazione disponibile.
+          {m.reports_no_evaluations()}
         </p>{/each}
     </div>
   </section>
 {:else if section === "progress"}<section class="report-area">
     <div class="delivery-summary-table table report-table">
       <div class="table-head table-row" style="--columns:4">
-        <span>Studente</span><span class="student-class-name">Classe</span><span
-          >Consegnati</span
-        ><span>Da completare</span>
+        <span>{m.common_student()}</span><span class="student-class-name"
+          >{m.common_class()}</span
+        ><span>{m.dashboard_submitted()}</span><span
+          >{m.reports_to_complete()}</span
+        >
       </div>
       {#each profiles.filter((p) => p.role === "student") as student}{@const studentClasses =
           memberships
@@ -177,19 +182,19 @@
             .map((m) => classes.find((c) => c.id === m.class_id)?.name)
             .filter(Boolean)}
         <div class="table-row" style="--columns:4">
-          <span data-label="Studente"
+          <span data-label={m.common_student()}
             ><a
               class="student-link"
               href={`/reports/avanzamento/studenti/${student.id}`}
               >{student.full_name || student.email}</a
             ></span
-          ><span data-label="Classe" class="student-class-name"
+          ><span data-label={m.common_class()} class="student-class-name"
             >{studentClasses.join(", ")}</span
-          ><span data-label="Consegnati"
+          ><span data-label={m.dashboard_submitted()}
             >{submissions.filter(
               (s) => s.student_id === student.id && s.status !== "draft",
             ).length}</span
-          ><span data-label="Da completare"
+          ><span data-label={m.reports_to_complete()}
             >{assignments.filter((a) =>
               memberships.some(
                 (m) => m.student_id === student.id && m.class_id === a.class_id,
@@ -207,12 +212,16 @@
         <h2>{c.name}</h2>
         <p>{c.subject}</p>
         <strong
-          >{memberships.filter((m) => m.class_id === c.id).length} studenti</strong
+          >{m.classes_student_count({
+            count: memberships.filter(
+              (membership) => membership.class_id === c.id,
+            ).length,
+          })}</strong
         >
       </article>{/each}
   </section>
 {:else}<section class="panel">
-    <h2>Attività da osservare</h2>
+    <h2>{m.reports_title_alerts()}</h2>
     {#each profiles.filter((p) => p.role === "student") as student}{@const unopened =
         assignments.filter(
           (a) =>
@@ -230,7 +239,9 @@
               href={`/reports/alert/studenti/${student.id}`}
               >{student.full_name || student.email}</a
             ></strong
-          ><span>{unopened.length} attività non ancora aperte</span>
+          ><span
+            >{m.reports_unopened_activities({ count: unopened.length })}</span
+          >
         </article>{/if}{/each}
   </section>{/if}
 

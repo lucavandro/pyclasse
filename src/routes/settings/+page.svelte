@@ -1,11 +1,29 @@
 <script lang="ts">
   import { supabase, supabaseStudioUrl } from "$lib/supabase";
-  import { getSettings } from "$lib/data";
+  import { getBrandingTranslations } from "$lib/data";
   import { loadProfile, session } from "$lib/session.svelte";
-  let titleIt = $state(""),
-    subtitleIt = $state(""),
-    titleEn = $state(""),
-    subtitleEn = $state(""),
+  import { m } from "$lib/paraglide/messages.js";
+  import { getLocale, locales, type Locale } from "$lib/paraglide/runtime.js";
+
+  type BrandingCopy = Record<Locale, { title: string; subtitle: string }>;
+  const defaultTitle = (locale: Locale) => m.auth_default_title({}, { locale });
+  const defaultSubtitle = (locale: Locale) =>
+    m.auth_default_subtitle({}, { locale });
+  const emptyBranding = () =>
+    Object.fromEntries(
+      locales.map((locale) => [
+        locale,
+        {
+          title: String(defaultTitle(locale)),
+          subtitle: String(defaultSubtitle(locale)),
+        },
+      ]),
+    ) as BrandingCopy;
+  const languageName = (locale: Locale) =>
+    new Intl.DisplayNames([getLocale()], { type: "language" }).of(locale) ??
+    locale;
+
+  let branding = $state<BrandingCopy>(emptyBranding()),
     consent = $state(false),
     consentedAt = $state<string | null>(null),
     status = $state(""),
@@ -14,11 +32,14 @@
     const profile = session.profile;
     if (!profile) return;
     void (async () => {
-      const s = await getSettings();
-      titleIt = s?.login_title_it || "";
-      subtitleIt = s?.login_subtitle_it || "";
-      titleEn = s?.login_title_en || "";
-      subtitleEn = s?.login_subtitle_en || "";
+      const translations = await getBrandingTranslations();
+      for (const translation of translations) {
+        if (locales.includes(translation.locale as Locale))
+          branding[translation.locale as Locale] = {
+            title: translation.title,
+            subtitle: translation.subtitle,
+          };
+      }
       if (supabase) {
         const r = await supabase
           .from("profiles")
@@ -36,15 +57,14 @@
     if (!supabase || !profile) return;
     status = "";
     if (profile.role === "teacher") {
-      const r = await supabase
-        .from("app_settings")
-        .update({
-          login_title_it: titleIt.trim(),
-          login_subtitle_it: subtitleIt.trim(),
-          login_title_en: titleEn.trim(),
-          login_subtitle_en: subtitleEn.trim(),
-        })
-        .eq("singleton", true);
+      const r = await supabase.from("app_branding_translations").upsert(
+        locales.map((locale) => ({
+          locale,
+          title: branding[locale].title.trim(),
+          subtitle: branding[locale].subtitle.trim(),
+        })),
+        { onConflict: "locale" },
+      );
       if (r.error) {
         status = r.error.message;
         return;
@@ -59,15 +79,15 @@
           : null,
       })
       .eq("id", profile.id);
-    status = r.error ? r.error.message : "Impostazioni salvate";
+    status = r.error ? r.error.message : m.settings_saved();
     if (!r.error && session.user) await loadProfile(session.user);
   }
 </script>
 
 <header class="page-head">
   <div>
-    <p class="eyebrow">PREFERENZE</p>
-    <h1>Impostazioni</h1>
+    <p class="eyebrow">{m.settings_eyebrow()}</p>
+    <h1>{m.settings_title()}</h1>
   </div>
 </header>
 {#if loading}<div class="spinner"></div>{:else}<form
@@ -78,86 +98,74 @@
     }}
   >
     {#if session.profile?.role === "teacher"}<section class="panel form-grid">
-        <h2>Personalizzazione</h2>
-        <p class="muted">
-          Questi quattro testi compaiono nel pannello sinistro della schermata
-          di accesso. L’anteprima si aggiorna mentre scrivi.
-        </p>
-        <fieldset aria-label="Testi della pagina di accesso" class="form-grid">
-          <legend>Testi della pagina di accesso</legend><label
-            >Titolo (italiano)<input
-              aria-label="Titolo (italiano)"
-              bind:value={titleIt}
-            /></label
-          ><label
-            >Sottotitolo (italiano)<textarea
-              aria-label="Sottotitolo (italiano)"
-              maxlength="240"
-              bind:value={subtitleIt}
-            ></textarea></label
-          ><label
-            >Titolo (inglese)<input
-              aria-label="Titolo (inglese)"
-              bind:value={titleEn}
-            /></label
-          ><label
-            >Sottotitolo (inglese)<textarea
-              aria-label="Sottotitolo (inglese)"
-              maxlength="240"
-              bind:value={subtitleEn}
-            ></textarea></label
-          >
-        </fieldset>
-        <div class="login-preview" aria-label="Anteprima pagina di accesso">
-          <div>
-            <span>Italiano</span>
-            <strong
-              >{titleIt || "Il laboratorio Python della tua classe."}</strong
+        <h2>{m.settings_customization()}</h2>
+        <p class="muted">{m.settings_branding_help()}</p>
+        <fieldset aria-label={m.settings_login_copy()} class="form-grid">
+          <legend>{m.settings_login_copy()}</legend>
+          {#each locales as locale}
+            <label
+              >{m.settings_branding_title({
+                language: languageName(locale),
+              })}<input
+                aria-label={m.settings_branding_title({
+                  language: languageName(locale),
+                })}
+                minlength="5"
+                maxlength="120"
+                bind:value={branding[locale].title}
+                required
+              /></label
+            ><label
+              >{m.settings_branding_subtitle({
+                language: languageName(locale),
+              })}<textarea
+                aria-label={m.settings_branding_subtitle({
+                  language: languageName(locale),
+                })}
+                minlength="5"
+                maxlength="240"
+                bind:value={branding[locale].subtitle}
+                required
+              ></textarea></label
             >
-            <p>
-              {subtitleIt ||
-                "Crea esercizi, segui i progressi e accompagna ogni studente nel suo percorso."}
-            </p>
-          </div>
-          <div>
-            <span>English</span>
-            <strong>{titleEn || "The Python lab for your classroom."}</strong>
-            <p>
-              {subtitleEn ||
-                "Create exercises, follow progress and support every student on their path."}
-            </p>
-          </div>
+          {/each}
+        </fieldset>
+        <div class="login-preview" aria-label={m.settings_login_preview()}>
+          {#each locales as locale}
+            <div>
+              <span>{languageName(locale)}</span>
+              <strong>{branding[locale].title || defaultTitle(locale)}</strong>
+              <p>{branding[locale].subtitle || defaultSubtitle(locale)}</p>
+            </div>
+          {/each}
         </div>
       </section>
       <section class="panel administration-settings">
-        <h2>Amministrazione tecnica</h2>
-        <p>
-          La configurazione del database resta separata dall’interfaccia
-          didattica.
-        </p>
+        <h2>{m.settings_technical_admin()}</h2>
+        <p>{m.settings_admin_help()}</p>
         {#if supabaseStudioUrl}<a
             class="button secondary"
             href={supabaseStudioUrl}
             target="_blank"
-            rel="noopener noreferrer">Apri amministrazione Supabase</a
+            rel="noopener noreferrer">{m.settings_open_supabase()}</a
           >{/if}
       </section>{/if}
     <section class="panel form-grid">
-      <h2>Privacy</h2>
+      <h2>{m.settings_privacy()}</h2>
       <label class="consent"
         ><input
           type="checkbox"
-          aria-label="Consenti l’invio di dati a Puter"
+          aria-label={m.settings_puter_consent()}
           bind:checked={consent}
-        /> Consenti l’invio di dati a Puter</label
+        />
+        {m.settings_puter_consent()}</label
       >
       <p class="muted">
-        Il consenso è facoltativo, specifico e revocabile. Senza consenso i dati
-        non vengono trasferiti al servizio esterno.
+        {m.settings_consent_help()}
       </p>
     </section>
     {#if status}<p role="status">{status}</p>{/if}<button class="primary save"
-      >Salva impostazioni</button
+      >{m.settings_save()}</button
     >
   </form>{/if}
 

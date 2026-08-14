@@ -84,7 +84,11 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
       "none",
     );
     await expect(page.locator(".auth-content")).toHaveCSS("box-shadow", "none");
-    await expect(page.getByText("Accesso aula protetto")).toBeVisible();
+    await expect(
+      page.getByText(
+        "Accesso protetto. Nessun tracciamento o servizio esterno viene attivato automaticamente.",
+      ),
+    ).toBeVisible();
     await expect(page.getByText("Spazi separati per ruolo")).toBeVisible();
     await page.getByLabel("Email").fill("inesistente@pyclasse.test");
     await page.getByLabel("Password").fill("password-non-valida");
@@ -356,13 +360,13 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await login(studentPage, student);
     await studentPage.getByRole("button", { name: "Code now" }).click();
     await studentPage
-      .getByRole("button", { name: "Copia codice prof" })
+      .getByRole("button", { name: "Copia codice docente" })
       .click();
     await expect(studentPage.getByLabel("Editor Code now")).toContainText(
       "codice condiviso dal docente",
     );
     await expect(
-      studentPage.getByRole("button", { name: "Run" }),
+      studentPage.getByRole("button", { name: "Esegui" }),
     ).toBeVisible();
     const downloadEvent = studentPage.waitForEvent("download");
     await studentPage.getByRole("button", { name: "Scarica .py" }).click();
@@ -370,7 +374,7 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await studentPage
       .getByLabel("Editor Code now")
       .fill('nome = input("Nome? ")\nprint("Ciao", nome)');
-    await studentPage.getByRole("button", { name: "Run" }).click();
+    await studentPage.getByRole("button", { name: "Esegui" }).click();
     await expect(studentPage.getByLabel("Valore per input Python")).toBeVisible(
       {
         timeout: 45_000,
@@ -545,9 +549,12 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await page.getByRole("button", { name: "Report", exact: true }).click();
     await page.getByRole("tab", { name: "Avanzamento" }).click();
     await page.getByRole("link", { name: student.name, exact: true }).click();
-    await page.getByLabel("Esito Risposta universale").selectOption("passed");
-    await page.getByLabel("Punteggio Risposta universale").fill("9");
-    await page.getByRole("button", { name: "Salva valutazione" }).click();
+    const evaluation = page.getByRole("form", {
+      name: "Valuta Risposta universale",
+    });
+    await evaluation.getByRole("combobox").selectOption("passed");
+    await evaluation.getByRole("spinbutton", { name: "Punteggio" }).fill("9");
+    await evaluation.getByRole("button", { name: "Salva valutazione" }).click();
     await expect(page.getByRole("status")).toContainText("Valutazione salvata");
     await page.getByRole("tab", { name: "Valutazioni" }).click();
     await expect(page.locator(".teacher-report-table")).toContainText(
@@ -585,7 +592,7 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await expect(
       page.getByRole("link", { name: "Apri amministrazione Supabase" }),
     ).toHaveCount(0);
-    await expect(page.getByLabel("Language")).toHaveCount(0);
+    await expect(page.getByLabel("Lingua")).toHaveCount(1);
     const consent = page.getByLabel("Consenti l’invio di dati a Puter");
     await page
       .getByText("Consenti l’invio di dati a Puter", { exact: true })

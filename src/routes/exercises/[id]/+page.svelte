@@ -3,6 +3,7 @@
   import { getExercise } from "$lib/data";
   import { session } from "$lib/session.svelte";
   import Markdown from "$lib/Markdown.svelte";
+  import { m } from "$lib/paraglide/messages.js";
   let data = $state<any>(null),
     error = $state("");
   $effect(() => {
@@ -15,27 +16,30 @@
 
 {#if error}<p class="error">{error}</p>{:else if !data}<div
     class="spinner"
-  ></div>{:else}<a class="button quiet" href="/exercises">← Torna ai compiti</a>
+  ></div>{:else}<a class="button quiet" href="/exercises"
+    >{m.exercise_back_assignments()}</a
+  >
   <header class="page-head">
     <div>
-      <p class="eyebrow">ESERCIZIO PYTHON</p>
+      <p class="eyebrow">{m.exercise_python_eyebrow()}</p>
       <h1>{data.exercise.title}</h1>
     </div>
     {#if session.profile?.role === "teacher"}<a
         class="button secondary"
-        href={`/exercises/${data.exercise.id}/edit`}>Modifica esercizio</a
+        href={`/exercises/${data.exercise.id}/edit`}>{m.exercise_edit()}</a
       >{/if}
   </header>
-  <div class="tabs" role="tablist" aria-label="Contenuto esercizio">
+  <div class="tabs" role="tablist" aria-label={m.exercise_content()}>
     <a
       role="tab"
       aria-selected="true"
       class="active"
-      href={`/exercises/${data.exercise.id}`}>Traccia</a
+      href={`/exercises/${data.exercise.id}`}>{m.exercise_prompt_tab()}</a
     ><a
       role="tab"
       aria-selected="false"
-      href={`/exercises/${data.exercise.id}/editor`}>Editor e codice</a
+      href={`/exercises/${data.exercise.id}/editor`}
+      >{m.exercise_editor_tab()}</a
     >
   </div>
   <section class="panel brief">
@@ -46,8 +50,8 @@
         href={data.exercise.resource_url}
         target="_blank"
         rel="noopener noreferrer"
-        >{data.exercise.resource_label || "Risorsa esterna"} ↗</a
-      >{/if}{#if data.exercise.constraints}<h3>Vincoli</h3>
+        >{data.exercise.resource_label || m.exercise_external_resource()} ↗</a
+      >{/if}{#if data.exercise.constraints}<h3>{m.exercise_constraints()}</h3>
       <p>{data.exercise.constraints}</p>{/if}
     <div class="meta">
       <strong
@@ -56,12 +60,14 @@
           : data.tests.length}</strong
       ><span
         >{data.exercise.verification_mode === "ai"
-          ? "verifica semantica"
-          : "test automatici"} · {data.exercise.max_points} punti</span
+          ? m.exercise_semantic_verification()
+          : m.exercise_automatic_tests()} · {m.exercise_points({
+          count: data.exercise.max_points,
+        })}</span
       >
     </div>
     <a class="button primary" href={`/exercises/${data.exercise.id}/editor`}
-      >Apri l’editor →</a
+      >{m.exercise_open_editor_arrow()}</a
     >
   </section>{/if}
 

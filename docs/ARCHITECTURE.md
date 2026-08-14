@@ -1,10 +1,14 @@
 # Architettura
 
-Lo schema applicativo completo è definito dalla singola migrazione iniziale `supabase/migrations/20260801000000_initial_schema.sql`. Il progetto non è ancora pubblicato: le precedenti migrazioni incrementali sono state consolidate per mantenere equivalenti installazioni pulite e ambienti locali.
+Lo schema applicativo nasce dalla migrazione iniziale ed evolve tramite
+migrazioni Supabase incrementali e forward-only. Installazioni pulite e upgrade
+applicano gli stessi file in ordine.
 
 ## Componenti
 
 - **Web app:** Svelte 5 e SvelteKit, con adapter Cloudflare, routing file-based e chunk JavaScript/CSS distinti per rotta.
+- **Localizzazione:** Paraglide JS con cataloghi JSON tipizzati, middleware SSR,
+  cookie funzionale e fallback alla lingua base.
 - **Dati e identità:** Supabase Auth, PostgreSQL, RLS e Realtime.
 - **Editor Python:** CodeMirror caricato su richiesta; Pyodide eseguito in un Web Worker con watchdog di 8 secondi.
 - **Contenuti:** Markdown/GFM senza HTML grezzo; risorse esterne solo HTTPS.
@@ -12,7 +16,7 @@ Lo schema applicativo completo è definito dalla singola migrazione iniziale `su
 
 ## Modello dati
 
-`profiles` separa docente e studenti; `classes` e `class_members` gestiscono l'appartenenza; `exercises` contiene la traccia canonica; `class_assignments` aggiunge classe, ordine, scadenza e scala di voto opzionale (`10`, `100` o `NULL`); `tests` contiene i casi visibili; `submissions` contiene bozze, consegne, esiti e attribuzione dell'ultimo aggiornamento; `editor_sessions` conserva soltanto la presenza editor temporanea e il codice condivisibile durante Code now.
+`profiles` separa docente e studenti; `classes` e `class_members` gestiscono l'appartenenza; `exercises` contiene la traccia canonica; `class_assignments` aggiunge classe, ordine, scadenza e scala di voto opzionale (`10`, `100` o `NULL`); `tests` contiene i casi visibili; `submissions` contiene bozze, consegne, esiti e attribuzione dell'ultimo aggiornamento; `editor_sessions` conserva soltanto la presenza editor temporanea e il codice condivisibile durante Code now. `app_branding_translations` conserva esclusivamente il testo pubblico personalizzabile della pagina di accesso, una riga per locale.
 
 Le migrazioni incrementali sono l'unica fonte autorevole dello schema. Un'installazione pulita le applica tutte in ordine e non carica identità o dati didattici fittizi.
 

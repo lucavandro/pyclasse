@@ -13,6 +13,11 @@
     Profile,
     Submission,
   } from "$lib/types";
+  import { m } from "$lib/paraglide/messages.js";
+  import {
+    compareLocalized,
+    formatDate as formatLocalizedDate,
+  } from "$lib/format";
 
   let profiles = $state<Profile[]>([]),
     classes = $state<Classroom[]>([]),
@@ -77,9 +82,9 @@
         ),
       }))
       .sort((left, right) =>
-        (left.classroom?.name || "").localeCompare(
+        compareLocalized(
+          left.classroom?.name || "",
           right.classroom?.name || "",
-          "it",
         ),
       ),
   );
@@ -99,15 +104,17 @@
       : "valutazioni",
   );
   const formatDate = (value: string | null | undefined) =>
-    value ? new Date(value).toLocaleString("it-IT") : "—";
+    value
+      ? formatLocalizedDate(value, { dateStyle: "medium", timeStyle: "short" })
+      : m.common_never();
   const statusLabel = (status: string | undefined) =>
     ({
-      draft: "In corso",
-      submitted: "Consegnato",
-      passed: "Superato",
-      partial: "Parziale",
-      failed: "Non superato",
-    })[status || ""] || "Non iniziato";
+      draft: m.reports_in_progress(),
+      submitted: m.reports_submitted(),
+      passed: m.reports_passed(),
+      partial: m.reports_partial(),
+      failed: m.reports_failed(),
+    })[status || ""] || m.reports_not_started();
 
   async function saveGrade(
     submission: Submission,
@@ -125,24 +132,24 @@
         "id,class_assignment_id,student_id,code,status,score,submitted_at,updated_at,updated_by",
       )
       .single();
-    if (result.error) gradeStatus = "Valutazione non salvata.";
+    if (result.error) gradeStatus = m.reports_evaluation_failed();
     else {
       submissions = submissions.map((item) =>
         item.id === submission.id ? (result.data as Submission) : item,
       );
-      gradeStatus = "Valutazione salvata.";
+      gradeStatus = m.reports_evaluation_saved();
     }
     savingId = "";
   }
 </script>
 
 <a class="button quiet back-link" href={`/reports/${backSection}`}
-  >← Torna al report</a
+  >{m.reports_back()}</a
 >
 <header class="page-head">
   <div>
-    <p class="eyebrow">DETTAGLIO STUDENTE</p>
-    <h1>{student?.full_name || student?.email || "Lavoro dello studente"}</h1>
+    <p class="eyebrow">{m.reports_student_detail()}</p>
+    <h1>{student?.full_name || student?.email || m.reports_student_work()}</h1>
     {#if student}<p>
         {studentMemberships
           .map(
@@ -150,33 +157,44 @@
               classes.find((item) => item.id === membership.class_id)?.name,
           )
           .filter(Boolean)
-          .join(", ") || "Nessuna classe attiva"}
+          .join(", ") || m.reports_no_active_class()}
       </p>{/if}
   </div>
 </header>
 <ReportNav />
 
 {#if session.profile?.role !== "teacher"}<p class="error">
-    Questa pagina è riservata al docente.
+    {m.reports_page_teacher_only()}
   </p>{:else if loading}<div class="spinner"></div>{:else if error}<p
     class="error"
   >
     {error}
   </p>{:else if !student}<p class="empty-state">
-    Studente non disponibile o non appartenente alle tue classi.
-  </p>{:else}<section class="summary-grid" aria-label="Riepilogo del lavoro">
-    <article><strong>{work.length}</strong><span>Assegnati</span></article>
-    <article><strong>{openedCount}</strong><span>Aperti</span></article>
-    <article><strong>{submittedCount}</strong><span>Consegnati</span></article>
-    <article><strong>{passedCount}</strong><span>Superati</span></article>
+    {m.reports_student_unavailable()}
+  </p>{:else}<section
+    class="summary-grid"
+    aria-label={m.reports_work_summary()}
+  >
+    <article>
+      <strong>{work.length}</strong><span>{m.reports_assigned()}</span>
+    </article>
+    <article>
+      <strong>{openedCount}</strong><span>{m.reports_opened()}</span>
+    </article>
+    <article>
+      <strong>{submittedCount}</strong><span>{m.dashboard_submitted()}</span>
+    </article>
+    <article>
+      <strong>{passedCount}</strong><span>{m.reports_passed()}</span>
+    </article>
   </section>
 
   <section class="student-work" aria-labelledby="student-work-title">
-    <h2 id="student-work-title">Attività assegnate</h2>
+    <h2 id="student-work-title">{m.reports_assigned_activities()}</h2>
     {#each work as item}<article class="work-item">
         <div class="work-heading">
           <div>
-            <h3>{item.exercise?.title || "Esercizio non disponibile"}</h3>
+            <h3>{item.exercise?.title || m.reports_exercise_unavailable()}</h3>
             <p>{item.classroom?.name}</p>
           </div>
           <span class={`submission-status ${item.submission?.status || "new"}`}
@@ -185,34 +203,36 @@
         </div>
         <dl>
           <div>
-            <dt>Scadenza</dt>
+            <dt>{m.common_deadline()}</dt>
             <dd>{formatDate(item.assignment.deadline)}</dd>
           </div>
           <div>
-            <dt>Prima apertura</dt>
+            <dt>{m.reports_first_opened()}</dt>
             <dd>{formatDate(item.view?.first_opened_at)}</dd>
           </div>
           <div>
-            <dt>Ultimo aggiornamento</dt>
+            <dt>{m.reports_last_updated()}</dt>
             <dd>{formatDate(item.submission?.updated_at)}</dd>
           </div>
           <div>
-            <dt>Consegna</dt>
+            <dt>{m.reports_submission()}</dt>
             <dd>{formatDate(item.submission?.submitted_at)}</dd>
           </div>
           <div>
-            <dt>Punteggio</dt>
-            <dd>{item.submission?.score ?? "—"}</dd>
+            <dt>{m.common_score()}</dt>
+            <dd>{item.submission?.score ?? m.common_never()}</dd>
           </div>
         </dl>
         {#if item.submission}<details>
-            <summary>Mostra il codice dello studente</summary>
-            <pre><code>{item.submission.code || "# Nessun codice salvato"}</code
+            <summary>{m.reports_show_code()}</summary>
+            <pre><code>{item.submission.code || m.reports_no_saved_code()}</code
               ></pre>
           </details>
           {#if item.assignment.grading_scale}<form
               class="grade-form"
-              aria-label={`Valuta ${item.exercise?.title || "esercizio"}`}
+              aria-label={m.reports_evaluate({
+                title: item.exercise?.title || m.common_exercise(),
+              })}
               onsubmit={(event) => {
                 event.preventDefault();
                 const form = new FormData(event.currentTarget);
@@ -224,22 +244,24 @@
               }}
             >
               <label
-                >Esito<select
+                >{m.reports_outcome()}<select
                   name="status"
-                  aria-label={`Esito ${item.exercise?.title}`}
+                  aria-label={m.reports_evaluate({
+                    title: item.exercise?.title || m.common_exercise(),
+                  })}
                   value={item.submission.status === "submitted"
                     ? "partial"
                     : item.submission.status}
                 >
-                  <option value="passed">Superato</option>
-                  <option value="partial">Parziale</option>
-                  <option value="failed">Non superato</option>
+                  <option value="passed">{m.reports_passed()}</option>
+                  <option value="partial">{m.reports_partial()}</option>
+                  <option value="failed">{m.reports_failed()}</option>
                 </select></label
               >
               <label
-                >Punteggio<input
+                >{m.common_score()}<input
                   name="score"
-                  aria-label={`Punteggio ${item.exercise?.title}`}
+                  aria-label={m.common_score()}
                   type="number"
                   min="0"
                   max={item.assignment.grading_scale}
@@ -249,11 +271,11 @@
               ><button
                 class="secondary"
                 disabled={savingId === item.submission.id}
-                >Salva valutazione</button
+                >{m.reports_save_evaluation()}</button
               >
             </form>{/if}{/if}
       </article>{:else}<p class="empty-state">
-        Nessuna attività assegnata a questo studente.
+        {m.reports_no_student_activities()}
       </p>{/each}
     {#if gradeStatus}<p role="status">{gradeStatus}</p>{/if}
   </section>{/if}

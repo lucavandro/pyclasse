@@ -3,6 +3,7 @@
   import { getClassDetail } from "$lib/data";
   import { session } from "$lib/session.svelte";
   import { supabase } from "$lib/supabase";
+  import { m } from "$lib/paraglide/messages.js";
   import type {
     Classroom,
     Membership,
@@ -46,11 +47,11 @@
     });
     if (result.error) {
       addStatus = result.error.message.includes("Nessuno studente")
-        ? "Nessuno studente registrato con questa email."
-        : "Non è stato possibile aggiungere lo studente.";
+        ? m.classes_student_not_found()
+        : m.classes_student_add_failed();
     } else {
       studentEmail = "";
-      addStatus = "Studente aggiunto alla classe.";
+      addStatus = m.classes_student_added();
       await load();
     }
     adding = false;
@@ -60,32 +61,38 @@
 {#if loading}<div class="spinner"></div>{:else if error || !classroom}<p
     class="error"
   >
-    {error || "Classe non trovata"}
+    {error || m.classes_not_found()}
   </p>{:else}<header class="page-head">
     <div>
-      <p class="eyebrow">CLASSE</p>
+      <p class="eyebrow">{m.classes_class_eyebrow()}</p>
       <h1>{classroom.name} · {classroom.subject}</h1>
-      <p>Codice di iscrizione: <strong>{classroom.join_code}</strong></p>
+      <p>{m.classes_enrollment_code_value({ code: classroom.join_code })}</p>
     </div>
     {#if session.profile?.role === "teacher"}<a
         class="button secondary"
-        href={`/classes/${classroom.id}/edit`}>Modifica</a
+        href={`/classes/${classroom.id}/edit`}>{m.common_edit()}</a
       >{/if}
   </header>
   <div class="columns">
     <section class="panel">
-      <h2>Attività assegnate</h2>
+      <h2>{m.classes_assigned_activities()}</h2>
       {#each assignments as assignment}<article class="row">
           <strong
             >{exercises.find((item) => item.id === assignment.exercise_id)
               ?.title}</strong
-          ><span>{assignment.published_at ? "Pubblicata" : "Bozza"}</span>
-        </article>{:else}<p class="empty-state">Nessuna attività.</p>{/each}
+          ><span
+            >{assignment.published_at
+              ? m.common_published()
+              : m.common_draft()}</span
+          >
+        </article>{:else}<p class="empty-state">
+          {m.classes_no_activities()}
+        </p>{/each}
     </section>
     {#if session.profile?.role === "teacher"}<section class="panel students">
         <div>
-          <h2>Studenti</h2>
-          <p class="muted">Aggiungi un account studente già registrato.</p>
+          <h2>{m.common_students()}</h2>
+          <p class="muted">{m.classes_add_registered_student()}</p>
         </div>
         <form
           class="add-student"
@@ -95,14 +102,14 @@
           }}
         >
           <label
-            >Email dello studente<input
+            >{m.classes_student_email()}<input
               type="email"
               autocomplete="off"
               bind:value={studentEmail}
               required
             /></label
           ><button class="secondary" disabled={adding}
-            >{adding ? "Aggiunta…" : "Aggiungi"}</button
+            >{m.classes_add_student()}</button
           >
         </form>
         {#if addStatus}<p role="status">{addStatus}</p>{/if}
@@ -115,7 +122,7 @@
                 ><strong>{profile?.full_name || profile?.email}</strong></a
               >
             </article>{:else}<p class="empty-state">
-              Nessuno studente iscritto.
+              {m.classes_no_students()}
             </p>{/each}
         </div>
       </section>{/if}

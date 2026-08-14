@@ -8,6 +8,12 @@ PyClasse può conservare identità, email, appartenenza alle classi, codice sorg
 
 I codici salvati volontariamente in Code now sono personali: RLS consente visualizzazione, modifica ed eliminazione esclusivamente al proprietario. Restano conservati fino alla cancellazione da parte dell'utente o alla cancellazione del profilo.
 
+La preferenza dell'interfaccia viene conservata nel cookie first-party
+`PARAGLIDE_LOCALE` per mantenere la lingua scelta, con durata massima di 400
+giorni. Il cookie contiene soltanto il codice lingua, non identifica l'utente,
+non viene inviato a terze parti e può essere sostituito in qualsiasi momento dal
+selettore. Non è usato per analytics, profilazione o decisioni didattiche.
+
 ## Misure tecniche presenti
 
 - Row Level Security su tutte le tabelle applicative;
@@ -20,6 +26,8 @@ I codici salvati volontariamente in Code now sono personali: RLS consente visual
 - CSP, anti-framing, MIME protection, referrer e permissions policy;
 - test automatici per schema, RLS, flussi applicativi e assenza di segreti;
 - monitoraggio limitato al codice corrente e all'ultimo aggiornamento, senza registrare singole battute o dati del dispositivo.
+- cataloghi di traduzione compilati localmente, senza richieste a servizi di
+  traduzione durante l'uso dell'applicazione.
 
 ## Monitoraggio in tempo reale
 

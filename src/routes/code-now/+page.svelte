@@ -6,8 +6,10 @@
   import PythonEditor from "$lib/PythonEditor.svelte";
   import Icon from "$lib/Icon.svelte";
   import type { CodeSnippet } from "$lib/types";
-  let code = $state("# Scrivi qui il tuo codice Python\n"),
-    output = $state("Pronto."),
+  import { m } from "$lib/paraglide/messages.js";
+  import { formatDate } from "$lib/format";
+  let code = $state<string>(m.code_now_starter()),
+    output = $state<string>(m.editor_ready_output()),
     running = $state(false),
     shared = $state(false),
     inputs = $state<string[]>([]),
@@ -59,22 +61,22 @@
     running = true;
     inputPrompt = null;
     inputs = provided;
-    output = "Esecuzione…";
+    output = m.editor_running();
     const watchdog = setTimeout(() => {
       worker?.terminate();
       running = false;
-      output = "Esecuzione interrotta dopo 8 secondi.";
+      output = m.editor_timeout();
     }, 8000);
     worker.onmessage = (e) => {
       clearTimeout(watchdog);
       running = false;
       if (e.data.ok && e.data.inputRequired) {
-        output = e.data.output || "In attesa di un valore…";
-        inputPrompt = e.data.prompt || "Inserisci un valore";
+        output = e.data.output || m.code_now_waiting_value();
+        inputPrompt = e.data.prompt || m.code_now_enter_value();
       } else
         output = e.data.ok
-          ? e.data.output || "(nessun output)"
-          : `Errore:\n${e.data.error}`;
+          ? e.data.output || m.editor_no_output()
+          : m.editor_error({ error: e.data.error });
       worker?.terminate();
     };
     worker.postMessage({
@@ -90,7 +92,7 @@
     if (typeof r.data === "string") {
       code = r.data;
       editorVersion += 1;
-    } else output = "Il docente non ha Code now aperto in questo momento";
+    } else output = m.code_now_teacher_unavailable();
   }
   async function publish(value: string) {
     if (!supabase || session.profile?.role !== "teacher") return;
@@ -131,7 +133,7 @@
     }
   }
   async function remove(id: string) {
-    if (!supabase || !confirm("Eliminare questo codice?")) return;
+    if (!supabase || !confirm(m.code_now_delete_confirm())) return;
     await supabase.from("code_snippets").delete().eq("id", id);
     snippets = snippets.filter((x) => x.id !== id);
   }
@@ -144,54 +146,54 @@
 
 <header class="page-head">
   <div>
-    <p class="eyebrow">LABORATORIO LIBERO</p>
-    <h1>Code now</h1>
-    <p>Scrivi ed esegui liberamente codice Python nel browser.</p>
+    <p class="eyebrow">{m.code_now_lab_eyebrow()}</p>
+    <h1>{m.code_now_title()}</h1>
+    <p>{m.code_now_browser_intro()}</p>
     {#if session.profile?.role === "teacher" && shared}<span class="success"
-        >Codice docente disponibile agli studenti</span
+        >{m.code_now_teacher_shared()}</span
       >{/if}
   </div>
   <div class="actions">
     {#if session.profile?.role === "student"}<button
         class="secondary"
-        onclick={() => void copyTeacher()}>Copia codice prof</button
+        onclick={() => void copyTeacher()}>{m.code_now_copy_teacher()}</button
       >{/if}
   </div>
 </header>
 <section class="panel code-panel">
   <div class="savebar">
     <label
-      >Nome del codice<input
+      >{m.code_now_snippet_name()}<input
         bind:value={snippetName}
-        placeholder="es. Cicli e liste"
+        placeholder={m.code_now_name_placeholder()}
       /></label
     ><button class="secondary" onclick={() => void save()}
-      >{activeId ? "Aggiorna" : "Salva codice"}</button
+      >{activeId ? m.code_now_update() : m.code_now_save()}</button
     >
   </div>
   {#key editorVersion}<PythonEditor
       bind:value={code}
-      ariaLabel="Editor Code now"
+      ariaLabel={m.code_now_editor_aria()}
       allowClipboard={true}
       onChange={(value) => void publish(value)}
     />{/key}
   <div class="code-now-console console">
     <header>
       <div class="console-heading">
-        <strong>Output</strong><small
-          >{running ? "Esecuzione in corso…" : "Pronto"}</small
+        <strong>{m.common_output()}</strong><small
+          >{running ? m.editor_running() : m.common_ready()}</small
         >
       </div>
-      <div class="editor-actions" aria-label="Azioni del codice">
+      <div class="editor-actions" aria-label={m.code_now_actions()}>
         <button
           class="secondary icon-button"
-          aria-label="Scarica .py"
-          title="Scarica il codice in formato .py"
+          aria-label={m.code_now_download_aria()}
+          title={m.code_now_download_title()}
           onclick={download}><Icon name="download" size={18} /></button
         ><button
           class="primary icon-button"
-          aria-label="Run"
-          title="Esegui il codice"
+          aria-label={m.common_run()}
+          title={m.editor_run_title()}
           disabled={running}
           onclick={() => run([])}><Icon name="play" size={18} /></button
         >
@@ -209,15 +211,15 @@
       >
         <label
           >{inputPrompt}<input
-            aria-label="Valore per input Python"
+            aria-label={m.code_now_python_input()}
             bind:value={inputValue}
           /></label
-        ><button class="primary">Invia</button>
+        ><button class="primary">{m.code_now_send()}</button>
       </form>{/if}
   </div>
 </section>
 <section class="panel saved">
-  <h2>Codici salvati</h2>
+  <h2>{m.code_now_saved_codes()}</h2>
   {#each snippets as s}<article>
       <button
         class="quiet open"
@@ -226,16 +228,15 @@
           snippetName = s.name;
           code = s.code;
         }}
-        ><strong>{s.name}</strong><small
-          >{new Date(s.updated_at).toLocaleDateString("it-IT")}</small
+        ><strong>{s.name}</strong><small>{formatDate(s.updated_at)}</small
         ></button
       ><button
-        aria-label={`Elimina ${s.name}`}
+        aria-label={m.code_now_delete_named({ name: s.name })}
         class="quiet danger"
-        onclick={() => void remove(s.id)}>Elimina</button
+        onclick={() => void remove(s.id)}>{m.common_delete()}</button
       >
     </article>{:else}<p class="empty-state">
-      Non hai ancora salvato alcun codice.
+      {m.code_now_none_saved()}
     </p>{/each}
 </section>
 

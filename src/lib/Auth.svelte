@@ -1,10 +1,12 @@
 <script lang="ts">
   import { supabase, signInWithGoogle } from "$lib/supabase";
+  import LocaleSelector from "$lib/LocaleSelector.svelte";
+  import { m } from "$lib/paraglide/messages.js";
+  import { getLocale } from "$lib/paraglide/runtime.js";
   type Branding = {
-    login_title_it: string;
-    login_subtitle_it: string;
-    login_title_en: string;
-    login_subtitle_en: string;
+    locale: string;
+    title: string;
+    subtitle: string;
   };
   let mode = $state<"login" | "register">("login");
   let method = $state<"password" | "otp">("password");
@@ -15,63 +17,27 @@
     otpSent = $state(false),
     busy = $state(false),
     error = $state("");
-  let locale = $state(
-    typeof navigator !== "undefined" && navigator.language.startsWith("en")
-      ? "en"
-      : "it",
-  );
   let branding = $state<Branding | null>(null);
   const otpEnabled = import.meta.env.NEXT_PUBLIC_AUTH_EMAIL_OTP === "true";
   const googleEnabled = import.meta.env.NEXT_PUBLIC_AUTH_GOOGLE === "true";
   $effect(() => {
     if (supabase)
       void supabase
-        .rpc("get_public_branding")
+        .rpc("get_public_branding", { target_locale: getLocale() })
         .then(({ data }) => (branding = (data?.[0] ?? data) as Branding));
   });
-  const copy = $derived(
-    locale === "en"
-      ? {
-          title: "Welcome back",
-          subtitle: "Sign in to continue learning.",
-          login: "Sign in",
-          create: "Create account",
-          register: "Register",
-          name: "Full name",
-          password: "Password",
-          send: "Send code",
-        }
-      : {
-          title: "Bentornato",
-          subtitle: "Accedi per continuare a imparare.",
-          login: "Accedi",
-          create: "Crea account",
-          register: "Registrati",
-          name: "Nome completo",
-          password: "Password",
-          send: "Invia codice",
-        },
-  );
   function friendlyAuthError(cause: unknown) {
     const message =
       cause && typeof cause === "object" && "message" in cause
         ? String(cause.message).toLowerCase()
         : "";
     if (message.includes("invalid login credentials"))
-      return locale === "en"
-        ? "Email or password is incorrect."
-        : "Email o password non corrette.";
+      return m.auth_invalid_credentials();
     if (message.includes("already registered"))
-      return locale === "en"
-        ? "An account already uses this email."
-        : "Esiste già un account con questa email.";
+      return m.auth_already_registered();
     if (message.includes("rate") || message.includes("too many"))
-      return locale === "en"
-        ? "Too many attempts. Please wait before trying again."
-        : "Troppi tentativi. Attendi prima di riprovare.";
-    return locale === "en"
-      ? "Sign-in is temporarily unavailable. Please try again."
-      : "Accesso temporaneamente non disponibile. Riprova.";
+      return m.auth_too_many_attempts();
+    return m.auth_unavailable();
   }
   async function submit() {
     if (!supabase) return;
@@ -121,32 +87,19 @@
   </div>
   <section class="auth-hero" aria-labelledby="auth-hero-title">
     <div class="hero-copy">
-      <p class="eyebrow">PYTHON · CLASSROOM · TOGETHER</p>
+      <p class="eyebrow">{m.auth_hero_eyebrow()}</p>
       <h1 id="auth-hero-title">
-        {locale === "en"
-          ? branding?.login_title_en || "The Python lab for your classroom."
-          : branding?.login_title_it ||
-            "Il laboratorio Python della tua classe."}
+        {branding?.title || m.auth_default_title()}
       </h1>
       <p>
-        {locale === "en"
-          ? branding?.login_subtitle_en ||
-            "Create exercises, follow progress and support every student on their path."
-          : branding?.login_subtitle_it ||
-            "Crea esercizi, segui i progressi e accompagna ogni studente nel suo percorso."}
+        {branding?.subtitle || m.auth_default_subtitle()}
       </p>
-      <ul
-        class="trust-row"
-        aria-label={locale === "en" ? "Benefits" : "Vantaggi"}
-      >
-        <li>{locale === "en" ? "Protected space" : "Ambiente protetto"}</li>
-        <li>
-          {locale === "en" ? "Python in the browser" : "Python nel browser"}
-        </li>
-        <li>Privacy by default</li>
+      <ul class="trust-row" aria-label={m.auth_benefits()}>
+        <li>{m.auth_protected_space()}</li>
+        <li>{m.auth_python_browser()}</li>
+        <li>{m.auth_privacy_default()}</li>
       </ul>
     </div>
-    
   </section>
 
   <section class="auth-form-panel" aria-labelledby="auth-form-title">
@@ -154,11 +107,9 @@
     <div class="panel-orbit orbit-two" aria-hidden="true"></div>
     <div class="auth-content">
       <div class="auth-heading">
-        <p class="eyebrow">
-          {locale === "en" ? "YOUR SPACE" : "IL TUO SPAZIO"}
-        </p>
-        <h2 id="auth-form-title">{copy.title}</h2>
-        <p>{copy.subtitle}</p>
+        <p class="eyebrow">{m.auth_your_space()}</p>
+        <h2 id="auth-form-title">{m.auth_welcome()}</h2>
+        <p>{m.auth_subtitle()}</p>
       </div>
 
       {#if otpEnabled}
@@ -166,20 +117,20 @@
           <button
             role="tab"
             aria-selected={method === "password"}
-            onclick={() => (method = "password")}>Password</button
+            onclick={() => (method = "password")}>{m.auth_password()}</button
           ><button
             role="tab"
             aria-selected={method === "otp"}
-            onclick={() => (method = "otp")}>Codice via email</button
+            onclick={() => (method = "otp")}>{m.auth_email_code()}</button
           >
         </div>
       {/if}
 
       {#if googleEnabled}
         <button class="google" onclick={() => void signInWithGoogle()}
-          >Continua con Google</button
+          >{m.auth_continue_google()}</button
         >
-        <div class="divider">oppure</div>
+        <div class="divider">{m.auth_or()}</div>
       {/if}
 
       <form
@@ -191,8 +142,8 @@
       >
         {#if mode === "register" && method === "password"}
           <label
-            >{copy.name}<input
-              aria-label={copy.name}
+            >{m.auth_full_name()}<input
+              aria-label={m.auth_full_name()}
               autocomplete="name"
               bind:value={name}
               required
@@ -200,9 +151,9 @@
           >
         {/if}
         <label
-          >Email<input
+          >{m.common_email()}<input
             type="email"
-            aria-label="Email"
+            aria-label={m.common_email()}
             autocomplete="email"
             bind:value={email}
             required
@@ -210,9 +161,9 @@
         >
         {#if method === "password"}
           <label
-            >{copy.password}<input
+            >{m.auth_password()}<input
               type="password"
-              aria-label={copy.password}
+              aria-label={m.auth_password()}
               autocomplete={mode === "login"
                 ? "current-password"
                 : "new-password"}
@@ -224,8 +175,8 @@
         {/if}
         {#if otpSent}
           <label
-            >Codice<input
-              aria-label="Codice ricevuto"
+            >{m.auth_code()}<input
+              aria-label={m.auth_received_code()}
               inputmode="numeric"
               autocomplete="one-time-code"
               bind:value={otp}
@@ -237,49 +188,31 @@
         <button class="primary" disabled={busy}
           >{method === "otp"
             ? otpSent
-              ? "Verifica codice"
-              : copy.send
+              ? m.auth_verify_code()
+              : m.auth_send_code()
             : mode === "login"
-              ? copy.login
-              : copy.register}</button
+              ? m.auth_sign_in()
+              : m.auth_register()}</button
         >
       </form>
       {#if method === "password"}
         <button
           class="quiet switch"
           onclick={() => (mode = mode === "login" ? "register" : "login")}
-          >{mode === "login" ? copy.create : copy.login}</button
+          >{mode === "login"
+            ? m.auth_create_account()
+            : m.auth_sign_in()}</button
         >
       {/if}
       <p class="privacy">
-        Accesso protetto. Nessun tracciamento o servizio esterno viene attivato
-        automaticamente.
+        {m.auth_privacy_notice()}
       </p>
-      <div
-        class="assurance"
-        aria-label={locale === "en"
-          ? "Access safeguards"
-          : "Garanzie di accesso"}
-      >
-        <span>{locale === "en" ? "No tracking" : "Nessun tracking"}</span>
-        <span
-          >{locale === "en"
-            ? "Role-based spaces"
-            : "Spazi separati per ruolo"}</span
-        >
+      <div class="assurance" aria-label={m.auth_access_safeguards()}>
+        <span>{m.auth_no_tracking()}</span>
+        <span>{m.auth_role_spaces()}</span>
       </div>
       <div class="language-row">
-        <label class="language"
-          ><span
-            >{locale === "en"
-              ? "Interface language"
-              : "Lingua dell’interfaccia"}</span
-          ><select aria-label="Language" bind:value={locale}
-            ><option value="it">Italiano</option><option value="en"
-              >English</option
-            ></select
-          ></label
-        >
+        <LocaleSelector />
       </div>
     </div>
   </section>
@@ -327,8 +260,7 @@
     mask-image: linear-gradient(to bottom, transparent, #000 30%, #000);
     pointer-events: none;
   }
-  .hero-copy,
-  .code-preview {
+  .hero-copy {
     position: relative;
     z-index: 1;
     width: min(100%, 38rem);
@@ -361,50 +293,6 @@
     color: #b9d7ee;
     background: rgb(7 17 31 / 35%);
     font-size: 0.75rem;
-  }
-  .code-preview {
-    border: 1px solid rgb(104 196 255 / 18%);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    background: rgb(7 17 31 / 68%);
-    box-shadow: var(--shadow-lg);
-  }
-  .code-toolbar {
-    display: flex;
-    gap: var(--space-2);
-    padding: var(--space-4);
-    border-bottom: 1px solid rgb(104 196 255 / 12%);
-    background: rgb(255 255 255 / 3%);
-  }
-  .code-toolbar span {
-    width: 0.6rem;
-    height: 0.6rem;
-    border-radius: 50%;
-    background: var(--color-border-strong);
-  }
-  .code-toolbar span:nth-child(2) {
-    background: var(--color-primary-strong);
-  }
-  .code-toolbar span:nth-child(3) {
-    background: var(--color-primary-soft);
-  }
-  .code-preview pre {
-    margin: 0;
-    padding: clamp(1.25rem, 3vw, 2rem);
-    overflow-x: auto;
-    color: #dce7f4;
-    font-family: var(--font-code);
-    font-size: clamp(0.8rem, 1.15vw, 0.95rem);
-    line-height: 1.8;
-  }
-  .code-keyword {
-    color: var(--color-primary-soft);
-  }
-  .code-function {
-    color: var(--color-green);
-  }
-  .code-string {
-    color: var(--color-yellow);
   }
   .auth-form-panel {
     position: relative;
@@ -473,27 +361,6 @@
     z-index: 1;
     width: min(100%, 460px);
   }
-  .access-status {
-    display: flex;
-    width: fit-content;
-    align-items: center;
-    gap: var(--space-2);
-    margin-bottom: var(--space-5);
-    border: 1px solid rgb(66 211 146 / 18%);
-    border-radius: 999px;
-    padding: 0.35rem 0.65rem;
-    color: #9debc8;
-    background: rgb(66 211 146 / 7%);
-    font-size: var(--font-size-xs);
-    font-weight: 700;
-  }
-  .access-status span {
-    width: 0.45rem;
-    height: 0.45rem;
-    border-radius: 50%;
-    background: var(--color-green);
-    box-shadow: 0 0 0 0.22rem rgb(66 211 146 / 12%);
-  }
   .auth-heading {
     margin-bottom: var(--space-6);
   }
@@ -541,20 +408,6 @@
     margin: var(--space-5) -0.25rem -0.5rem;
     border-top: var(--border);
     padding: var(--space-4) 0.25rem 0;
-  }
-  .language {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-4);
-    color: var(--color-muted);
-    font-size: var(--font-size-xs);
-  }
-  .language select {
-    width: auto;
-    min-width: 7.5rem;
-    min-height: 2.35rem;
-    padding-block: 0.4rem;
   }
   @media (max-width: 900px) {
     .auth-shell {

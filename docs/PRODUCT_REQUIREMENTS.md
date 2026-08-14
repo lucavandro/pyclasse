@@ -21,6 +21,14 @@ uno stato di accesso protetto e indicazioni sintetiche sulle garanzie di privacy
 e separazione dei ruoli. Gli errori di autenticazione sono comprensibili e non
 espongono messaggi tecnici del servizio di identità.
 
+### I18N-001 — Interfaccia localizzabile
+
+L'intera interfaccia usa cataloghi Paraglide tipizzati. Il selettore lingua è
+disponibile prima e dopo l'accesso, persiste una preferenza first-party e
+aggiorna lingua e direzione del documento. Aggiungere un locale non richiede
+nuove condizioni nei componenti né nuove colonne nello schema Supabase. I testi
+didattici inseriti dagli utenti restano invariati.
+
 ## Editor Python
 
 ### EDITOR-001 — Cursore visibile

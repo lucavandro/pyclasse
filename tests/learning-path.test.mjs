@@ -1,6 +1,5 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { detectLocale } from "../lib/i18n-core.mjs";
 import {
   isAssignmentLocked,
   isSafeExternalResource,
@@ -8,12 +7,6 @@ import {
   scoreAsPercentage,
   validScore,
 } from "../lib/learning-path.mjs";
-
-test("autorileva italiano e usa inglese come fallback", () => {
-  assert.equal(detectLocale("it-IT"), "it");
-  assert.equal(detectLocale("en-US"), "en");
-  assert.equal(detectLocale("fr-FR"), "en");
-});
 
 test("normalizza e deduplica i tag", () => {
   assert.deepEqual(normalizeTags(" Cicli, liste, cicli,  "), [

@@ -9,6 +9,7 @@ export default tseslint.config(
       ".svelte-kit/**",
       "dist/**",
       "public/vendor/**",
+      "src/lib/paraglide/**",
       "supabase/.temp/**",
       "sources/**",
     ],

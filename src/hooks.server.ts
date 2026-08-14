@@ -1,8 +1,25 @@
 import type { Handle } from "@sveltejs/kit";
+import { sequence } from "@sveltejs/kit/hooks";
+import { paraglideMiddleware } from "$lib/paraglide/server";
+import { getTextDirection } from "$lib/paraglide/runtime";
 
 const local = ["http://127.0.0.1:54321", "ws://127.0.0.1:54321"];
 
-export const handle: Handle = async ({ event, resolve }) => {
+const paraglideHandle: Handle = ({ event, resolve }) =>
+  paraglideMiddleware(
+    event.request,
+    ({ request: localizedRequest, locale }) => {
+      event.request = localizedRequest;
+      return resolve(event, {
+        transformPageChunk: ({ html }) =>
+          html
+            .replace("%lang%", locale)
+            .replace("%dir%", getTextDirection(locale)),
+      });
+    },
+  );
+
+const securityHandle: Handle = async ({ event, resolve }) => {
   const origin = process.env.NEXT_PUBLIC_SUPABASE_URL
     ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin
     : "";
@@ -29,3 +46,5 @@ export const handle: Handle = async ({ event, resolve }) => {
   );
   return response;
 };
+
+export const handle = sequence(paraglideHandle, securityHandle);

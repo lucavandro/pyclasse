@@ -4,13 +4,14 @@
   import { getClasses, getExercise } from "$lib/data";
   import { session } from "$lib/session.svelte";
   import type { Classroom } from "$lib/types";
+  import { m } from "$lib/paraglide/messages.js";
   let { id }: { id?: string } = $props();
   let title = $state(""),
     description = $state(""),
     resourceUrl = $state(""),
     resourceLabel = $state(""),
     constraints = $state(""),
-    starterCode = $state("# Scrivi qui il codice iniziale\n"),
+    starterCode = $state<string>(m.exercise_starter_code_default()),
     tags = $state(""),
     maxPoints = $state(100),
     isPrerequisite = $state(true),
@@ -162,8 +163,10 @@
 
 <header class="page-head">
   <div>
-    <p class="eyebrow">{id ? "MODIFICA" : "NUOVO"} ESERCIZIO</p>
-    <h1>{id ? "Modifica esercizio" : "Crea un esercizio"}</h1>
+    <p class="eyebrow">
+      {id ? m.exercise_edit_eyebrow() : m.exercise_new_eyebrow()}
+    </p>
+    <h1>{id ? m.exercise_edit() : m.exercise_create()}</h1>
   </div>
 </header>
 <form
@@ -174,10 +177,10 @@
   }}
 >
   <section class="panel ai-generator form-grid">
-    <h2>Assistente per la bozza</h2>
+    <h2>{m.exercise_draft_assistant()}</h2>
     <label
-      >Descrivi l’esercizio da preparare<textarea
-        aria-label="Richiesta per generare esercizio"
+      >{m.exercise_draft_prompt()}<textarea
+        aria-label={m.exercise_draft_prompt_aria()}
         bind:value={aiPrompt}
       ></textarea></label
     >
@@ -185,58 +188,58 @@
       type="button"
       class="secondary"
       disabled={busy}
-      onclick={() => void generateDraft()}>Genera bozza con IA</button
+      onclick={() => void generateDraft()}>{m.exercise_generate_ai()}</button
     >
-    <small
-      >Senza consenso viene creata una bozza locale. Il trasferimento a Puter
-      avviene soltanto se abilitato nelle impostazioni privacy.</small
-    >
+    <small>{m.exercise_ai_privacy()}</small>
   </section>
   <section class="panel form-grid">
     <label
-      >Titolo<input
-        aria-label="Titolo"
+      >{m.common_title()}<input
+        aria-label={m.common_title()}
         bind:value={title}
         maxlength="160"
         required
       /></label
     ><label
-      >Traccia Markdown<textarea
-        aria-label="Traccia Markdown"
+      >{m.exercise_markdown_prompt()}<textarea
+        aria-label={m.exercise_markdown_prompt()}
         bind:value={description}
         required
       ></textarea></label
     >
     <div class="form-row">
       <label
-        >Link risorsa esterna<input
-          aria-label="Link risorsa esterna"
+        >{m.exercise_external_url()}<input
+          aria-label={m.exercise_external_url()}
           type="url"
           bind:value={resourceUrl}
         /></label
       ><label
-        >Titolo risorsa<input
-          aria-label="Titolo risorsa"
+        >{m.exercise_resource_title()}<input
+          aria-label={m.exercise_resource_title()}
           bind:value={resourceLabel}
         /></label
       >
     </div>
-    <label>Vincoli<textarea bind:value={constraints}></textarea></label><label
-      >Codice iniziale<textarea
-        aria-label="Codice iniziale"
+    <label
+      >{m.exercise_constraints()}<textarea bind:value={constraints}
+      ></textarea></label
+    ><label
+      >{m.exercise_starter_code()}<textarea
+        aria-label={m.exercise_starter_code()}
         class="code"
         bind:value={starterCode}
       ></textarea></label
     >
     <div class="form-row">
       <label
-        >Tag<input
-          aria-label="Tag"
-          placeholder="liste, cicli"
+        >{m.exercise_tags()}<input
+          aria-label={m.exercise_tags()}
+          placeholder={m.exercise_tags_placeholder()}
           bind:value={tags}
         /></label
       ><label
-        >Punti massimi<input
+        >{m.exercise_max_points()}<input
           type="number"
           min="1"
           bind:value={maxPoints}
@@ -246,37 +249,35 @@
     <label class="prerequisite-control"
       ><input
         type="checkbox"
-        aria-label="Esercizio propedeutico"
+        aria-label={m.exercise_prerequisite()}
         bind:checked={isPrerequisite}
       />
-      Esercizio propedeutico
-      <small
-        >Blocca le attività successive finché lo studente non consegna.</small
-      ></label
+      {m.exercise_prerequisite()}
+      <small>{m.exercise_prerequisite_help()}</small></label
     >
   </section>
   <section class="panel">
-    <h2>Verifica</h2>
+    <h2>{m.exercise_verification()}</h2>
     <div class="verification-grid">
       <label class="verification-card"
-        ><input type="radio" bind:group={verificationMode} value="tests" /> Test
-        automatici</label
+        ><input type="radio" bind:group={verificationMode} value="tests" />
+        {m.exercise_automatic_tests()}</label
       ><label class="verification-card"
-        ><input type="radio" bind:group={verificationMode} value="ai" /> Verifica
-        IA</label
+        ><input type="radio" bind:group={verificationMode} value="ai" />
+        {m.exercise_ai_verification()}</label
       >
     </div>
     {#if verificationMode === "tests"}{#each tests as test, i}<div
           class="test-row"
         >
           <label
-            >Input test {i + 1}<input
-              aria-label={`Input test ${i + 1}`}
+            >{m.exercise_test_input({ number: i + 1 })}<input
+              aria-label={m.exercise_test_input({ number: i + 1 })}
               bind:value={test.input}
             /></label
           ><label
-            >Output test {i + 1}<input
-              aria-label={`Output test ${i + 1}`}
+            >{m.exercise_test_output({ number: i + 1 })}<input
+              aria-label={m.exercise_test_output({ number: i + 1 })}
               bind:value={test.expected}
             /></label
           >
@@ -284,11 +285,11 @@
         type="button"
         class="secondary"
         onclick={() => tests.push({ input: "", expected: "", points: 100 })}
-        >Aggiungi</button
+        >{m.common_add()}</button
       >{/if}
   </section>
   <section class="panel">
-    <h2>Assegna alle classi</h2>
+    <h2>{m.exercise_assign_classes()}</h2>
     {#each classes as c}<div class="assignment">
         <label class="assignment-toggle"
           ><input
@@ -298,25 +299,28 @@
           />
           {c.name}</label
         ><label
-          >Scala voto per {c.name}<select
-            aria-label={`Scala voto per ${c.name}`}
+          >{m.exercise_grade_scale_for({ name: c.name })}<select
+            aria-label={m.exercise_grade_scale_for({ name: c.name })}
             bind:value={scales[c.id]}
-            ><option value="">Nessun voto</option><option value="10">10</option
+            ><option value="">{m.exercise_no_grade()}</option><option value="10"
+              >10</option
             ><option value="100">100</option></select
           ></label
         ><label
-          >Scadenza per {c.name}<input
+          >{m.exercise_deadline_for({ name: c.name })}<input
             type="datetime-local"
-            aria-label={`Scadenza per ${c.name}`}
+            aria-label={m.exercise_deadline_for({ name: c.name })}
             bind:value={deadlines[c.id]}
             disabled={!selected[c.id]}
           /></label
         >
-      </div>{:else}<p class="empty-state">Crea prima una classe.</p>{/each}
+      </div>{:else}<p class="empty-state">
+        {m.exercise_create_class_first()}
+      </p>{/each}
   </section>
   {#if error}<p class="error">{error}</p>{/if}<button
     class="primary save"
-    disabled={busy}>Salva esercizio</button
+    disabled={busy}>{m.exercise_save()}</button
   >
 </form>
 

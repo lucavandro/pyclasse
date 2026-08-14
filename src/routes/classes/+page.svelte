@@ -3,6 +3,7 @@
   import { supabase } from "$lib/supabase";
   import { session } from "$lib/session.svelte";
   import type { Classroom, Membership } from "$lib/types";
+  import { m } from "$lib/paraglide/messages.js";
   let classes = $state<Classroom[]>([]),
     memberships = $state<Membership[]>([]),
     code = $state(""),
@@ -46,14 +47,14 @@
 
 <header class="page-head">
   <div>
-    <p class="eyebrow">CLASSI</p>
-    <h1>Le tue classi</h1>
-    <p>Ambienti separati per studenti, attività e progressi.</p>
+    <p class="eyebrow">{m.classes_eyebrow()}</p>
+    <h1>{m.classes_title()}</h1>
+    <p>{m.classes_intro()}</p>
   </div>
   {#if session.profile?.role === "teacher"}<a
       class="button primary"
       role="button"
-      href="/classes/new">Nuova classe</a
+      href="/classes/new">{m.classes_new()}</a
     >{/if}
 </header>
 {#if session.profile?.role === "student"}<form
@@ -64,12 +65,12 @@
     }}
   >
     <label
-      >Codice classe<input
-        aria-label="Codice classe"
+      >{m.classes_join_code()}<input
+        aria-label={m.classes_join_code()}
         maxlength="20"
         bind:value={code}
       /></label
-    ><button class="primary">Unisciti</button>
+    ><button class="primary">{m.classes_join()}</button>
   </form>{/if}
 {#if error}<p class="error">{error}</p>{/if}{#if loading}<div
     class="spinner"
@@ -78,13 +79,17 @@
         <p class="eyebrow">{classroom.subject}</p>
         <h2>{classroom.name}</h2>
         <p>
-          {memberships.filter((m) => m.class_id === classroom.id).length} studenti
+          {m.classes_student_count({
+            count: memberships.filter(
+              (membership) => membership.class_id === classroom.id,
+            ).length,
+          })}
         </p>
         <a class="button secondary" href={`/classes/${classroom.id}`}
-          >Apri classe</a
+          >{m.classes_open()}</a
         >
       </article>{:else}<p class="empty-state">
-        Nessuna classe disponibile.
+        {m.classes_empty()}
       </p>{/each}
   </section>{/if}
 

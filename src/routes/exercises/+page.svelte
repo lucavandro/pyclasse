@@ -3,6 +3,8 @@
   import Icon from "$lib/Icon.svelte";
   import { supabase } from "$lib/supabase";
   import { session } from "$lib/session.svelte";
+  import { m } from "$lib/paraglide/messages.js";
+  import { formatDate } from "$lib/format";
   import type { Exercise, Assignment, Classroom, Submission } from "$lib/types";
   import {
     buildExerciseTransfer,
@@ -60,7 +62,7 @@
       anchor.download = `pyclasse-exercises-${new Date().toISOString().slice(0, 10)}.json`;
       anchor.click();
       URL.revokeObjectURL(url);
-      transferStatus = `${library.length} esercizi esportati in JSON.`;
+      transferStatus = m.exercises_export_success({ count: library.length });
     } catch (cause) {
       error = cause instanceof Error ? cause.message : String(cause);
     }
@@ -82,7 +84,7 @@
     importDocument = null;
     try {
       if (!file.name.toLowerCase().endsWith(".json"))
-        throw new Error("Seleziona un file con estensione .json");
+        throw new Error(m.exercises_json_required());
       importDocument = parseExerciseTransfer(await file.text());
     } catch (cause) {
       importError = cause instanceof Error ? cause.message : String(cause);
@@ -115,7 +117,7 @@
           if (insertedTests.error) throw insertedTests.error;
         }
       }
-      transferStatus = `${createdIds.length} esercizi importati. Le assegnazioni alle classi non sono state modificate.`;
+      transferStatus = m.exercises_import_created({ count: createdIds.length });
       importDialog?.close();
       await loadArchive();
     } catch (cause) {
@@ -164,39 +166,40 @@
 
 <header class="page-head">
   <div>
-    <p class="eyebrow">ESERCIZI</p>
+    <p class="eyebrow">{m.exercises_eyebrow()}</p>
     <h1>
       {session.profile?.role === "teacher"
-        ? "Archivio esercizi"
-        : "I tuoi esercizi"}
+        ? m.exercises_archive_title()
+        : m.exercises_student_title()}
     </h1>
   </div>
   {#if session.profile?.role === "teacher"}<div class="archive-actions">
       <button
         class="secondary"
-        title="Esporta tutti gli esercizi in JSON"
+        title={m.exercises_export_title()}
         disabled={loading || exercises.length === 0}
         onclick={() => void exportExercises()}
-        ><Icon name="download" size={18} />Esporta JSON</button
+        ><Icon name="download" size={18} />{m.exercises_export_json()}</button
       ><button class="secondary" onclick={openImport}
-        ><Icon name="upload" size={18} />Importa JSON</button
+        ><Icon name="upload" size={18} />{m.exercises_import_json()}</button
       ><a class="button primary" role="button" href="/exercises/new"
-        >Nuovo esercizio</a
+        >{m.exercises_new()}</a
       >
     </div>{/if}
 </header>
 {#if transferStatus}<p class="success" role="status">{transferStatus}</p>{/if}
 {#if session.profile?.role === "teacher"}<div class="filters">
     <label
-      >Cerca esercizio per nome<input
-        aria-label="Cerca esercizio per nome"
+      >{m.exercises_search()}<input
+        aria-label={m.exercises_search()}
         bind:value={search}
       /></label
     ><label
-      >Filtra per tag<select aria-label="Filtra per tag" bind:value={tag}
-        ><option value="">Tutti i tag</option>{#each tags as t}<option
-            >{t}</option
-          >{/each}</select
+      >{m.exercises_filter_tag()}<select
+        aria-label={m.exercises_filter_tag()}
+        bind:value={tag}
+        ><option value="">{m.exercises_all_tags()}</option
+        >{#each tags as t}<option>{t}</option>{/each}</select
       ></label
     >
   </div>{:else}<div class="tabs" role="tablist">
@@ -204,16 +207,20 @@
       role="tab"
       aria-selected={tab === "assigned"}
       onclick={() => (tab = "assigned")}
-      >Da svolgere {studentRows.filter(
-        (x) => !x.submission || x.submission.status === "draft",
-      ).length}</button
+      >{m.exercises_to_do({
+        count: studentRows.filter(
+          (x) => !x.submission || x.submission.status === "draft",
+        ).length,
+      })}</button
     ><button
       role="tab"
       aria-selected={tab === "submitted"}
       onclick={() => (tab = "submitted")}
-      >Consegnati {submissions.filter(
-        (s) => s.student_id === session.profile?.id && s.status !== "draft",
-      ).length}</button
+      >{m.exercises_submitted_tab({
+        count: submissions.filter(
+          (s) => s.student_id === session.profile?.id && s.status !== "draft",
+        ).length,
+      })}</button
     >
   </div>{/if}
 {#if error}<p class="error">{error}</p>{:else if loading}<div
@@ -232,13 +239,13 @@
             </p>{/each}
           <div class="card-actions">
             <a class="button primary" role="button" href={`/exercises/${ex.id}`}
-              >Inizia</a
+              >{m.exercises_start()}</a
             ><a class="button secondary" href={`/exercises/${ex.id}/edit`}
-              >Modifica</a
+              >{m.common_edit()}</a
             >
           </div>
         </article>{:else}<p class="empty-state">
-          Nessun esercizio disponibile.
+          {m.exercises_empty()}
         </p>{/each}
     {:else}{#each studentRows as item}{#if item.exercise}<article class="card">
             <div class="tags">
@@ -249,13 +256,15 @@
             <p>{summary(item.exercise.description)}</p>
             <p class="student-task-deadline">
               {item.assignment.deadline
-                ? `Scadenza ${new Date(item.assignment.deadline).toLocaleDateString("it-IT")}`
-                : "Nessuna scadenza"}
+                ? m.editor_deadline({
+                    date: formatDate(item.assignment.deadline),
+                  })
+                : m.common_no_deadline()}
             </p>
             {#if item.assignment.grading_scale}<p class="student-task-grading">
-                Voto in {item.assignment.grading_scale === 10
-                  ? "decimi"
-                  : "centesimi"}
+                {item.assignment.grading_scale === 10
+                  ? m.exercises_grade_tenths()
+                  : m.exercises_grade_hundredths()}
               </p>{/if}
             <p>
               {classes.find((c) => c.id === item.assignment.class_id)?.name}
@@ -266,12 +275,12 @@
                 role="button"
                 href={`/exercises/${item.exercise.id}`}
                 >{item.submission && item.submission.status !== "draft"
-                  ? "Rivedi consegna"
-                  : "Inizia"}</a
+                  ? m.exercises_review_submission()
+                  : m.exercises_start()}</a
               >
             </div>
           </article>{/if}{:else}<p class="empty-state">
-          Nessun esercizio disponibile.
+          {m.exercises_empty()}
         </p>{/each}{/if}
   </section>{/if}
 
@@ -282,19 +291,18 @@
   >
     <div class="dialog-head">
       <div>
-        <p class="eyebrow">IMPORTAZIONE JSON</p>
-        <h2 id="import-title">Importa esercizi</h2>
+        <p class="eyebrow">{m.exercises_import_eyebrow()}</p>
+        <h2 id="import-title">{m.exercises_import_title()}</h2>
       </div>
       <button
         class="quiet close-button"
-        aria-label="Chiudi importazione"
-        title="Chiudi"
+        aria-label={m.exercises_close_import()}
+        title={m.exercises_close()}
         onclick={() => importDialog?.close()}>×</button
       >
     </div>
     <p>
-      Il file viene validato nel browser. Classi, studenti, assegnazioni e
-      valutazioni non vengono importati.
+      {m.exercises_import_privacy()}
     </p>
     <button
       type="button"
@@ -314,26 +322,28 @@
       onclick={() => fileInput?.click()}
     >
       <Icon name="upload" size={28} />
-      <strong>Trascina qui il file JSON</strong>
-      <span>oppure selezionalo da Esplora risorse</span>
+      <strong>{m.exercises_drop_json()}</strong>
+      <span>{m.exercises_choose_json()}</span>
     </button>
     <input
       class="file-input"
       bind:this={fileInput}
-      aria-label="File JSON da importare"
+      aria-label={m.exercises_import_file()}
       type="file"
       accept=".json,application/json"
       onchange={(event) =>
         void validateFile((event.currentTarget as HTMLInputElement).files)}
     />
     {#if importFileName}<p class="selected-file">
-        File selezionato: <strong>{importFileName}</strong>
+        {m.exercises_selected_file({ name: importFileName })}
       </p>{/if}
     {#if importError}<p class="error" role="alert">{importError}</p>{/if}
     {#if importDocument}<div class="import-preview" role="status">
-        <strong>File valido</strong>
+        <strong>{m.exercises_valid_file()}</strong>
         <p>
-          {importDocument.exercises.length} esercizi pronti per l’importazione.
+          {m.exercises_ready_to_import({
+            count: importDocument.exercises.length,
+          })}
         </p>
         <ul>
           {#each importDocument.exercises.slice(0, 5) as exercise}<li>
@@ -343,13 +353,15 @@
       </div>{/if}
     <div class="dialog-actions">
       <button class="quiet" onclick={() => importDialog?.close()}
-        >Annulla</button
+        >{m.common_cancel()}</button
       >
       <button
         class="primary"
         disabled={!importDocument || importing}
         onclick={() => void importExercises()}
-        >{importing ? "Importazione…" : "Importa esercizi"}</button
+        >{importing
+          ? m.exercises_importing()
+          : m.exercises_import_title()}</button
       >
     </div>
   </dialog>{/if}

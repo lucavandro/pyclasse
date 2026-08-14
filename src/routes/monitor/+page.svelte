@@ -12,6 +12,7 @@
     Submission,
     EditorSession,
   } from "$lib/types";
+  import { m } from "$lib/paraglide/messages.js";
   let profiles = $state<Profile[]>([]),
     classes = $state<Classroom[]>([]),
     exercises = $state<Exercise[]>([]),
@@ -84,28 +85,27 @@
 
 <header class="page-head">
   <div>
-    <p class="eyebrow">TEMPO REALE</p>
-    <h1>Monitoraggio lavori in corso</h1>
-    <p>
-      Visualizza esclusivamente le bozze che le policy consentono al docente.
-    </p>
+    <p class="eyebrow">{m.monitor_eyebrow()}</p>
+    <h1>{m.monitor_title()}</h1>
+    <p>{m.monitor_intro()}</p>
   </div>
 </header>
 <div class="filters">
   <label
-    >Classe<select
-      aria-label="Filtra monitoraggio per classe"
+    >{m.common_class()}<select
+      aria-label={m.monitor_filter_class()}
       bind:value={classFilter}
-      ><option value="">Tutte</option>{#each classes as c}<option value={c.id}
-          >{c.name}</option
+      ><option value="">{m.common_all()}</option>{#each classes as c}<option
+          value={c.id}>{c.name}</option
         >{/each}</select
     ></label
   ><label
-    >Attività<select
-      aria-label="Filtra monitoraggio per attività"
+    >{m.common_activity()}<select
+      aria-label={m.monitor_filter_activity()}
       bind:value={activityFilter}
-      ><option value="">Tutte</option><option value="active">Attive ora</option
-      ><option value="inactive">Non attive</option></select
+      ><option value="">{m.common_all()}</option><option value="active"
+        >{m.monitor_active_now()}</option
+      ><option value="inactive">{m.monitor_inactive()}</option></select
     ></label
   >
 </div>
@@ -114,19 +114,24 @@
         <header>
           <div>
             <strong>{row.student?.full_name || row.student?.email}</strong
-            ><small>{row.exercise?.title} · in lavorazione</small>
+            ><small>{row.exercise?.title} · {m.monitor_working()}</small>
           </div>
           <span class:active={row.active} class="activity-status"
             ><strong
               >{row.active
-                ? "Editor aperto ora"
-                : "Lavoro aperto, non attivo"}</strong
+                ? m.monitor_editor_open()
+                : m.monitor_work_open_inactive()}</strong
             ></span
           >
         </header>
         <PythonEditor
           value={row.submission.code}
-          ariaLabel={`Codice di ${row.student?.full_name || row.student?.email || "Studente"}`}
+          ariaLabel={m.monitor_student_code({
+            name:
+              row.student?.full_name ||
+              row.student?.email ||
+              m.common_student(),
+          })}
           allowClipboard={true}
         /><button
           class="primary"
@@ -136,10 +141,10 @@
               article.querySelector(".cm-content")?.textContent ||
               row.submission.code;
             void save(row.submission, code);
-          }}>Invia modifica allo studente</button
+          }}>{m.monitor_send_change()}</button
         >
       </article>{:else}<p class="empty-state panel">
-        Nessuna bozza corrisponde ai filtri.
+        {m.monitor_empty()}
       </p>{/each}
   </section>{/if}
 

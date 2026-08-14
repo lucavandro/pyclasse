@@ -68,6 +68,13 @@ test("editor applica blocco clipboard, watchdog e Pyodide self-hosted", async ()
   assert.match(editor, /copy[\s\S]*preventDefault/);
   assert.match(editor, /cut[\s\S]*preventDefault/);
   assert.match(editor, /paste[\s\S]*preventDefault/);
+  assert.match(editor, /python\(\)/);
+  assert.match(editor, /HighlightStyle\.define/);
+  assert.match(editor, /syntaxHighlighting\(pythonHighlightStyle\)/);
+  assert.match(editor, /tags\.keyword/);
+  assert.match(editor, /tags\.function/);
+  assert.match(editor, /tags\.string/);
+  assert.match(editor, /tags\.comment/);
   assert.match(workbench, /8000/);
   assert.match(codeNow, /8000/);
   assert.match(worker, /\/vendor\/pyodide\//);
@@ -115,6 +122,15 @@ test("autenticazione supporta password, OTP e Google", async () => {
   assert.match(auth, /signInWithOtp/);
   assert.match(auth, /verifyOtp/);
   assert.match(auth, /get_public_branding/);
+  assert.equal(
+    auth.match(/src="\/favicon\.svg"/g)?.length,
+    1,
+    "il login mostra il logo una sola volta",
+  );
+  assert.match(auth, /class="language-row"/);
+  assert.doesNotMatch(auth, /\.language\s*\{[\s\S]*position:\s*absolute/);
+  assert.match(auth, /grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(auth, /class="auth-form-panel"/);
   assert.match(client, /provider: "google"/);
 });
 
@@ -134,19 +150,36 @@ test("privacy, monitoraggio e presenza restano espliciti", async () => {
   assert.doesNotMatch(settings, /localStorage/);
 });
 
-test("tema Dracula usa token e CSS locale alle rotte", async () => {
-  const css = await read("src/app.css");
+test("sistema visivo usa palette del logo e CSS locale alle rotte", async () => {
+  const [css, shell, reportNav, icon] = await Promise.all([
+    read("src/app.css"),
+    read("src/lib/Shell.svelte"),
+    read("src/lib/ReportNav.svelte"),
+    read("src/lib/Icon.svelte"),
+  ]);
   for (const token of [
     "--color-background:",
     "--color-surface:",
     "--color-foreground:",
-    "--color-purple:",
+    "--color-primary:",
+    "--color-primary-strong:",
+    "--color-primary-soft:",
     "--focus-ring:",
+    "--shadow-md:",
     "--font-ui:",
     "--space-4:",
     "--radius-md:",
   ])
     assert.match(css, new RegExp(token));
+  assert.match(css, /#2e9eff/i);
+  assert.match(css, /#0c79d8/i);
+  assert.match(css, /#68c4ff/i);
+  assert.match(css, /prefers-reduced-motion/);
+  assert.match(shell, /aria-label="Menu applicazione"/);
+  assert.match(shell, /nav-icon/);
+  assert.match(icon, /aria-hidden="true"/);
+  assert.match(reportNav, /role="tablist"/);
+  assert.match(reportNav, /aria-selected/);
   const route = await read("src/routes/code-now/+page.svelte");
   assert.match(route, /<style>/);
 });

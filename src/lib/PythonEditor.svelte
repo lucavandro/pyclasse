@@ -21,14 +21,39 @@
       import("@codemirror/view"),
       import("@codemirror/commands"),
       import("@codemirror/lang-python"),
+      import("@codemirror/language"),
+      import("@lezer/highlight"),
     ]).then(
       ([
         { EditorState },
         { EditorView, keymap, lineNumbers },
         { defaultKeymap, history, historyKeymap },
         { python },
+        { HighlightStyle, syntaxHighlighting },
+        { tags },
       ]) => {
         if (!active) return;
+        const pythonHighlightStyle = HighlightStyle.define([
+          { tag: tags.keyword, color: "#68c4ff", fontWeight: "650" },
+          { tag: [tags.name, tags.variableName], color: "#f4f8fc" },
+          {
+            tag: [
+              tags.function(tags.variableName),
+              tags.definition(tags.variableName),
+            ],
+            color: "#42d392",
+          },
+          { tag: [tags.string, tags.special(tags.string)], color: "#f8c85a" },
+          { tag: [tags.number, tags.bool, tags.null], color: "#9dbdff" },
+          {
+            tag: [tags.comment, tags.docComment],
+            color: "#7f93aa",
+            fontStyle: "italic",
+          },
+          { tag: [tags.operator, tags.punctuation], color: "#a9b9ca" },
+          { tag: [tags.className, tags.typeName], color: "#7ee6b7" },
+          { tag: tags.invalid, color: "#ff6b7a", textDecoration: "underline" },
+        ]);
         view = new EditorView({
           parent: host,
           state: EditorState.create({
@@ -37,6 +62,7 @@
               lineNumbers(),
               history(),
               python(),
+              syntaxHighlighting(pythonHighlightStyle),
               keymap.of([...defaultKeymap, ...historyKeymap]),
               EditorView.contentAttributes.of({ "aria-label": ariaLabel }),
               EditorView.domEventHandlers({
@@ -82,7 +108,7 @@
 <style>
   .editor {
     min-height: 300px;
-    background: #171821;
+    background: var(--color-surface-subtle);
     border: var(--border);
     font-family: var(--font-code);
     font-size: 0.95rem;
@@ -98,7 +124,7 @@
     padding: 1rem;
   }
   .editor :global(.cm-gutters) {
-    background: #20222d;
+    background: #0e1b2d;
     color: var(--color-muted);
     border: 0;
   }

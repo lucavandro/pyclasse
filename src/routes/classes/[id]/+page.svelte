@@ -81,8 +81,13 @@
   .row {
     display: flex;
     justify-content: space-between;
-    padding: 0.8rem 0;
+    gap: 1rem;
+    padding: 0.9rem;
     border-bottom: var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .row:hover {
+    background: rgb(46 158 255 / 5%);
   }
   @media (max-width: 800px) {
     .columns {

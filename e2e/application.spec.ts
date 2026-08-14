@@ -43,6 +43,24 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
       page.getByRole("heading", { name: "Bentornato" }),
     ).toBeVisible();
     await expect(
+      page.locator('.auth-shell img[src="/favicon.svg"]'),
+    ).toHaveCount(1);
+    await expect(page.locator(".language-row")).toBeVisible();
+    const heroBox = await page.locator(".auth-hero").boundingBox();
+    const formPanelBox = await page.locator(".auth-form-panel").boundingBox();
+    expect(heroBox).not.toBeNull();
+    expect(formPanelBox).not.toBeNull();
+    expect(Math.abs(heroBox!.width - formPanelBox!.width)).toBeLessThanOrEqual(
+      1,
+    );
+    expect(formPanelBox!.x).toBeCloseTo(heroBox!.width, 0);
+    const cardBox = await page.locator(".auth-card").boundingBox();
+    expect(cardBox).not.toBeNull();
+    expect(cardBox!.x).toBeGreaterThanOrEqual(formPanelBox!.x);
+    expect(cardBox!.x + cardBox!.width).toBeLessThanOrEqual(
+      formPanelBox!.x + formPanelBox!.width,
+    );
+    await expect(
       page.getByRole("button", { name: "Continua con Google" }),
     ).toBeVisible();
     await page.getByRole("tab", { name: "Codice via email" }).click();
@@ -50,6 +68,23 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
       page.getByRole("button", { name: "Invia codice" }),
     ).toBeVisible();
     await page.getByRole("tab", { name: "Password" }).click();
+    await expect(page.locator("html")).toHaveCSS(
+      "background-color",
+      "rgb(7, 17, 31)",
+    );
+    await expect(page.locator(".auth-card")).toHaveCSS(
+      "border-radius",
+      "22.4px",
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 390);
+    await expect(page.locator(".auth-hero")).toBeHidden();
+    await expect(page.locator(".auth-shell")).toHaveCSS(
+      "grid-template-columns",
+      "390px",
+    );
+    await expect(page.locator(".auth-brand")).toBeVisible();
+    await expect(page.locator(".language-row")).toBeVisible();
     await expect(page.getByText("Giulia Bianchi")).toHaveCount(0);
     await expect(page.getByText("Liceo Galilei")).toHaveCount(0);
   });
@@ -182,6 +217,13 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await page.getByRole("tab", { name: "Editor e codice" }).click();
     const studentCode = page.locator(".cm-content");
     await studentCode.fill("def answer():\n    return 42");
+    await expect(page.locator(".cm-content span").first()).toBeVisible();
+    const syntaxColors = await page
+      .locator(".cm-content span")
+      .evaluateAll((tokens) =>
+        tokens.map((token) => getComputedStyle(token).color),
+      );
+    expect(new Set(syntaxColors).size).toBeGreaterThanOrEqual(3);
     await page.waitForTimeout(2_200);
     await expect(studentCode).toContainText("return 42");
     await page.getByRole("button", { name: "Test" }).click();
@@ -277,7 +319,7 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await expect(
       teacherPage.getByRole("heading", { name: "Stato delle consegne" }),
     ).toHaveCount(0);
-    await teacherPage.getByRole("button", { name: /Avanzamento/ }).click();
+    await teacherPage.getByRole("tab", { name: /Avanzamento/ }).click();
     await expect(teacherPage).toHaveURL(/\/reports\/avanzamento$/);
     await expect(
       teacherPage
@@ -308,6 +350,9 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await expect(
       teacherPage.getByRole("navigation", { name: "Sezioni report" }),
     ).toBeVisible();
+    await expect(
+      teacherPage.getByRole("tab", { name: "Avanzamento" }),
+    ).toHaveAttribute("aria-selected", "true");
     await teacherPage.setViewportSize({ width: 1280, height: 900 });
     await teacherPage.goBack();
     await expect(teacherPage).toHaveURL(/\/reports\/valutazioni$/);

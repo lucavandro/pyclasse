@@ -40,13 +40,14 @@
     font-family: var(--font-code);
   }
   .markdown :global(code) {
-    background: #191a22;
+    background: var(--color-surface-subtle);
     padding: 0.12rem 0.3rem;
     border-radius: 0.3rem;
   }
   .markdown :global(pre) {
     overflow: auto;
-    background: #191a22;
+    border: var(--border);
+    background: var(--color-surface-subtle);
     padding: 1rem;
     border-radius: var(--radius-md);
   }

@@ -69,6 +69,13 @@
           (!statusFilter || r.submission.status === statusFilter),
       ),
   );
+  const statusLabel = (status: string) =>
+    ({
+      submitted: "Consegnato",
+      passed: "Superato",
+      partial: "Parziale",
+      failed: "Non superato",
+    })[status] || status;
 </script>
 
 <header class="page-head">
@@ -132,7 +139,9 @@
             >{session.profile?.role === "teacher"
               ? r.student?.full_name || r.student?.email
               : r.exercise?.title}</span
-          ><span>{r.classroom?.name}</span><span>{r.submission.status}</span
+          ><span>{r.classroom?.name}</span><span
+            class={`submission-status ${r.submission.status}`}
+            >{statusLabel(r.submission.status)}</span
           ><span>{r.submission.score ?? "Non ancora assegnato"}</span>
         </div>{:else}<p class="empty-state">
           Nessuna valutazione disponibile.
@@ -211,6 +220,27 @@
     justify-content: space-between;
     padding: 1rem 0;
     border-bottom: var(--border);
+  }
+  .submission-status {
+    width: fit-content;
+    border-radius: 999px;
+    padding: 0.24rem 0.6rem;
+    color: var(--color-muted);
+    background: var(--color-surface-raised);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+  }
+  .submission-status.passed {
+    color: #7ee6b7;
+    background: rgb(66 211 146 / 10%);
+  }
+  .submission-status.failed {
+    color: #ff9aa5;
+    background: rgb(255 107 122 / 10%);
+  }
+  .submission-status.partial {
+    color: #ffe19a;
+    background: rgb(248 200 90 / 10%);
   }
   @media (max-width: 700px) {
     .filters {

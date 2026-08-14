@@ -1,163 +1,78 @@
-# Linee guida stilistiche
+# Sistema visivo PyClasse
 
-PyClasse adotta **Dracula Theme** come linguaggio cromatico unico. Ogni nuova
-schermata deve riutilizzare i token CSS esistenti e mantenere coerenza con
-`src/app.css`; colori arbitrari vanno evitati.
+PyClasse usa un sistema visivo scuro, professionale e orientato alla leggibilità. La palette deriva dai tre azzurri del logo e ogni schermata deve usare i token centralizzati in `src/app.css`. Non sono previste richieste a CDN per font, icone o componenti.
 
-## Palette
+## Principi
 
-| Ruolo        | Colore    | Uso principale                   |
-| ------------ | --------- | -------------------------------- |
-| Background   | `#282a36` | pannelli e superfici principali  |
-| Current line | `#44475a` | bordi, separatori e stati neutri |
-| Foreground   | `#f8f8f2` | testo principale                 |
-| Comment      | `#6272a4` | testo secondario decorativo      |
-| Cyan         | `#8be9fd` | link, navigazione e informazioni |
-| Green        | `#50fa7b` | successo e avanzamento           |
-| Orange       | `#ffb86c` | scadenze e avvisi non bloccanti  |
-| Pink         | `#ff79c6` | identità del brand e accenti     |
-| Purple       | `#bd93f9` | azioni primarie e selezioni      |
-| Red          | `#ff5555` | errori e azioni distruttive      |
-| Yellow       | `#f1fa8c` | evidenziazioni                   |
+1. Una sola azione primaria evidente per area.
+2. Gerarchia ottenuta con tipografia, spazio e contrasto, non con decorazioni superflue.
+3. Drawer, tab, form, card e tabelle mantengono lo stesso linguaggio in tutte le rotte.
+4. Lo stato non viene comunicato soltanto dal colore: testo, forma e semantica restano espliciti.
+5. Tutti i layout funzionano da 320 px senza scorrimento orizzontale della pagina.
 
-Sono ammesse tonalità derivate solo per hover, trasparenze, ombre e contrasto.
-Il logo Google conserva i colori ufficiali del provider.
+## Palette del marchio
 
-## Personalizzare la palette
+| Ruolo              | Token                    | Valore    | Uso                         |
+| ------------------ | ------------------------ | --------- | --------------------------- |
+| Sfondo             | `--color-background`     | `#07111f` | Canvas principale           |
+| Superficie         | `--color-surface`        | `#0f1c2e` | Pannelli e drawer           |
+| Superficie elevata | `--color-surface-raised` | `#15243a` | Card e controlli            |
+| Testo              | `--color-foreground`     | `#f4f8fc` | Testo principale            |
+| Testo secondario   | `--color-muted`          | `#9aabc0` | Descrizioni e metadati      |
+| Blu logo           | `--color-primary`        | `#2e9eff` | Azioni primarie e selezioni |
+| Blu intenso        | `--color-primary-strong` | `#0c79d8` | Gradienti e hover           |
+| Azzurro logo       | `--color-primary-soft`   | `#68c4ff` | Focus, link e informazioni  |
 
-Tutti gli stili Dracula attivi leggono i colori dal blocco `:root` collocato
-sotto il commento `Dracula-inspired palette` in `src/app.css`. Per creare una
-variante grafica Ã¨ quindi sufficiente modificare le variabili in quel blocco:
-non bisogna cambiare i singoli selettori o componenti.
+Verde, giallo e rosso sono riservati rispettivamente a successo, attenzione ed errore. Gli alias `--color-purple`, `--color-cyan` e `--color-pink` esistono soltanto per compatibilità con componenti precedenti e puntano alla palette del logo.
 
-I token sono organizzati in tre livelli:
+## Tipografia e spazio
 
-1. `--color-background`, `--color-surface`, `--color-current-line` e
-   `--color-foreground` definiscono sfondi, pannelli, bordi e testo.
-2. `--color-cyan`, `--color-green`, `--color-orange`, `--color-pink`,
-   `--color-purple`, `--color-red` e `--color-yellow` rappresentano la palette
-   Dracula originale.
-3. Le variabili `--color-surface-*`, `--color-text-*`, `--focus-ring`,
-   `--*-shadow` e `--*-surface` sono varianti semantiche per controlli, stati,
-   trasparenze e ombre.
+- Geist è il font dell’interfaccia; Geist Mono è riservato a codice e output.
+- Titoli con peso 680–720, tracking leggermente negativo e scala fluida.
+- Testo base 16 px; note e badge non scendono sotto 12 px.
+- La scala `--space-*` è basata su multipli di 4 px.
+- I controlli hanno altezza minima di 44 px e focus visibile.
 
-Esempio di personalizzazione minima:
+## Componenti condivisi
 
-```css
-:root {
-  --color-background: #10131a;
-  --color-surface: #202532;
-  --color-purple: #a78bfa;
-  --color-cyan: #67e8f9;
-}
-```
+### Accesso
 
-I vecchi nomi `--ink`, `--muted`, `--cream`, `--panel`, `--line`, `--coral`,
-`--teal` e `--blue` sono alias mantenuti per compatibilitÃ : nei nuovi stili si
-devono usare i token `--color-*`. Quando si aggiunge una tonalitÃ , dichiararla
-nel medesimo blocco e assegnarle un nome basato sul suo ruolo, non sul singolo
-componente. Dopo ogni modifica verificare il contrasto WCAG 2.1 AA, inclusi
-hover, focus, messaggi di errore e opzioni native dei menu a tendina.
+La schermata di accesso usa su desktop due metà verticali della stessa larghezza: il pannello editoriale occupa la metà sinistra e il form resta centrato nella metà destra. Sotto i 900 px il pannello editoriale viene rimosso e l’accesso usa tutta la larghezza disponibile. Il marchio PyClasse compare una sola volta, in una posizione stabile sopra il form; il pannello editoriale e la card di autenticazione non devono duplicare logo o nome. Il selettore della lingua appartiene al footer della card, dopo le informazioni su privacy e sicurezza: deve avere un’etichetta visibile e non può essere sovrapposto o posizionato in modo assoluto sopra i contenuti.
 
-## Altri design token
+### Drawer
 
-Lo stesso blocco `:root` centralizza anche le caratteristiche grafiche non
-cromatiche:
+Il drawer desktop misura 272 px e può ridursi a 82 px. Ogni voce comprende icona, etichetta accessibile e stato attivo con accento blu. Il profilo è separato dalla navigazione. Sotto 800 px il drawer diventa un pannello fuori canvas con sfondo oscurato e controllo di chiusura esplicito.
 
-- `--font-ui`, `--font-code` e `--font-editorial` definiscono le famiglie;
-- `--font-size-*`, `--line-height-*` e `--font-weight-*` definiscono la scala
-  tipografica;
-- `--space-*` definisce la scala di spaziatura condivisa;
-- `--radius-*` controlla la forma di campi, pulsanti, badge e pannelli;
-- `--control-min-height`, `--border-width` e `--focus-width` definiscono le
-  dimensioni accessibili dei controlli;
-- `--duration-*` e `--easing-standard` regolano le animazioni;
-- `--layer-*` definisce i livelli di sovrapposizione.
+### Tab
 
-Per cambiare font non bisogna intervenire sui componenti. È sufficiente
-modificare gli alias semantici, lasciando invariati i token usati dai selettori:
+I tab sono contenuti in una barra segmentata, hanno ruolo `tab`, `aria-selected` e stato attivo ad alto contrasto. Su schermi stretti scorrono orizzontalmente senza spezzare le etichette. Non vanno usati per azioni che non cambiano sezione o vista.
 
-```css
-:root {
-  --font-ui: system-ui, sans-serif;
-  --font-code: "Cascadia Code", monospace;
-  --font-editorial: Georgia, serif;
-  --radius-md: 6px;
-  --duration-normal: 0.18s;
-}
-```
+### Card e pannelli
 
-Geist e Geist Mono sono distribuiti localmente da `public/fonts` e dichiarati
-con `@font-face` in `src/app.css`, senza richieste a CDN o servizi Google.
-Sono assegnati rispettivamente a `--font-geist` e `--font-mono`. Per sostituirli
-alla fonte, aggiornare gli asset locali e mantenere `--font-ui` e `--font-code`
-come livello di astrazione. Nei nuovi componenti evitare valori ripetuti scritti
-direttamente: usare il token esistente oppure aggiungerne uno semantico a questa
-scala. I file Geist sono redistribuiti secondo la SIL Open Font License 1.1
-inclusa in `public/fonts/OFL.txt`.
+I pannelli raggruppano contenuti correlati; le card rappresentano oggetti navigabili o riepiloghi. Entrambi usano bordi sottili e ombre contenute. L’elevazione al passaggio del puntatore è decorativa e viene disattivata quando l’utente richiede movimento ridotto.
 
-## Gerarchia visiva
+### Form e tabelle
 
-- Sfondo pagina `#191a21`, pannelli `#282a36`, superfici interattive
-  `#343746` e bordi `#44475a`.
-- Viola per l'azione primaria; ciano per link, focus informativi e azioni
-  secondarie; rosa per il marchio e piccoli richiami.
-- Verde e rosso devono comunicare esclusivamente esito positivo ed errore.
-- Limitare gli accenti simultanei: una sezione deve avere una sola azione
-  primaria evidente.
+Le etichette restano sempre visibili. Campi, select e textarea usano la stessa superficie e uno stato focus blu. Le tabelle hanno intestazione distinta, righe leggibili e contenitore scorrevole; su mobile possono trasformarsi in righe verticali quando le etichette restano comprensibili.
 
-## Tipografia e spaziatura
+### Editor
 
-- Geist è il carattere dell'interfaccia, Geist Mono è riservato a codice,
-  output e valori tecnici; Georgia è usato nei titoli editoriali.
-- Testo base minimo 16 px; etichette e note non devono scendere sotto 11 px.
-- Usare una scala di spaziatura coerente (multipli di 4 px) e mantenere almeno
-  44 px per l'altezza dei controlli principali.
-- Titoli brevi, etichette esplicite e testo operativo; evitare gergo tecnico
-  nelle schermate rivolte a studenti e docenti.
+Editor Python, console e blocchi Markdown usano `--color-surface-subtle` e Geist Mono. Devono restare visivamente parte dell’applicazione senza imitare un tema esterno.
 
-## Componenti e interazioni
+Ogni editor Python deve attivare il parser `@codemirror/lang-python` e uno `HighlightStyle` esplicito. Keyword, funzioni, stringhe, numeri, commenti, operatori, tipi ed errori devono essere distinguibili con colori coerenti con la palette, mantenendo contrasto AA sullo sfondo dell’editor. Il syntax highlighting è presentazione locale: non deve inviare codice a servizi esterni.
 
-- Raggio consigliato: 8–12 px per controlli, 14–18 px per pannelli.
-- I campi devono avere etichette visibili, stato focus evidente e messaggi
-  associati tramite ruoli accessibili.
-- Pulsanti disabilitati riconoscibili ma leggibili; non affidarsi solo al
-  colore per comunicare lo stato.
-- Le opzioni non abilitate, come provider di login opt-in, non devono comparire
-  come controlli inattivi.
-- Le opzioni native dei menu a tendina devono dichiarare esplicitamente colore
-  di testo e sfondo Dracula, perché il rendering predefinito varia fra sistemi
-  operativi.
-- Le icone Material Symbols accompagnano un'etichetta nelle azioni importanti;
-  icone decorative devono essere nascoste alle tecnologie assistive.
+## Accessibilità
 
-## Accessibilità e responsive design
+- Contrasto minimo WCAG 2.1 AA.
+- Navigazione completa da tastiera e `:focus-visible` su ogni controllo.
+- Etichette accessibili per icone e controlli compressi.
+- `prefers-reduced-motion` riduce animazioni e transizioni.
+- Nessuna informazione docente o aggregata deve apparire nell’interfaccia studente.
 
-- Obiettivo minimo WCAG 2.1 AA per contrasto e navigazione da tastiera.
-- Tutti gli elementi interattivi devono mostrare `:focus-visible`.
-- Il layout deve funzionare da 320 px in su senza scorrimento orizzontale.
-- Su schermi piccoli si riduce la complessità visiva, senza rimuovere funzioni
-  o informazioni necessarie.
-- Animazioni e decorazioni non devono bloccare l'uso né veicolare da sole
-  informazioni essenziali.
+## Checklist
 
-## Controlli e report docente
-
-Textarea, select, checkbox e radio usano superficie, bordo, focus ring e token
-del tema. Checkbox e radio personalizzati mantengono l'input nativo nel DOM,
-un'etichetta cliccabile e uno stato `focus-visible`; non vanno sostituiti con
-elementi privi di semantica.
-
-Il report docente separa riepilogo, filtri, valutazioni e monitoraggio Realtime.
-Le azioni ripetute usano pulsanti compatti con nome accessibile, mentre ricerca
-e filtri restano visibili sopra la tabella. Su viewport stretti la tabella
-docente può scorrere orizzontalmente senza comprimere voto e azioni fino a
-renderli illeggibili.
-
-## Checklist per nuove schermate
-
-1. Riutilizzare token, componenti e pattern già presenti.
-2. Verificare desktop e mobile, focus da tastiera e messaggi d'errore.
-3. Non caricare font, icone o immagini da terze parti senza necessità e consenso.
-4. Eseguire formattazione, lint, controllo TypeScript e test pertinenti.
-5. Aggiornare questa guida quando viene introdotto un nuovo pattern condiviso.
+1. Riutilizzare token e pattern condivisi prima di aggiungere CSS locale.
+2. Verificare desktop e mobile, drawer aperto/chiuso e tab overflow.
+3. Controllare focus, contrasto, stati vuoti, errore, successo e disabilitato.
+4. Non aggiungere font, tracking o risorse esterne per impostazione predefinita.
+5. Eseguire `npm run check`, test database ed E2E per modifiche visibili o comportamentali.

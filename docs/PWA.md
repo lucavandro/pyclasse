@@ -1,7 +1,7 @@
 # Progressive Web App
 
 PyClasse è configurata come Progressive Web App installabile. Il manifest
-definisce nome, colori Dracula, icone normali e maskable, modalità standalone e
+definisce nome, palette blu coordinata al logo, icone normali e maskable, modalità standalone e
 collegamenti rapidi a classi ed esercizi.
 
 ## Installazione

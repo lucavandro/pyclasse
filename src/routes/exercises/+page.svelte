@@ -24,6 +24,13 @@
     })();
   });
   const tags = $derived([...new Set(exercises.flatMap((x) => x.tags))]);
+  const summary = (value: string) =>
+    value
+      .replace(/```[\s\S]*?```/g, "")
+      .replace(/[#>*_`[\]()!-]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 145);
   const filtered = $derived(
     exercises.filter(
       (e) =>
@@ -107,7 +114,7 @@
             {#each ex.tags as t}<span class="tag">#{t}</span>{/each}
           </div>
           <h2>{ex.title}</h2>
-          <p>{ex.description.slice(0, 140)}</p>
+          <p>{summary(ex.description)}</p>
           {#each assignments.filter((a) => a.exercise_id === ex.id) as ass}<p>
               {classes.find((c) => c.id === ass.class_id)?.name}
             </p>{/each}
@@ -127,7 +134,7 @@
                 >{/each}
             </div>
             <h2>{item.exercise.title}</h2>
-            <p>{item.exercise.description.slice(0, 140)}</p>
+            <p>{summary(item.exercise.description)}</p>
             <p class="student-task-deadline">
               {item.assignment.deadline
                 ? `Scadenza ${new Date(item.assignment.deadline).toLocaleDateString("it-IT")}`

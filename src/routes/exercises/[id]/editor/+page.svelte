@@ -262,7 +262,8 @@
     padding: 0.8rem 1rem;
   }
   .console {
-    background: #11121a;
+    border-top: var(--border);
+    background: var(--color-surface-subtle);
   }
   .console pre {
     min-height: 100px;

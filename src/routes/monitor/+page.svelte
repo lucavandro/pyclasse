@@ -116,7 +116,7 @@
             <strong>{row.student?.full_name || row.student?.email}</strong
             ><small>{row.exercise?.title} · in lavorazione</small>
           </div>
-          <span class="activity-status"
+          <span class:active={row.active} class="activity-status"
             ><strong
               >{row.active
                 ? "Editor aperto ora"
@@ -168,7 +168,16 @@
     margin-top: 1rem;
   }
   .activity-status {
-    color: var(--color-green);
+    width: fit-content;
+    border-radius: 999px;
+    padding: 0.3rem 0.65rem;
+    color: var(--color-muted);
+    background: rgb(154 171 192 / 8%);
+    font-size: var(--font-size-xs);
+  }
+  .activity-status.active {
+    color: #7ee6b7;
+    background: rgb(66 211 146 / 10%);
   }
   @media (max-width: 600px) {
     .filters,

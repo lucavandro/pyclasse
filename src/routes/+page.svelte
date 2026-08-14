@@ -74,14 +74,36 @@
     gap: 1rem;
   }
   .metrics article {
+    position: relative;
     display: grid;
-    gap: 0.2rem;
+    gap: 0.35rem;
+    border: 1px solid rgb(104 196 255 / 8%);
+    border-radius: var(--radius-lg);
     padding: 1.2rem;
-    background: var(--color-surface-raised);
-    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: linear-gradient(
+      145deg,
+      rgb(46 158 255 / 7%),
+      rgb(7 17 31 / 20%)
+    );
+  }
+  .metrics article::after {
+    position: absolute;
+    right: -1rem;
+    bottom: -2.4rem;
+    width: 6rem;
+    height: 6rem;
+    border-radius: 50%;
+    background: rgb(46 158 255 / 6%);
+    content: "";
   }
   .metrics strong {
-    font-size: 2rem;
-    color: var(--color-cyan);
+    color: var(--color-primary-soft);
+    font-size: 2.15rem;
+    line-height: 1;
+  }
+  .metrics span {
+    color: #dce7f4;
+    font-size: var(--font-size-sm);
   }
 </style>

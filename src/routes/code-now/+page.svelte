@@ -242,7 +242,8 @@
     flex: 1;
   }
   .console {
-    background: #11121a;
+    border-top: var(--border);
+    background: var(--color-surface-subtle);
   }
   .console header {
     display: flex;

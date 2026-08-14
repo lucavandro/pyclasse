@@ -8,10 +8,13 @@
   ];
 </script>
 
-<nav aria-label="Sezioni report" class="tabs">
-  {#each links as l}<a
-      role="button"
-      class:active={page.url.pathname === l[0]}
-      href={l[0]}>{l[1]}</a
-    >{/each}
+<nav aria-label="Sezioni report">
+  <div class="tabs" role="tablist">
+    {#each links as l}<a
+        role="tab"
+        aria-selected={page.url.pathname === l[0]}
+        class:active={page.url.pathname === l[0]}
+        href={l[0]}>{l[1]}</a
+      >{/each}
+  </div>
 </nav>

@@ -329,6 +329,13 @@
     padding: 1rem;
     border: var(--border);
     border-radius: var(--radius-md);
+    background: var(--color-surface-subtle);
+    cursor: pointer;
+  }
+  .verification-card:has(input:checked) {
+    border-color: var(--color-primary);
+    background: var(--color-primary-surface);
+    box-shadow: var(--focus-ring);
   }
   .test-row,
   .assignment {

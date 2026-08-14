@@ -57,6 +57,15 @@ copiare il codice della sua sessione attiva. Lo stato viene applicato anche
 nell'RPC del database e propagato agli studenti con Supabase Realtime, senza
 ricaricare la pagina e senza includere il contenuto dell'editor nell'evento.
 
+### CODE-NOW-003 — Stato e cambio progetto
+
+Code now mostra sempre il progetto corrente: il nome del codice salvato oppure
+`Senza nome`, insieme allo stato salvato o modificato. Prima di sostituire un
+contenuto con un altro codice salvato, con il codice docente o con un nuovo
+progetto, le modifiche locali richiedono una scelta esplicita fra salvataggio,
+scarto e annullamento. Salvare un progetto senza nome richiede prima un nome.
+Quando è aperto un codice salvato è disponibile l'azione **Nuovo progetto**.
+
 ## Esercizi
 
 ### EXERCISE-001 — Controlli di selezione

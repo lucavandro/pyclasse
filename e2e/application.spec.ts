@@ -368,6 +368,12 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await expect(teacherPage.getByRole("status")).toContainText(
       "Codice salvato come Demo condivisione",
     );
+    const currentProject = teacherPage.locator(".project-context");
+    await expect(currentProject).toContainText("Demo condivisione");
+    await expect(currentProject).toContainText("Salvato");
+    await expect(
+      currentProject.getByRole("button", { name: "Nuovo progetto" }),
+    ).toBeVisible();
     await teacherPage.getByRole("button", { name: "Salva codice" }).click();
     await saveDialog
       .getByLabel("Nome del codice")
@@ -388,6 +394,62 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
         .locator(".saved .open")
         .filter({ hasText: "Copia demo condivisione" }),
     ).toBeVisible();
+    await expect(currentProject).toContainText("Copia demo condivisione");
+    const teacherEditor = teacherPage.getByLabel("Editor Code now");
+    const renamedProject = teacherPage
+      .locator(".saved .open")
+      .filter({ hasText: "Demo condivisione rinominata" });
+    const copiedProject = teacherPage
+      .locator(".saved .open")
+      .filter({ hasText: "Copia demo condivisione" });
+    await teacherEditor.fill('print("modifiche alla copia")');
+    await expect(currentProject).toContainText("Modifiche non salvate");
+    await renamedProject.click();
+    const unsavedDialog = teacherPage.getByRole("dialog", {
+      name: "Modifiche non salvate",
+    });
+    await expect(unsavedDialog).toContainText(
+      "prima di aprire Demo condivisione rinominata",
+    );
+    await unsavedDialog.getByRole("button", { name: "Annulla" }).click();
+    await expect(teacherEditor).toContainText("modifiche alla copia");
+    await renamedProject.click();
+    await unsavedDialog.getByRole("button", { name: "Non salvare" }).click();
+    await expect(currentProject).toContainText("Demo condivisione rinominata");
+    await expect(currentProject).toContainText("Salvato");
+    await teacherEditor.fill('print("versione aggiornata")');
+    await copiedProject.click();
+    await unsavedDialog
+      .getByRole("button", { name: "Salva e continua" })
+      .click();
+    await expect(currentProject).toContainText("Copia demo condivisione");
+    await currentProject
+      .getByRole("button", { name: "Nuovo progetto" })
+      .click();
+    await expect(currentProject).toContainText("Senza nome");
+    await expect(currentProject).toContainText("Nuovo progetto");
+    await expect(
+      currentProject.getByRole("button", { name: "Nuovo progetto" }),
+    ).toHaveCount(0);
+    await teacherEditor.fill('print("progetto senza nome")');
+    await renamedProject.click();
+    await unsavedDialog
+      .getByRole("button", { name: "Salva e continua" })
+      .click();
+    await expect(
+      saveDialog.getByRole("heading", { name: "Salva questo codice" }),
+    ).toBeVisible();
+    await saveDialog
+      .getByLabel("Nome del codice")
+      .fill("Nuovo progetto nominato");
+    await saveDialog.getByRole("button", { name: "Salva codice" }).click();
+    await expect(currentProject).toContainText("Demo condivisione rinominata");
+    await expect(
+      teacherPage
+        .locator(".saved .open")
+        .filter({ hasText: "Nuovo progetto nominato" }),
+    ).toBeVisible();
+    await teacherEditor.fill('print("codice condiviso dal docente")');
     await login(studentPage, student);
     await studentPage.getByRole("button", { name: "Code now" }).click();
     const sharingToggle = teacherPage.getByLabel(
@@ -423,6 +485,9 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
         .locator(".saved .open")
         .filter({ hasText: "Copia personale studente" }),
     ).toBeVisible();
+    await expect(studentPage.locator(".project-context")).toContainText(
+      "Copia personale studente",
+    );
     await expect(
       studentPage.getByRole("button", { name: "Esegui" }),
     ).toBeVisible();

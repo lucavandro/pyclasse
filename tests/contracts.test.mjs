@@ -102,6 +102,12 @@ test("editor applica blocco clipboard, watchdog e Pyodide self-hosted", async ()
   assert.match(codeNow, /m\.code_now_download_aria\(\)/);
   assert.match(codeNow, /m\.code_now_save_aria\(\)/);
   assert.match(codeNow, /<dialog[\s\S]*m\.code_now_create_copy\(\)/);
+  assert.match(codeNow, /class="project-context"/);
+  assert.match(codeNow, /m\.code_now_untitled_project\(\)/);
+  assert.match(codeNow, /m\.code_now_open_new_project\(\)/);
+  assert.match(codeNow, /m\.code_now_save_and_continue\(\)/);
+  assert.match(codeNow, /requestProjectChange/);
+  assert.match(codeNow, /code !== savedCode/);
   assert.match(codeNow, /table: "code_now_settings"/);
   assert.match(codeNow, /sharing_enabled/);
   assert.match(worker, /\/vendor\/pyodide\//);

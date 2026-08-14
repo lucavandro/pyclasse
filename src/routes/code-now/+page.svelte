@@ -10,7 +10,13 @@
   import { m } from "$lib/paraglide/messages.js";
   import { formatDate } from "$lib/format";
 
+  type ProjectTarget =
+    | { kind: "snippet"; snippet: CodeSnippet }
+    | { kind: "new" }
+    | { kind: "teacher" };
+
   let code = $state<string>(m.code_now_starter()),
+    savedCode = $state<string>(m.code_now_starter()),
     output = $state<string>(m.editor_ready_output()),
     running = $state(false),
     inputs = $state<string[]>([]),
@@ -27,10 +33,14 @@
     saveName = $state(""),
     saveError = $state(""),
     saveFeedback = $state(""),
+    pendingTarget = $state<ProjectTarget | null>(null),
+    continueAfterSave = $state(false),
     saveDialog: HTMLDialogElement,
+    unsavedDialog: HTMLDialogElement,
     worker: Worker | null = null,
     sharingChannel: RealtimeChannel | null = null,
     timer: ReturnType<typeof setInterval> | undefined;
+  const dirty = $derived(code !== savedCode);
 
   $effect(() => {
     const profile = session.profile;
@@ -111,15 +121,89 @@
     });
   }
 
-  async function copyTeacher() {
+  function applySnippet(snippet: CodeSnippet) {
+    activeId = snippet.id;
+    snippetName = snippet.name;
+    code = snippet.code;
+    savedCode = snippet.code;
+    editorVersion += 1;
+  }
+
+  function applyNewProject() {
+    const starter = m.code_now_starter();
+    activeId = null;
+    snippetName = "";
+    code = starter;
+    savedCode = starter;
+    output = m.editor_ready_output();
+    editorVersion += 1;
+  }
+
+  async function applyProjectTarget(target: ProjectTarget) {
+    if (target.kind === "snippet") {
+      applySnippet(target.snippet);
+      return;
+    }
+    if (target.kind === "new") {
+      applyNewProject();
+      return;
+    }
     if (!supabase || !sharingEnabled) return;
     const result = await supabase.rpc("get_active_teacher_code");
     if (typeof result.data === "string") {
-      code = result.data;
       activeId = null;
       snippetName = "";
+      code = result.data;
+      savedCode = m.code_now_starter();
       editorVersion += 1;
     } else output = m.code_now_teacher_unavailable();
+  }
+
+  function requestProjectChange(target: ProjectTarget) {
+    if (target.kind === "snippet" && target.snippet.id === activeId) return;
+    if (!dirty) {
+      void applyProjectTarget(target);
+      return;
+    }
+    pendingTarget = target;
+    saveError = "";
+    unsavedDialog.showModal();
+  }
+
+  function copyTeacher() {
+    if (!sharingEnabled) return;
+    requestProjectChange({ kind: "teacher" });
+  }
+
+  function targetName(target: ProjectTarget | null) {
+    if (target?.kind === "snippet") return target.snippet.name;
+    if (target?.kind === "teacher") return m.code_now_teacher_project();
+    return m.code_now_new_project();
+  }
+
+  async function discardAndContinue() {
+    const target = pendingTarget;
+    pendingTarget = null;
+    unsavedDialog.close();
+    if (target) await applyProjectTarget(target);
+  }
+
+  function cancelProjectChange() {
+    pendingTarget = null;
+    continueAfterSave = false;
+    unsavedDialog.close();
+  }
+
+  async function saveAndContinue() {
+    if (!pendingTarget) return;
+    if (!activeId) {
+      continueAfterSave = true;
+      unsavedDialog.close();
+      openSaveDialog(true);
+      return;
+    }
+    saveName = snippetName;
+    await save("update", true);
   }
 
   async function publish(value: string) {
@@ -160,14 +244,15 @@
     URL.revokeObjectURL(url);
   }
 
-  function openSaveDialog() {
+  function openSaveDialog(forProjectChange = false) {
     saveName = snippetName;
     saveError = "";
     saveFeedback = "";
+    continueAfterSave = forProjectChange;
     saveDialog.showModal();
   }
 
-  async function save(mode: "update" | "copy") {
+  async function save(mode: "update" | "copy", continueProject = false) {
     if (!supabase || !session.profile || saving) return;
     const name = saveName.trim();
     if (!name) {
@@ -205,12 +290,30 @@
     const saved = result.data as CodeSnippet;
     activeId = saved.id;
     snippetName = saved.name;
+    savedCode = saved.code;
     snippets = [saved, ...snippets.filter((item) => item.id !== saved.id)];
     saveFeedback =
       mode === "copy"
         ? m.code_now_copy_created({ name: saved.name })
         : m.code_now_saved_as({ name: saved.name });
+    const target = continueProject ? pendingTarget : null;
+    continueAfterSave = false;
+    pendingTarget = null;
     saveDialog.close();
+    if (unsavedDialog.open) unsavedDialog.close();
+    if (target) await applyProjectTarget(target);
+  }
+
+  function closeSaveDialog() {
+    if (continueAfterSave) pendingTarget = null;
+    continueAfterSave = false;
+    saveDialog.close();
+  }
+
+  function handleSaveDialogClosed() {
+    saveError = "";
+    if (continueAfterSave) pendingTarget = null;
+    continueAfterSave = false;
   }
 
   async function remove(id: string) {
@@ -221,6 +324,7 @@
     if (activeId === id) {
       activeId = null;
       snippetName = "";
+      savedCode = m.code_now_starter();
     }
   }
 
@@ -254,7 +358,7 @@
         <button
           class="secondary"
           disabled={!sharingReady || !sharingEnabled}
-          onclick={() => void copyTeacher()}>{m.code_now_copy_teacher()}</button
+          onclick={copyTeacher}>{m.code_now_copy_teacher()}</button
         >
         <small
           >{sharingEnabled
@@ -264,6 +368,25 @@
       </div>{/if}
   </div>
 </header>
+
+<section class="project-context" aria-labelledby="current-project-label">
+  <div>
+    <small id="current-project-label">{m.code_now_current_project()}</small>
+    <strong>{snippetName || m.code_now_untitled_project()}</strong>
+    <span class:unsaved={dirty} class="project-status">
+      {dirty
+        ? m.code_now_unsaved_changes()
+        : activeId
+          ? m.code_now_project_saved()
+          : m.code_now_project_new()}
+    </span>
+  </div>
+  {#if activeId}<button
+      class="secondary"
+      onclick={() => requestProjectChange({ kind: "new" })}
+      ><Icon name="plus" size={18} />{m.code_now_open_new_project()}</button
+    >{/if}
+</section>
 
 <section class="panel code-panel">
   {#key editorVersion}<PythonEditor
@@ -289,7 +412,8 @@
           class="secondary icon-button"
           aria-label={m.code_now_save_aria()}
           title={m.code_now_save_title()}
-          onclick={openSaveDialog}><Icon name="save" size={18} /></button
+          onclick={() => openSaveDialog()}
+          ><Icon name="save" size={18} /></button
         ><button
           class="primary icon-button"
           aria-label={m.common_run()}
@@ -325,12 +449,7 @@
       <button
         class="quiet open"
         aria-current={activeId === snippet.id ? "true" : undefined}
-        onclick={() => {
-          activeId = snippet.id;
-          snippetName = snippet.name;
-          code = snippet.code;
-          editorVersion += 1;
-        }}
+        onclick={() => requestProjectChange({ kind: "snippet", snippet })}
         ><strong>{snippet.name}</strong><small
           >{formatDate(snippet.updated_at)}</small
         ></button
@@ -348,7 +467,7 @@
   class="save-dialog"
   aria-labelledby="save-dialog-title"
   bind:this={saveDialog}
-  onclose={() => (saveError = "")}
+  onclose={handleSaveDialogClosed}
 >
   <div class="dialog-head">
     <div>
@@ -363,7 +482,7 @@
       class="quiet close-button"
       aria-label={m.code_now_close_save_dialog()}
       title={m.code_now_close_save_dialog()}
-      onclick={() => saveDialog.close()}><Icon name="close" size={20} /></button
+      onclick={closeSaveDialog}><Icon name="close" size={20} /></button
     >
   </div>
   <p>
@@ -372,7 +491,7 @@
   <form
     onsubmit={(event) => {
       event.preventDefault();
-      void save("update");
+      void save("update", continueAfterSave);
     }}
   >
     <label
@@ -385,7 +504,7 @@
     >
     {#if saveError}<p class="error" role="alert">{saveError}</p>{/if}
     <div class="dialog-actions">
-      <button type="button" class="quiet" onclick={() => saveDialog.close()}
+      <button type="button" class="quiet" onclick={closeSaveDialog}
         >{m.common_cancel()}</button
       >
       {#if activeId}<button
@@ -404,6 +523,46 @@
       >
     </div>
   </form>
+</dialog>
+
+<dialog
+  class="unsaved-dialog"
+  aria-labelledby="unsaved-dialog-title"
+  bind:this={unsavedDialog}
+  onclose={() => {
+    if (!continueAfterSave) pendingTarget = null;
+  }}
+>
+  <div class="dialog-head">
+    <div>
+      <p class="eyebrow">{m.code_now_project_eyebrow()}</p>
+      <h2 id="unsaved-dialog-title">{m.code_now_unsaved_title()}</h2>
+    </div>
+    <button
+      class="quiet close-button"
+      aria-label={m.code_now_close_unsaved_dialog()}
+      title={m.code_now_close_unsaved_dialog()}
+      onclick={cancelProjectChange}><Icon name="close" size={20} /></button
+    >
+  </div>
+  <p>
+    {m.code_now_unsaved_prompt({ target: targetName(pendingTarget) })}
+  </p>
+  {#if saveError}<p class="error" role="alert">{saveError}</p>{/if}
+  <div class="dialog-actions">
+    <button class="quiet" onclick={cancelProjectChange}
+      >{m.common_cancel()}</button
+    >
+    <button class="secondary danger" onclick={() => void discardAndContinue()}
+      >{m.code_now_dont_save()}</button
+    >
+    <button
+      class="primary"
+      disabled={saving}
+      onclick={() => void saveAndContinue()}
+      >{saving ? m.code_now_saving() : m.code_now_save_and_continue()}</button
+    >
+  </div>
 </dialog>
 
 {#if saveFeedback}<p class="toast" role="status">{saveFeedback}</p>{/if}
@@ -429,6 +588,38 @@
     display: grid;
     justify-items: end;
     gap: var(--space-2);
+  }
+  .project-context {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-3);
+    border: var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-surface-subtle);
+  }
+  .project-context > div {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: auto auto;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-3);
+  }
+  .project-context small {
+    grid-column: 1 / -1;
+  }
+  .project-context strong {
+    overflow-wrap: anywhere;
+  }
+  .project-status {
+    color: var(--color-green);
+    font-size: var(--font-size-xs);
+    font-weight: 650;
+  }
+  .project-status.unsaved {
+    color: var(--color-yellow);
   }
   .code-panel {
     padding: 0;
@@ -493,7 +684,8 @@
   .open strong {
     overflow-wrap: anywhere;
   }
-  .save-dialog {
+  .save-dialog,
+  .unsaved-dialog {
     width: min(92vw, 32rem);
     border: var(--border-strong);
     border-radius: var(--radius-xl);
@@ -502,7 +694,8 @@
     background: var(--color-surface);
     box-shadow: var(--shadow-lg);
   }
-  .save-dialog::backdrop {
+  .save-dialog::backdrop,
+  .unsaved-dialog::backdrop {
     background: rgb(0 0 0 / 72%);
     backdrop-filter: blur(3px);
   }
@@ -532,6 +725,16 @@
     }
     .student-share {
       justify-items: stretch;
+    }
+    .project-context {
+      align-items: stretch;
+      flex-direction: column;
+    }
+    .project-context > div {
+      grid-template-columns: 1fr;
+    }
+    .project-context button {
+      width: 100%;
     }
     .dialog-actions {
       flex-direction: column-reverse;

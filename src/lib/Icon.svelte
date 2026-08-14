@@ -19,6 +19,7 @@
       | "download"
       | "save"
       | "copy"
+      | "plus"
       | "upload"
       | "test";
     size?: number;
@@ -77,6 +78,7 @@
       height="12"
       rx="2"
     /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+  {:else if name === "plus"}<path d="M12 5v14M5 12h14" />
   {:else if name === "upload"}<path d="M12 16V4m0 0 4 4m-4-4-4 4" /><path
       d="M5 20h14"
     />

@@ -65,6 +65,12 @@ dell'output; ogni pulsante con sola icona richiede `aria-label` e tooltip. Il
 salvataggio apre un modal essenziale con etichetta visibile e azioni distinte
 per aggiornare o creare una copia.
 
+Code now mostra sopra l'editor una barra compatta con nome e stato del progetto.
+Il giallo segnala modifiche non salvate ed è sempre accompagnato da testo. Il
+cambio di progetto con modifiche pendenti usa un modal con tre azioni esplicite:
+salvare e continuare, non salvare oppure annullare. Su mobile barra e azioni si
+dispongono verticalmente senza introdurre scorrimento orizzontale della pagina.
+
 Ogni editor Python deve attivare il parser `@codemirror/lang-python` e uno `HighlightStyle` esplicito. Keyword, funzioni, stringhe, numeri, commenti, operatori, tipi ed errori devono essere distinguibili con colori coerenti con la palette, mantenendo contrasto AA sullo sfondo dell’editor. Il syntax highlighting è presentazione locale: non deve inviare codice a servizi esterni.
 
 ## Accessibilità

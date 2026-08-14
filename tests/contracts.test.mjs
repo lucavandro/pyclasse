@@ -6,8 +6,15 @@ const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
 const schema = async () =>
   (
-    await read("supabase/migrations/20260801000000_initial_schema.sql")
-  ).replaceAll('"', "");
+    await Promise.all([
+      read("supabase/migrations/20260801000000_initial_schema.sql"),
+      read(
+        "supabase/migrations/20260814000000_harden_teacher_authorization.sql",
+      ),
+    ])
+  )
+    .join("\n")
+    .replaceAll('"', "");
 
 test("SvelteKit separa le funzionalità in rotte autonome", async () => {
   const expected = [
@@ -133,7 +140,7 @@ test("dati sono letti da Supabase per dominio e mai incorporati nella UI", async
     "submissions",
     "editor_sessions",
   ])
-    assert.match(data, new RegExp(`\\("${table}"`));
+    assert.match(data, new RegExp(`["']${table}["']`));
   const routes = await Promise.all([
     read("src/routes/+page.svelte"),
     read("src/routes/classes/+page.svelte"),
@@ -143,6 +150,38 @@ test("dati sono letti da Supabase per dominio e mai incorporati nella UI", async
     routes.join("\n"),
     /Giulia Bianchi|Marco Rossi|Liceo Galilei/i,
   );
+  assert.doesNotMatch(data, /select\(["']\*["']\)/);
+  assert.match(data, /getDashboard/);
+  assert.match(data, /getStudentSubmissions[\s\S]*\.eq\("student_id"/);
+  assert.doesNotMatch(
+    data.match(/submissionSummaryColumns\s*=([\s\S]*?);/)?.[1] || "",
+    /code/,
+  );
+});
+
+test("funzioni di classe e valutazione sono raggiungibili dall'interfaccia", async () => {
+  const [classDetail, studentDetail] = await Promise.all([
+    read("src/routes/classes/[id]/+page.svelte"),
+    read("src/routes/reports/[section]/studenti/[id]/+page.svelte"),
+  ]);
+  assert.match(classDetail, /add_student_to_class/);
+  assert.match(classDetail, /Email dello studente/);
+  assert.match(studentDetail, /Salva valutazione/);
+  assert.match(studentDetail, /grading_scale/);
+});
+
+test("le operazioni docente verificano ruolo e proprietÃ  nel database", async () => {
+  const sql = await schema();
+  assert.match(sql, /create or replace function public\.is_teacher\(\)/i);
+  assert.match(
+    sql,
+    /teachers create exercises[\s\S]*is_teacher\(\)[\s\S]*teacher_id/i,
+  );
+  assert.match(
+    sql,
+    /teachers create own classes[\s\S]*is_teacher\(\)[\s\S]*teacher_id/i,
+  );
+  assert.match(sql, /publish_code_now[\s\S]*not public\.is_teacher\(\)/i);
 });
 
 test("autenticazione supporta password, OTP e Google", async () => {
@@ -163,6 +202,8 @@ test("autenticazione supporta password, OTP e Google", async () => {
   assert.doesNotMatch(auth, /\.language\s*\{[\s\S]*position:\s*absolute/);
   assert.match(auth, /grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(auth, /class="auth-form-panel"/);
+  assert.match(auth, /friendlyAuthError/);
+  assert.match(auth, /Accesso aula protetto/);
   assert.match(client, /provider: "google"/);
 });
 
@@ -180,6 +221,9 @@ test("privacy, monitoraggio e presenza restano espliciti", async () => {
   assert.match(presenceMigration, /active_until/);
   assert.match(presenceMigration, /interval '25 seconds'/);
   assert.doesNotMatch(settings, /localStorage/);
+  assert.doesNotMatch(settings, /bind:value=\{schoolName\}/);
+  assert.doesNotMatch(settings, /aria-label="Language"/);
+  assert.match(settings, /Anteprima pagina di accesso/);
 });
 
 test("sistema visivo usa palette del logo e CSS locale alle rotte", async () => {

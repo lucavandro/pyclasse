@@ -1,8 +1,9 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import { getReports } from "$lib/data";
+  import { getReportContext, getStudentSubmissions } from "$lib/data";
   import ReportNav from "$lib/ReportNav.svelte";
   import { session } from "$lib/session.svelte";
+  import { supabase } from "$lib/supabase";
   import type {
     Assignment,
     AssignmentView,
@@ -20,6 +21,8 @@
     assignments = $state<Assignment[]>([]),
     submissions = $state<Submission[]>([]),
     views = $state<AssignmentView[]>([]),
+    savingId = $state(""),
+    gradeStatus = $state(""),
     loading = $state(true),
     error = $state("");
 
@@ -29,17 +32,13 @@
       loading = false;
       return;
     }
-    void getReports()
-      .then((data) => {
-        [
-          profiles,
-          classes,
-          memberships,
-          exercises,
-          assignments,
-          submissions,
-          views,
-        ] = data;
+    void Promise.all([
+      getReportContext(),
+      getStudentSubmissions(page.params.id || ""),
+    ])
+      .then(([data, studentSubmissions]) => {
+        [profiles, classes, memberships, exercises, assignments, views] = data;
+        submissions = studentSubmissions;
       })
       .catch((cause) => {
         error = cause instanceof Error ? cause.message : String(cause);
@@ -109,6 +108,32 @@
       partial: "Parziale",
       failed: "Non superato",
     })[status || ""] || "Non iniziato";
+
+  async function saveGrade(
+    submission: Submission,
+    status: "passed" | "partial" | "failed",
+    score: number,
+  ) {
+    if (!supabase) return;
+    savingId = submission.id;
+    gradeStatus = "";
+    const result = await supabase
+      .from("submissions")
+      .update({ status, score })
+      .eq("id", submission.id)
+      .select(
+        "id,class_assignment_id,student_id,code,status,score,submitted_at,updated_at,updated_by",
+      )
+      .single();
+    if (result.error) gradeStatus = "Valutazione non salvata.";
+    else {
+      submissions = submissions.map((item) =>
+        item.id === submission.id ? (result.data as Submission) : item,
+      );
+      gradeStatus = "Valutazione salvata.";
+    }
+    savingId = "";
+  }
 </script>
 
 <a class="button quiet back-link" href={`/reports/${backSection}`}
@@ -184,10 +209,53 @@
             <summary>Mostra il codice dello studente</summary>
             <pre><code>{item.submission.code || "# Nessun codice salvato"}</code
               ></pre>
-          </details>{/if}
+          </details>
+          {#if item.assignment.grading_scale}<form
+              class="grade-form"
+              aria-label={`Valuta ${item.exercise?.title || "esercizio"}`}
+              onsubmit={(event) => {
+                event.preventDefault();
+                const form = new FormData(event.currentTarget);
+                void saveGrade(
+                  item.submission!,
+                  form.get("status") as "passed" | "partial" | "failed",
+                  Number(form.get("score")),
+                );
+              }}
+            >
+              <label
+                >Esito<select
+                  name="status"
+                  aria-label={`Esito ${item.exercise?.title}`}
+                  value={item.submission.status === "submitted"
+                    ? "partial"
+                    : item.submission.status}
+                >
+                  <option value="passed">Superato</option>
+                  <option value="partial">Parziale</option>
+                  <option value="failed">Non superato</option>
+                </select></label
+              >
+              <label
+                >Punteggio<input
+                  name="score"
+                  aria-label={`Punteggio ${item.exercise?.title}`}
+                  type="number"
+                  min="0"
+                  max={item.assignment.grading_scale}
+                  value={item.submission.score ?? ""}
+                  required
+                /></label
+              ><button
+                class="secondary"
+                disabled={savingId === item.submission.id}
+                >Salva valutazione</button
+              >
+            </form>{/if}{/if}
       </article>{:else}<p class="empty-state">
         Nessuna attività assegnata a questo studente.
       </p>{/each}
+    {#if gradeStatus}<p role="status">{gradeStatus}</p>{/if}
   </section>{/if}
 
 <style>
@@ -277,6 +345,15 @@
     border-top: var(--border);
     padding-top: var(--space-4);
   }
+  .grade-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: var(--space-3);
+    align-items: end;
+    margin-top: var(--space-5);
+    border-top: var(--border);
+    padding-top: var(--space-4);
+  }
   summary {
     width: fit-content;
     color: var(--color-primary-soft);
@@ -306,6 +383,9 @@
       display: grid;
     }
     dl {
+      grid-template-columns: 1fr;
+    }
+    .grade-form {
       grid-template-columns: 1fr;
     }
   }

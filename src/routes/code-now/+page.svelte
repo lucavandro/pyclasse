@@ -23,6 +23,7 @@
     const profile = session.profile;
     if (profile) {
       void getSnippets().then((x) => (snippets = x));
+      if (profile.role !== "teacher") return;
       const beat = () =>
         supabase?.from("editor_sessions").upsert({
           user_id: profile.id,

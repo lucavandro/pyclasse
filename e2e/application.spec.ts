@@ -79,6 +79,14 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
       "border-radius",
       "22.4px",
     );
+    await expect(page.getByText("Accesso aula protetto")).toBeVisible();
+    await expect(page.getByText("Spazi separati per ruolo")).toBeVisible();
+    await page.getByLabel("Email").fill("inesistente@pyclasse.test");
+    await page.getByLabel("Password").fill("password-non-valida");
+    await page.getByRole("button", { name: "Accedi" }).click();
+    await expect(page.getByRole("alert")).toHaveText(
+      "Email o password non corrette.",
+    );
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 390);
     await expect(page.locator(".auth-hero")).toBeHidden();
@@ -239,6 +247,12 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
         exact: true,
       })
       .fill("Un ambiente personalizzato dal docente per la propria classe.");
+    await expect(
+      page
+        .getByLabel("Anteprima pagina di accesso")
+        .getByText("Impara Python con Classe E2E"),
+    ).toBeVisible();
+    await expect(page.getByLabel("Nome scuola")).toHaveCount(0);
     await expect(
       loginBranding.getByRole("textbox", {
         name: "Sottotitolo (italiano)",
@@ -519,13 +533,54 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await teacherContext.close();
   });
 
+  test("il docente valuta una consegna dal dettaglio studente", async ({
+    page,
+  }) => {
+    await login(page, teacher);
+    await page.getByRole("button", { name: "Report", exact: true }).click();
+    await page.getByRole("tab", { name: "Avanzamento" }).click();
+    await page.getByRole("link", { name: student.name, exact: true }).click();
+    await page.getByLabel("Esito Risposta universale").selectOption("passed");
+    await page.getByLabel("Punteggio Risposta universale").fill("9");
+    await page.getByRole("button", { name: "Salva valutazione" }).click();
+    await expect(page.getByRole("status")).toContainText("Valutazione salvata");
+    await page.getByRole("tab", { name: "Valutazioni" }).click();
+    await expect(page.locator(".teacher-report-table")).toContainText(
+      student.name,
+    );
+    await expect(page.locator(".teacher-report-table")).toContainText(
+      "Superato",
+    );
+    await expect(page.locator(".teacher-report-table")).toContainText("9");
+  });
+
+  test("il docente aggiunge uno studente dalla pagina della classe", async ({
+    page,
+  }) => {
+    await login(page, teacher);
+    await page.getByRole("button", { name: "Classi" }).click();
+    await page
+      .getByRole("article")
+      .filter({ hasText: "Classe E2E" })
+      .getByRole("link", { name: "Apri classe" })
+      .click();
+    await page.getByLabel("Email dello studente").fill(student.email);
+    await page.getByRole("button", { name: "Aggiungi" }).click();
+    await expect(page.getByRole("status")).toContainText(
+      "Studente aggiunto alla classe",
+    );
+    await expect(
+      page.getByRole("link", { name: student.name, exact: true }),
+    ).toBeVisible();
+  });
+
   test("il consenso IA viene persistito nel database", async ({ page }) => {
     await login(page, student);
     await page.getByRole("button", { name: "Impostazioni" }).click();
     await expect(
       page.getByRole("link", { name: "Apri amministrazione Supabase" }),
     ).toHaveCount(0);
-    await expect(page.getByLabel("Language")).toBeVisible();
+    await expect(page.getByLabel("Language")).toHaveCount(0);
     const consent = page.getByLabel("Consenti l’invio di dati a Puter");
     await page
       .getByText("Consenti l’invio di dati a Puter", { exact: true })

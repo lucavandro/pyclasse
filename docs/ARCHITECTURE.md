@@ -38,3 +38,8 @@ Editor Python e parser Markdown sono suddivisi in chunk caricati soltanto nelle 
 ## Confini di sicurezza
 
 Il browser usa esclusivamente la chiave anon e tutte le autorizzazioni dipendono da RLS. Test eseguiti nel browser non sono segreti: un grading autorevole richiede un judge isolato lato server. Le intestazioni di sicurezza riducono framing, MIME sniffing e accesso a capacità del dispositivo; la CSP permette `unsafe-eval` perché richiesto dal runtime Python e va rivalutata se Pyodide cambia modalità di esecuzione.
+
+Le letture usano proiezioni esplicite e funzioni dati dedicate alla schermata.
+Dashboard e report aggregati omettono il codice delle consegne; il dato viene
+letto soltanto nel dettaglio studente, nell’editor e nel monitor. Le funzioni di
+proprietà docente includono sempre anche la verifica del ruolo nel database.

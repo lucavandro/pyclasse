@@ -37,6 +37,13 @@ Lo studente salva una bozza nel database e il docente proprietario della classe 
 
 Il docente può trasferire la propria libreria didattica tramite un file JSON locale. Il file contiene esclusivamente contenuti e configurazione degli esercizi, inclusi codice iniziale, tag e test; non contiene identificativi del docente, classi, studenti, assegnazioni, bozze, consegne o valutazioni. L'operazione non contatta servizi esterni. Il docente resta responsabile della conservazione e della condivisione del file esportato; l'importazione valida formato, dimensioni e URL HTTPS prima della scrittura nel database, dove continuano ad applicarsi le policy RLS.
 
+Le query di riepilogo non includono il codice delle consegne. Il codice dello
+studente viene richiesto solo nei flussi didattici che lo richiedono (editor,
+monitoraggio e dettaglio individuale riservato al docente), riducendo i dati
+trasferiti e conservati nella memoria del browser. L’aggiunta manuale a una
+classe richiede l’email esatta di un account studente già registrato e non
+espone una directory di utenti.
+
 ## Dettaglio del lavoro dello studente
 
 Il report individuale non introduce nuovi campi o nuovi tracciamenti: combina

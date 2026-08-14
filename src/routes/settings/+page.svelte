@@ -2,22 +2,19 @@
   import { supabase, supabaseStudioUrl } from "$lib/supabase";
   import { getSettings } from "$lib/data";
   import { loadProfile, session } from "$lib/session.svelte";
-  let schoolName = $state(""),
-    titleIt = $state(""),
+  let titleIt = $state(""),
     subtitleIt = $state(""),
     titleEn = $state(""),
     subtitleEn = $state(""),
     consent = $state(false),
     consentedAt = $state<string | null>(null),
     status = $state(""),
-    loading = $state(true),
-    locale = $state("it");
+    loading = $state(true);
   $effect(() => {
     const profile = session.profile;
     if (!profile) return;
     void (async () => {
       const s = await getSettings();
-      schoolName = s?.school_name || "";
       titleIt = s?.login_title_it || "";
       subtitleIt = s?.login_subtitle_it || "";
       titleEn = s?.login_title_en || "";
@@ -42,7 +39,6 @@
       const r = await supabase
         .from("app_settings")
         .update({
-          school_name: schoolName.trim(),
           login_title_it: titleIt.trim(),
           login_subtitle_it: subtitleIt.trim(),
           login_title_en: titleEn.trim(),
@@ -83,7 +79,10 @@
   >
     {#if session.profile?.role === "teacher"}<section class="panel form-grid">
         <h2>Personalizzazione</h2>
-        <label>Nome scuola<input bind:value={schoolName} /></label>
+        <p class="muted">
+          Questi quattro testi compaiono nel pannello sinistro della schermata
+          di accesso. L’anteprima si aggiorna mentre scrivi.
+        </p>
         <fieldset aria-label="Testi della pagina di accesso" class="form-grid">
           <legend>Testi della pagina di accesso</legend><label
             >Titolo (italiano)<input
@@ -109,6 +108,26 @@
             ></textarea></label
           >
         </fieldset>
+        <div class="login-preview" aria-label="Anteprima pagina di accesso">
+          <div>
+            <span>Italiano</span>
+            <strong
+              >{titleIt || "Il laboratorio Python della tua classe."}</strong
+            >
+            <p>
+              {subtitleIt ||
+                "Crea esercizi, segui i progressi e accompagna ogni studente nel suo percorso."}
+            </p>
+          </div>
+          <div>
+            <span>English</span>
+            <strong>{titleEn || "The Python lab for your classroom."}</strong>
+            <p>
+              {subtitleEn ||
+                "Create exercises, follow progress and support every student on their path."}
+            </p>
+          </div>
+        </div>
       </section>
       <section class="panel administration-settings">
         <h2>Amministrazione tecnica</h2>
@@ -124,14 +143,8 @@
           >{/if}
       </section>{/if}
     <section class="panel form-grid">
-      <h2>Lingua e privacy</h2>
-      <label
-        >Language<select aria-label="Language" bind:value={locale}
-          ><option value="it">Italiano</option><option value="en"
-            >English</option
-          ></select
-        ></label
-      ><label class="consent"
+      <h2>Privacy</h2>
+      <label class="consent"
         ><input
           type="checkbox"
           aria-label="Consenti l’invio di dati a Puter"
@@ -161,7 +174,40 @@
   .consent input {
     width: auto;
   }
+  .login-preview {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+  .login-preview > div {
+    display: grid;
+    gap: var(--space-2);
+    border: var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    background: linear-gradient(
+      145deg,
+      var(--color-primary-surface),
+      var(--color-surface)
+    );
+  }
+  .login-preview span {
+    color: var(--color-primary-soft);
+    font-size: var(--font-size-xs);
+    font-weight: 750;
+    text-transform: uppercase;
+  }
+  .login-preview p {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: var(--font-size-sm);
+  }
   .save {
     justify-self: end;
+  }
+  @media (max-width: 700px) {
+    .login-preview {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

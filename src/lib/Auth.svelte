@@ -1,5 +1,11 @@
 <script lang="ts">
   import { supabase, signInWithGoogle } from "$lib/supabase";
+  type Branding = {
+    login_title_it: string;
+    login_subtitle_it: string;
+    login_title_en: string;
+    login_subtitle_en: string;
+  };
   let mode = $state<"login" | "register">("login");
   let method = $state<"password" | "otp">("password");
   let name = $state(""),
@@ -14,14 +20,14 @@
       ? "en"
       : "it",
   );
-  let branding = $state<any>(null);
+  let branding = $state<Branding | null>(null);
   const otpEnabled = import.meta.env.NEXT_PUBLIC_AUTH_EMAIL_OTP === "true";
   const googleEnabled = import.meta.env.NEXT_PUBLIC_AUTH_GOOGLE === "true";
   $effect(() => {
     if (supabase)
       void supabase
         .rpc("get_public_branding")
-        .then(({ data }) => (branding = data?.[0] ?? data));
+        .then(({ data }) => (branding = (data?.[0] ?? data) as Branding));
   });
   const copy = $derived(
     locale === "en"
@@ -46,6 +52,27 @@
           send: "Invia codice",
         },
   );
+  function friendlyAuthError(cause: unknown) {
+    const message =
+      cause && typeof cause === "object" && "message" in cause
+        ? String(cause.message).toLowerCase()
+        : "";
+    if (message.includes("invalid login credentials"))
+      return locale === "en"
+        ? "Email or password is incorrect."
+        : "Email o password non corrette.";
+    if (message.includes("already registered"))
+      return locale === "en"
+        ? "An account already uses this email."
+        : "Esiste già un account con questa email.";
+    if (message.includes("rate") || message.includes("too many"))
+      return locale === "en"
+        ? "Too many attempts. Please wait before trying again."
+        : "Troppi tentativi. Attendi prima di riprovare.";
+    return locale === "en"
+      ? "Sign-in is temporarily unavailable. Please try again."
+      : "Accesso temporaneamente non disponibile. Riprova.";
+  }
   async function submit() {
     if (!supabase) return;
     busy = true;
@@ -79,7 +106,7 @@
         if (r.error) throw r.error;
       }
     } catch (cause) {
-      error = cause instanceof Error ? cause.message : String(cause);
+      error = friendlyAuthError(cause);
     } finally {
       busy = false;
     }
@@ -132,7 +159,13 @@
   </section>
 
   <section class="auth-form-panel" aria-labelledby="auth-form-title">
+    <div class="panel-orbit orbit-one" aria-hidden="true"></div>
+    <div class="panel-orbit orbit-two" aria-hidden="true"></div>
     <div class="auth-card">
+      <div class="access-status">
+        <span aria-hidden="true"></span>
+        {locale === "en" ? "Secure classroom access" : "Accesso aula protetto"}
+      </div>
       <div class="auth-heading">
         <p class="eyebrow">
           {locale === "en" ? "YOUR SPACE" : "IL TUO SPAZIO"}
@@ -235,6 +268,19 @@
         Accesso protetto. Nessun tracciamento o servizio esterno viene attivato
         automaticamente.
       </p>
+      <div
+        class="assurance"
+        aria-label={locale === "en"
+          ? "Access safeguards"
+          : "Garanzie di accesso"}
+      >
+        <span>{locale === "en" ? "No tracking" : "Nessun tracking"}</span>
+        <span
+          >{locale === "en"
+            ? "Role-based spaces"
+            : "Spazi separati per ruolo"}</span
+        >
+      </div>
       <div class="language-row">
         <label class="language"
           ><span
@@ -382,12 +428,38 @@
     padding: clamp(6.5rem, 10vh, 8rem) clamp(1.5rem, 7vw, 6rem)
       clamp(2rem, 5vh, 4rem);
     background:
+      linear-gradient(rgb(104 196 255 / 3%) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(104 196 255 / 3%) 1px, transparent 1px),
       radial-gradient(
-        circle at 100% 0%,
-        rgb(46 158 255 / 8%),
-        transparent 24rem
+        circle at 78% 18%,
+        rgb(46 158 255 / 16%),
+        transparent 22rem
       ),
       var(--color-background);
+    background-size:
+      3.5rem 3.5rem,
+      3.5rem 3.5rem,
+      auto,
+      auto;
+    overflow: hidden;
+  }
+  .panel-orbit {
+    position: absolute;
+    border: 1px solid rgb(104 196 255 / 10%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .orbit-one {
+    top: -12rem;
+    right: -10rem;
+    width: 32rem;
+    height: 32rem;
+  }
+  .orbit-two {
+    right: 12%;
+    bottom: -15rem;
+    width: 24rem;
+    height: 24rem;
   }
   .auth-brand {
     position: absolute;
@@ -410,16 +482,55 @@
     background: rgb(46 158 255 / 12%);
   }
   .auth-card {
+    position: relative;
+    z-index: 1;
     width: min(100%, 460px);
-    border: var(--border-strong);
+    border: 1px solid rgb(104 196 255 / 22%);
     border-radius: 1.4rem;
     padding: clamp(1.5rem, 4vw, 2.25rem);
     background: linear-gradient(
       145deg,
-      rgb(21 36 58 / 76%),
-      rgb(15 28 46 / 82%)
+      rgb(22 39 62 / 94%),
+      rgb(11 24 41 / 96%)
     );
-    box-shadow: var(--shadow-lg);
+    box-shadow:
+      0 2rem 5rem rgb(0 0 0 / 38%),
+      inset 0 1px rgb(255 255 255 / 5%);
+  }
+  .auth-card::before {
+    position: absolute;
+    top: 0;
+    left: 12%;
+    width: 48%;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-primary-soft),
+      transparent
+    );
+    content: "";
+  }
+  .access-status {
+    display: flex;
+    width: fit-content;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-5);
+    border: 1px solid rgb(66 211 146 / 18%);
+    border-radius: 999px;
+    padding: 0.35rem 0.65rem;
+    color: #9debc8;
+    background: rgb(66 211 146 / 7%);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+  }
+  .access-status span {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: var(--color-green);
+    box-shadow: 0 0 0 0.22rem rgb(66 211 146 / 12%);
   }
   .auth-heading {
     margin-bottom: var(--space-6);
@@ -450,6 +561,19 @@
     margin: var(--space-6) 0 0;
     color: var(--color-muted);
     font-size: 0.8rem;
+  }
+  .assurance {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    margin-top: var(--space-3);
+    color: #b7c9da;
+    font-size: var(--font-size-xs);
+  }
+  .assurance span::before {
+    margin-right: var(--space-2);
+    color: var(--color-primary-soft);
+    content: "✓";
   }
   .language-row {
     margin: var(--space-5) -0.25rem -0.5rem;

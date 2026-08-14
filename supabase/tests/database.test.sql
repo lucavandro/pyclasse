@@ -1,6 +1,6 @@
 begin;
 
-select plan(68);
+select plan(74);
 
 select has_table('public', 'profiles', 'profiles table exists');
 select has_table('public', 'app_settings', 'app_settings table exists');
@@ -156,6 +156,34 @@ select is(
   (select count(*)::integer from public.app_settings where teacher_email = 'docente@scuola.it'),
   0,
   'clean installations contain no placeholder teacher identity'
+);
+
+select has_function('public', 'is_teacher', array[]::text[], 'teacher role guard exists');
+select ok(
+  has_function_privilege('authenticated', 'public.is_teacher()', 'EXECUTE'),
+  'authenticated policies can evaluate the teacher role guard'
+);
+select ok(
+  not has_function_privilege('anon', 'public.is_teacher()', 'EXECUTE'),
+  'anonymous users cannot evaluate the teacher role guard'
+);
+select ok(
+  (select with_check like '%is_teacher%'
+   from pg_policies
+   where schemaname = 'public' and tablename = 'classes'
+     and policyname = 'teachers create own classes'),
+  'creating a class requires the teacher role'
+);
+select ok(
+  (select with_check like '%is_teacher%'
+   from pg_policies
+   where schemaname = 'public' and tablename = 'exercises'
+     and policyname = 'teachers create exercises'),
+  'creating an exercise requires the teacher role'
+);
+select ok(
+  pg_get_functiondef('public.publish_code_now(text)'::regprocedure) like '%is_teacher%',
+  'Code now publication verifies the teacher role server-side'
 );
 
 select * from finish();

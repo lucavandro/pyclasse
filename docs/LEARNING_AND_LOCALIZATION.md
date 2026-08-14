@@ -2,7 +2,12 @@
 
 ## Lingua
 
-Al primo caricamento PyClasse legge la lingua preferita del browser. L'italiano usa il catalogo `it`; tutte le altre lingue usano il catalogo inglese di fallback. Dopo l'accesso il selettore “Language” si trova nelle Impostazioni, permette di cambiare lingua durante la sessione e aggiorna l'attributo `lang` del documento per le tecnologie assistive.
+Al primo caricamento PyClasse legge la lingua preferita del browser. L'italiano
+usa i testi italiani della schermata di accesso; le altre lingue usano l'inglese
+di fallback. Il selettore “Language” nella schermata di accesso cambia questi
+testi prima dell'autenticazione. L'area autenticata è attualmente in italiano:
+finché non sarà disponibile una localizzazione completa non presenta una
+preferenza lingua che darebbe un risultato soltanto apparente.
 
 Il docente può personalizzare dalle Impostazioni il titolo e il sottotitolo
 della pagina di accesso, separatamente per italiano e inglese. Prima del login

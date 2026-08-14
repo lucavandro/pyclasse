@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getReports } from "$lib/data";
+  import { getDashboard } from "$lib/data";
   import { session } from "$lib/session.svelte";
   let loading = $state(true),
     error = $state(""),
@@ -8,7 +8,7 @@
     if (!session.profile) return;
     void (async () => {
       try {
-        const [, classes, , , assignments, submissions] = await getReports();
+        const [classes, assignments, submissions] = await getDashboard();
         metrics = {
           classes: classes.length,
           assignments: assignments.length,

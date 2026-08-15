@@ -36,6 +36,10 @@ Lo studente salva una bozza nel database e il docente proprietario della classe 
 ## Servizi esterni
 
 - Supabase gestisce autenticazione, PostgreSQL e Realtime.
+- Il recupero password invia tramite Supabase un link temporaneo all'indirizzo
+  indicato. L'interfaccia restituisce la stessa conferma anche per indirizzi non
+  registrati, per evitare l'enumerazione degli account, e non introduce nuovi
+  campi applicativi o destinatari.
 - Un provider OAuth può essere configurato dall'istituto.
 - I link esterni, incluso YouTube, non sono incorporati automaticamente.
 - Le funzioni IA sono opzionali e devono restare disattivate senza una decisione documentata dell'istituto.

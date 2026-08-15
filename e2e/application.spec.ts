@@ -90,6 +90,24 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
       ),
     ).toBeVisible();
     await expect(page.getByText("Spazi separati per ruolo")).toBeVisible();
+    await page.getByRole("button", { name: "Password dimenticata?" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Ripristina la password" }),
+    ).toBeVisible();
+    await expect(page.locator('input[type="password"]')).toHaveCount(0);
+    await page.getByLabel("Email").fill("recupero-e2e@pyclasse.test");
+    await page
+      .getByRole("button", { name: "Invia link di ripristino" })
+      .click();
+    await expect(page.getByRole("status")).toHaveText(
+      "Se esiste un account con questa email, riceverai a breve il link di ripristino.",
+    );
+    await page.getByRole("button", { name: "Torna all'accesso" }).click();
+    await page.goto("/auth/reset-password");
+    await expect(
+      page.getByRole("heading", { name: "Link non valido o scaduto" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Richiedi un nuovo link" }).click();
     await page.getByLabel("Email").fill("inesistente@pyclasse.test");
     await page.getByLabel("Password").fill("password-non-valida");
     await page.getByRole("button", { name: "Accedi" }).click();
@@ -105,6 +123,9 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     );
     await expect(page.locator(".auth-brand")).toBeVisible();
     await expect(page.locator(".language-row")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Password dimenticata?" }),
+    ).toBeVisible();
     await expect(page.getByText("Giulia Bianchi")).toHaveCount(0);
     await expect(page.getByText("Liceo Galilei")).toHaveCount(0);
   });

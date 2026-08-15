@@ -8,7 +8,7 @@
     title: string;
     subtitle: string;
   };
-  let mode = $state<"login" | "register">("login");
+  let mode = $state<"login" | "register" | "recover">("login");
   let method = $state<"password" | "otp">("password");
   let name = $state(""),
     email = $state(""),
@@ -16,7 +16,8 @@
     otp = $state(""),
     otpSent = $state(false),
     busy = $state(false),
-    error = $state("");
+    error = $state(""),
+    status = $state("");
   let branding = $state<Branding | null>(null);
   const otpEnabled = import.meta.env.NEXT_PUBLIC_AUTH_EMAIL_OTP === "true";
   const googleEnabled = import.meta.env.NEXT_PUBLIC_AUTH_GOOGLE === "true";
@@ -43,8 +44,15 @@
     if (!supabase) return;
     busy = true;
     error = "";
+    status = "";
     try {
-      if (method === "otp") {
+      if (mode === "recover") {
+        const result = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${location.origin}/auth/reset-password`,
+        });
+        if (result.error) throw result.error;
+        status = m.auth_recovery_sent();
+      } else if (method === "otp") {
         if (!otpSent) {
           const r = await supabase.auth.signInWithOtp({
             email,
@@ -77,6 +85,17 @@
       busy = false;
     }
   }
+  function showRecovery() {
+    mode = "recover";
+    error = "";
+    status = "";
+    password = "";
+  }
+  function showLogin() {
+    mode = "login";
+    error = "";
+    status = "";
+  }
 </script>
 
 <main class="auth-shell">
@@ -108,11 +127,15 @@
     <div class="auth-content">
       <div class="auth-heading">
         <p class="eyebrow">{m.auth_your_space()}</p>
-        <h2 id="auth-form-title">{m.auth_welcome()}</h2>
-        <p>{m.auth_subtitle()}</p>
+        <h2 id="auth-form-title">
+          {mode === "recover" ? m.auth_recovery_title() : m.auth_welcome()}
+        </h2>
+        <p>
+          {mode === "recover" ? m.auth_recovery_subtitle() : m.auth_subtitle()}
+        </p>
       </div>
 
-      {#if otpEnabled}
+      {#if otpEnabled && mode !== "recover"}
         <div class="tabs" role="tablist">
           <button
             role="tab"
@@ -126,7 +149,7 @@
         </div>
       {/if}
 
-      {#if googleEnabled}
+      {#if googleEnabled && mode !== "recover"}
         <button class="google" onclick={() => void signInWithGoogle()}
           >{m.auth_continue_google()}</button
         >
@@ -160,18 +183,20 @@
           /></label
         >
         {#if method === "password"}
-          <label
-            >{m.auth_password()}<input
-              type="password"
-              aria-label={m.auth_password()}
-              autocomplete={mode === "login"
-                ? "current-password"
-                : "new-password"}
-              minlength="8"
-              bind:value={password}
-              required
-            /></label
-          >
+          {#if mode !== "recover"}
+            <label
+              >{m.auth_password()}<input
+                type="password"
+                aria-label={m.auth_password()}
+                autocomplete={mode === "login"
+                  ? "current-password"
+                  : "new-password"}
+                minlength="8"
+                bind:value={password}
+                required
+              /></label
+            >
+          {/if}
         {/if}
         {#if otpSent}
           <label
@@ -185,17 +210,29 @@
           >
         {/if}
         {#if error}<p class="error" role="alert">{error}</p>{/if}
+        {#if status}<p class="success" role="status">{status}</p>{/if}
         <button class="primary" disabled={busy}
-          >{method === "otp"
-            ? otpSent
-              ? m.auth_verify_code()
-              : m.auth_send_code()
-            : mode === "login"
-              ? m.auth_sign_in()
-              : m.auth_register()}</button
+          >{mode === "recover"
+            ? m.auth_send_recovery_link()
+            : method === "otp"
+              ? otpSent
+                ? m.auth_verify_code()
+                : m.auth_send_code()
+              : mode === "login"
+                ? m.auth_sign_in()
+                : m.auth_register()}</button
         >
       </form>
-      {#if method === "password"}
+      {#if mode === "login" && method === "password"}
+        <button class="quiet recovery-link" onclick={showRecovery}
+          >{m.auth_forgot_password()}</button
+        >
+      {/if}
+      {#if mode === "recover"}
+        <button class="quiet switch" onclick={showLogin}
+          >{m.auth_back_to_sign_in()}</button
+        >
+      {:else if method === "password"}
         <button
           class="quiet switch"
           onclick={() => (mode = mode === "login" ? "register" : "login")}
@@ -316,7 +353,7 @@
       3.5rem 3.5rem,
       auto,
       auto;
-    overflow: hidden;
+    overflow: clip;
   }
   .panel-orbit {
     position: absolute;
@@ -385,6 +422,12 @@
   .switch {
     width: 100%;
     margin-top: var(--space-4);
+  }
+  .recovery-link {
+    width: 100%;
+    margin-top: var(--space-2);
+    min-height: auto;
+    padding-block: var(--space-2);
   }
   .privacy {
     margin: var(--space-6) 0 0;

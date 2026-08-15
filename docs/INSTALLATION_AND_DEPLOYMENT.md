@@ -82,10 +82,11 @@ NEXT_PUBLIC_AUTH_GOOGLE=true
 container o ridistribuisci l'applicazione. In Docker i valori predefiniti sono
 `false`; possono essere inseriti in `.env.local` oppure passati nell'ambiente.
 
-Email/password ed email OTP usano Supabase Auth e non richiedono provider
-OAuth esterni. Per consentire l'accesso OTP verifica che il template email mostri
-`{{ .Token }}` (oltre all'eventuale magic link) e configura un SMTP affidabile
-in produzione.
+Email/password, recupero password ed email OTP usano Supabase Auth e non
+richiedono provider OAuth esterni. Per consentire l'accesso OTP verifica che il
+template email mostri `{{ .Token }}` (oltre all'eventuale magic link). Verifica
+anche il template **Reset password** e configura un SMTP affidabile in
+produzione: senza consegna email il recupero non può essere completato.
 
 Per Google, crea credenziali OAuth 2.0 in Google Cloud, abilita il provider in
 Supabase **Authentication → Providers → Google** e configura come callback
@@ -97,8 +98,11 @@ imposta `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` e
 `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`, modifica `enabled = true` e riavvia
 Supabase.
 
-Aggiungi inoltre `https://DOMINIO/auth/callback` alle Redirect URLs consentite
-del progetto Supabase: è la destinazione usata da PyClasse dopo l'accesso.
+Aggiungi inoltre `https://DOMINIO/auth/callback` e
+`https://DOMINIO/auth/reset-password` alle Redirect URLs consentite del
+progetto Supabase. La prima è usata dopo l'accesso OAuth; la seconda riceve
+esclusivamente la sessione temporanea creata dal link di recupero. Evita
+wildcard nei domini di produzione.
 
 Se le variabili mancano, PyClasse mostra una pagina di installazione con i nomi
 esatti da configurare, il percorso per reperirli in Supabase e i passaggi per

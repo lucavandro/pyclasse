@@ -12,7 +12,8 @@ PyClasse è una piattaforma didattica **gratuita e accessibile** per assegnare e
 - autosalvataggio e monitoraggio docente tramite Supabase Realtime;
 - report docente con dettaglio del lavoro per singolo studente;
 - interfaccia italiano/inglese con rilevamento della lingua;
-- autenticazione email/password, con OTP email e Google attivabili separatamente;
+- autenticazione email/password con recupero sicuro, con OTP email e Google
+  attivabili separatamente;
 - Row Level Security su tutte le tabelle applicative;
 - ambiente Docker e Supabase locale riproducibile.
 - installazione come PWA, icone dedicate e fallback offline rispettoso della privacy.

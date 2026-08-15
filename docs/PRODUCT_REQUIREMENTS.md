@@ -21,6 +21,15 @@ uno stato di accesso protetto e indicazioni sintetiche sulle garanzie di privacy
 e separazione dei ruoli. Gli errori di autenticazione sono comprensibili e non
 espongono messaggi tecnici del servizio di identità.
 
+### LOGIN-003 — Recupero della password
+
+L'accesso email/password espone un'azione **Password dimenticata?**. L'utente
+può richiedere un link temporaneo tramite email e impostare una nuova password
+di almeno otto caratteri in una pagina dedicata. La conferma della richiesta
+non rivela se l'indirizzo è registrato; i link mancanti, scaduti o non validi
+non consentono la modifica. Dopo l'aggiornamento la sessione viene chiusa e
+l'utente accede nuovamente con la nuova password.
+
 ### I18N-001 — Interfaccia localizzabile
 
 L'intera interfaccia usa cataloghi Paraglide tipizzati. Il selettore lingua è
@@ -182,7 +191,8 @@ heartbeat, pulizia sessioni e RPC di autorizzazione restano interne.
 - test di contratto per presenza, confini di ruolo e configurazioni UI;
 - test unitari per validazione e minimizzazione del documento JSON;
 - E2E docente/studente per scadenza, import/export, navigazione al dettaglio e
-  layout mobile, errori di accesso, aggiunta studenti e valutazione;
+  layout mobile, errori e recupero dell'accesso, aggiunta studenti e
+  valutazione;
 - test database sulle guardie di ruolo e test di contratto sulla minimizzazione
   delle query;
 - verifica visuale desktop e mobile di accesso, editor, report, form e modal.

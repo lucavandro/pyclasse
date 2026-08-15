@@ -1,11 +1,13 @@
 <script lang="ts">
   import "../app.css";
+  import { page } from "$app/state";
   import { onMount } from "svelte";
   import Auth from "$lib/Auth.svelte";
   import Shell from "$lib/Shell.svelte";
   import { initializeSession, session } from "$lib/session.svelte";
   import { m } from "$lib/paraglide/messages.js";
   let { children } = $props();
+  const authRoute = $derived(page.url.pathname.startsWith("/auth/"));
   onMount(() => {
     let subscription: any;
     void initializeSession().then((x) => (subscription = x));
@@ -21,7 +23,9 @@
     content={m.app_description()}
   /></svelte:head
 >
-{#if !session.ready}<main class="loading-screen">
+{#if authRoute}{@render children()}{:else if !session.ready}<main
+    class="loading-screen"
+  >
     <div class="spinner"></div>
     <p>{m.common_loading()}</p>
   </main>

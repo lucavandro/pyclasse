@@ -242,12 +242,18 @@ test("le operazioni docente verificano ruolo e proprietÃ  nel database", async
   assert.match(sql, /publish_code_now[\s\S]*not public\.is_teacher\(\)/i);
 });
 
-test("autenticazione supporta password, OTP e Google", async () => {
-  const [auth, client] = await Promise.all([
+test("autenticazione supporta password, recupero, OTP e Google", async () => {
+  const [auth, resetPassword, layout, client, config] = await Promise.all([
     read("src/lib/Auth.svelte"),
+    read("src/routes/auth/reset-password/+page.svelte"),
+    read("src/routes/+layout.svelte"),
     read("src/lib/supabase.ts"),
+    read("supabase/config.toml"),
   ]);
   assert.match(auth, /signInWithPassword/);
+  assert.match(auth, /resetPasswordForEmail/);
+  assert.match(auth, /\/auth\/reset-password/);
+  assert.match(auth, /m\.auth_recovery_sent\(\)/);
   assert.match(auth, /signInWithOtp/);
   assert.match(auth, /verifyOtp/);
   assert.match(auth, /get_public_branding/);
@@ -264,6 +270,11 @@ test("autenticazione supporta password, OTP e Google", async () => {
   assert.doesNotMatch(auth, /class="auth-card"/);
   assert.match(auth, /friendlyAuthError/);
   assert.match(auth, /m\.auth_privacy_notice\(\)/);
+  assert.match(resetPassword, /updateUser\(\{ password \}\)/);
+  assert.match(resetPassword, /signOut\(\{ scope: "global" \}\)/);
+  assert.match(resetPassword, /password !== confirmation/);
+  assert.match(layout, /pathname\.startsWith\("\/auth\/"\)/);
+  assert.match(config, /127\.0\.0\.1:\*\/auth\/reset-password/);
   assert.match(client, /provider: "google"/);
 });
 

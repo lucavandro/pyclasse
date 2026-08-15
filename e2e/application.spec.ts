@@ -779,6 +779,55 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await expect(page.locator(".teacher-report-table")).toContainText("9");
   });
 
+  test("il docente apre l'overview e i report degli studenti di una classe", async ({
+    page,
+  }) => {
+    await login(page, teacher);
+    await page.getByRole("button", { name: "Report", exact: true }).click();
+    await page.getByRole("tab", { name: "Classi" }).click();
+    const classLink = page.getByRole("link", {
+      name: "Apri il report della classe Classe E2E",
+    });
+    await expect(classLink).toBeVisible();
+    await classLink.click();
+
+    await expect(
+      page.getByRole("heading", { name: "Classe E2E", exact: true }),
+    ).toBeVisible();
+    const summary = page.getByRole("region", {
+      name: "Riepilogo della classe",
+    });
+    await expect(summary).toContainText("1Studenti");
+    await expect(summary).toContainText("1Attività pubblicate");
+    await expect(summary).toContainText("1Consegne totali");
+    await expect(summary).toContainText("100%Completamento");
+
+    const studentRow = page
+      .locator(".class-student-table .table-row")
+      .filter({ hasText: student.name });
+    await expect(studentRow).toContainText("100%");
+    await expect(
+      studentRow.getByRole("link", { name: student.name, exact: true }),
+    ).toBeVisible();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 390);
+    await expect(page.locator(".class-student-table .table-head")).toBeHidden();
+    const progressCell = studentRow.locator('[data-label="Avanzamento"]');
+    expect(
+      await progressCell.evaluate(
+        (element) => getComputedStyle(element, "::before").content,
+      ),
+    ).toContain("Avanzamento");
+
+    await studentRow
+      .getByRole("link", { name: student.name, exact: true })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: student.name, exact: true }),
+    ).toBeVisible();
+  });
+
   test("il docente aggiunge uno studente dalla pagina della classe", async ({
     page,
   }) => {

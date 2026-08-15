@@ -244,7 +244,7 @@
         allowClipboard={true}
       />
     </div>
-    
+
     <div class="form-row">
       <label
         >{m.exercise_external_url()}<input

@@ -28,9 +28,11 @@ Le migrazioni incrementali sono l'unica fonte autorevole dello schema. Un'instal
 4. L'editor salva la bozza e sincronizza gli interventi tramite Realtime; la presenza usa lease temporanee di un minuto, rinnovate mentre l'editor è aperto e chiuse esplicitamente in uscita.
 5. Il browser esegue Python localmente; la consegna è accettata solo dopo i test visibili.
 6. Il docente valuta la consegna, con voto opzionale separato dall'esito.
-7. I report aggregano esclusivamente righe consentite da RLS; la pagina per
-   singolo studente viene caricata soltanto per il ruolo docente e riusa profili,
-   appartenenze, assegnazioni, aperture e consegne già esistenti.
+7. I report aggregano esclusivamente righe consentite da RLS. Il dettaglio di
+   classe limita le query all'identificativo selezionato e usa soltanto dati
+   riepilogativi; la pagina per singolo studente viene caricata soltanto per il
+   ruolo docente e riusa profili, appartenenze, assegnazioni, aperture e
+   consegne già esistenti.
 8. L'archivio esporta contenuti didattici in un JSON locale versionato. In
    importazione il browser valida l'intero file prima delle scritture e rimuove
    gli esercizi creati nella stessa operazione se un inserimento fallisce.
@@ -54,3 +56,6 @@ Le letture usano proiezioni esplicite e funzioni dati dedicate alla schermata.
 Dashboard e report aggregati omettono il codice delle consegne; il dato viene
 letto soltanto nel dettaglio studente, nell’editor e nel monitor. Le funzioni di
 proprietà docente includono sempre anche la verifica del ruolo nel database.
+L'elenco dei report delle classi legge soltanto classi e appartenenze; il
+dettaglio carica profili, assegnazioni, aperture e riepiloghi delle consegne
+filtrati per la classe scelta.

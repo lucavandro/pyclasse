@@ -33,6 +33,10 @@ test("risolve tutte le rotte stateful", () => {
     view: "report-progress",
     studentId: "abc-def",
   });
+  assert.deepEqual(resolveRoute("/reports/classi/abc-def"), {
+    view: "report-class-detail",
+    classId: "abc-def",
+  });
   assert.deepEqual(resolveRoute("/classes/2/studenti/abc-def"), {
     view: "class-detail",
     id: 2,

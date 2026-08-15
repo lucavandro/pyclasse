@@ -145,6 +145,16 @@ per cui è configurata una scala di valutazione. Il limite è applicato sia dal
 controllo grafico sia dal database; la funzione non è disponibile allo
 studente.
 
+### REPORT-005 — Overview e dettaglio della classe
+
+Le schede nella sezione Classi sono interamente cliccabili e aprono un report
+riservato al docente. La pagina mostra nome e materia, numero di studenti,
+attività pubblicate, consegne complessive e percentuale di completamento. La
+tabella sottostante riporta per ogni studente attività aperte, consegnate,
+superate, valutate e avanzamento percentuale; il nome apre il dettaglio
+individuale già disponibile. Su mobile la tabella diventa una sequenza di
+schede con etichette visibili e senza scorrimento orizzontale.
+
 ## Classi
 
 ### CLASS-001 — Aggiunta manuale di uno studente
@@ -170,7 +180,9 @@ modificabili.
 Le query dichiarano le colonne necessarie e usano letture dedicate alla pagina.
 Dashboard e report riepilogativi non scaricano il codice degli studenti; il
 codice viene richiesto solo nel dettaglio studente, nell’editor e nel monitor.
-Le letture di dettaglio sono filtrate per classe, esercizio o studente.
+Le letture di dettaglio sono filtrate per classe, esercizio o studente. Il
+report di una classe richiede soltanto profili iscritti, assegnazioni della
+classe e relativi riepiloghi di aperture e consegne, senza codice sorgente.
 
 ### SECURITY-001 — Ruolo docente verificato nel database
 

@@ -26,6 +26,7 @@ test("SvelteKit separa le funzionalità in rotte autonome", async () => {
     "src/routes/exercises/+page.svelte",
     "src/routes/exercises/[id]/editor/+page.svelte",
     "src/routes/reports/valutazioni/+page.svelte",
+    "src/routes/reports/classi/[id]/+page.svelte",
     "src/routes/reports/[section]/studenti/[id]/+page.svelte",
     "src/routes/monitor/+page.svelte",
     "src/routes/code-now/+page.svelte",
@@ -156,10 +157,11 @@ test("il seed include codici salvati personali per docente e studenti", async ()
 });
 
 test("scadenze, report studente e trasferimento JSON sono esposti dalla UI", async () => {
-  const [form, reports, studentDetail, archive, requirements] =
+  const [form, reports, classReport, studentDetail, archive, requirements] =
     await Promise.all([
       read("src/lib/ExerciseForm.svelte"),
       read("src/lib/ReportPage.svelte"),
+      read("src/routes/reports/classi/[id]/+page.svelte"),
       read("src/routes/reports/[section]/studenti/[id]/+page.svelte"),
       read("src/routes/exercises/+page.svelte"),
       read("docs/PRODUCT_REQUIREMENTS.md"),
@@ -169,6 +171,14 @@ test("scadenze, report studente e trasferimento JSON sono esposti dalla UI", asy
   assert.match(reports, /class="report-area"/);
   assert.match(reports, /href={`\/reports\/valutazioni\/studenti\//);
   assert.match(reports, /m\.reports_to_complete\(\)/);
+  assert.match(reports, /href={`\/reports\/classi\/\$\{c\.id\}`}/);
+  assert.match(classReport, /getClassReport\(page\.params\.id/);
+  assert.match(classReport, /href={`\/reports\/classi\/studenti\//);
+  assert.match(classReport, /class="table class-student-table"/);
+  assert.match(
+    classReport,
+    /data-label=\{m\.reports_progress_percentage\(\)\}/,
+  );
   assert.match(studentDetail, /session\.profile\.role !== "teacher"/);
   assert.match(studentDetail, /m\.reports_show_code\(\)/);
   assert.match(archive, /class="drop-zone"/);
@@ -240,6 +250,11 @@ test("dati sono letti da Supabase per dominio e mai incorporati nella UI", async
   assert.doesNotMatch(
     data.match(/submissionSummaryColumns\s*=([\s\S]*?);/)?.[1] || "",
     /code/,
+  );
+  assert.match(data, /getClassReport[\s\S]*\.eq\("class_id", id\)/);
+  assert.match(
+    data,
+    /getClassReport[\s\S]*\.in\("class_assignment_id", assignmentIds\)/,
   );
 });
 

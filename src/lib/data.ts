@@ -48,6 +48,15 @@ export const getExercises = () =>
     rows<Submission>("submissions", submissionSummaryColumns),
   ]);
 
+export const getReportClasses = () =>
+  Promise.all([
+    rows<Pick<Classroom, "id" | "name" | "subject">>(
+      "classes",
+      "id,name,subject",
+    ),
+    rows<Membership>("class_members", "class_id,student_id,joined_at"),
+  ]);
+
 export const getExerciseTransferData = () =>
   Promise.all([
     rows<Exercise>("exercises", exerciseColumns),
@@ -146,6 +155,64 @@ export async function getClassDetail(id: string) {
     profiles: profiles.data as Profile[],
     assignments: assignments.data as Assignment[],
     exercises: exercises.data as Exercise[],
+  };
+}
+
+export async function getClassReport(id: string) {
+  if (!supabase) throw new Error("Supabase non configurato");
+  const [classroom, memberships, assignments] = await Promise.all([
+    supabase
+      .from("classes")
+      .select("id,name,subject,archived_at")
+      .eq("id", id)
+      .maybeSingle(),
+    supabase
+      .from("class_members")
+      .select("class_id,student_id,joined_at")
+      .eq("class_id", id),
+    supabase
+      .from("class_assignments")
+      .select(assignmentColumns)
+      .eq("class_id", id),
+  ]);
+  if (classroom.error || memberships.error || assignments.error)
+    throw classroom.error || memberships.error || assignments.error;
+
+  const studentIds = memberships.data.map((item) => item.student_id);
+  const assignmentIds = assignments.data.map((item) => item.id);
+  const [profiles, submissions, views] = await Promise.all([
+    studentIds.length
+      ? supabase
+          .from("profiles")
+          .select("id,email,full_name,role,last_seen_at,external_ai_enabled")
+          .in("id", studentIds)
+      : Promise.resolve({ data: [], error: null }),
+    assignmentIds.length
+      ? supabase
+          .from("submissions")
+          .select(submissionSummaryColumns)
+          .in("class_assignment_id", assignmentIds)
+      : Promise.resolve({ data: [], error: null }),
+    assignmentIds.length
+      ? supabase
+          .from("assignment_views")
+          .select("class_assignment_id,student_id,first_opened_at")
+          .in("class_assignment_id", assignmentIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (profiles.error || submissions.error || views.error)
+    throw profiles.error || submissions.error || views.error;
+
+  return {
+    classroom: classroom.data as Pick<
+      Classroom,
+      "id" | "name" | "subject" | "archived_at"
+    > | null,
+    memberships: memberships.data as Membership[],
+    profiles: profiles.data as Profile[],
+    assignments: assignments.data as Assignment[],
+    submissions: submissions.data as Submission[],
+    views: views.data as AssignmentView[],
   };
 }
 

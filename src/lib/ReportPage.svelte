@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getReports } from "$lib/data";
+  import { getReportClasses, getReports } from "$lib/data";
   import { session } from "$lib/session.svelte";
   import ReportNav from "$lib/ReportNav.svelte";
   import type {
@@ -15,8 +15,9 @@
   let {
     section,
   }: { section: "evaluations" | "progress" | "classes" | "alerts" } = $props();
+  type ReportClassroom = Pick<Classroom, "id" | "name" | "subject">;
   let profiles = $state<Profile[]>([]),
-    classes = $state<Classroom[]>([]),
+    classes = $state<ReportClassroom[]>([]),
     memberships = $state<Membership[]>([]),
     exercises = $state<Exercise[]>([]),
     assignments = $state<Assignment[]>([]),
@@ -30,6 +31,14 @@
     if (!session.profile) return;
     if (session.profile.role !== "teacher" && section !== "evaluations") {
       loading = false;
+      return;
+    }
+    if (section === "classes") {
+      void getReportClasses().then(([classRows, membershipRows]) => {
+        classes = classRows;
+        memberships = membershipRows;
+        loading = false;
+      });
       return;
     }
     void getReports().then((x) => {
@@ -208,7 +217,11 @@
     </div>
   </section>
 {:else if section === "classes"}<section class="cards">
-    {#each classes as c}<article class="card">
+    {#each classes as c}<a
+        class="card class-report-card"
+        href={`/reports/classi/${c.id}`}
+        aria-label={m.reports_open_class_report({ name: c.name })}
+      >
         <h2>{c.name}</h2>
         <p>{c.subject}</p>
         <strong
@@ -218,7 +231,8 @@
             ).length,
           })}</strong
         >
-      </article>{/each}
+        <span class="class-report-action">{m.reports_open_class()}</span>
+      </a>{:else}<p class="empty-state">{m.reports_no_classes()}</p>{/each}
   </section>
 {:else}<section class="panel">
     <h2>{m.reports_title_alerts()}</h2>
@@ -256,6 +270,16 @@
     min-width: 0;
   }
   .student-link {
+    font-weight: 700;
+  }
+  .class-report-card {
+    color: inherit;
+    text-decoration: none;
+  }
+  .class-report-action {
+    margin-top: auto;
+    padding-top: var(--space-5);
+    color: var(--color-primary-soft);
     font-weight: 700;
   }
   .alert-row {

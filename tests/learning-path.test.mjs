@@ -7,6 +7,7 @@ import {
   scoreAsPercentage,
   validScore,
 } from "../lib/learning-path.mjs";
+import { buildClassReport } from "../src/lib/class-report.mjs";
 
 test("normalizza e deduplica i tag", () => {
   assert.deepEqual(normalizeTags(" Cicli, liste, cicli,  "), [
@@ -85,5 +86,81 @@ test("applica correttamente il percorso propedeutico", () => {
   assert.equal(
     isAssignmentLocked(assignments, exercises, [], assignments[1], "s"),
     false,
+  );
+});
+
+test("calcola il report di classe sulle sole attività pubblicate", () => {
+  const report = buildClassReport(
+    [
+      { class_id: "c", student_id: "s1", joined_at: "now" },
+      { class_id: "c", student_id: "s2", joined_at: "now" },
+    ],
+    [
+      { id: "s1", full_name: "Studente Uno" },
+      { id: "s2", full_name: "Studente Due" },
+    ],
+    [
+      { id: "a1", published_at: "now" },
+      { id: "a2", published_at: "now" },
+      { id: "draft", published_at: null },
+    ],
+    [
+      {
+        class_assignment_id: "a1",
+        student_id: "s1",
+        status: "passed",
+        score: 9,
+      },
+      {
+        class_assignment_id: "a2",
+        student_id: "s1",
+        status: "draft",
+        score: null,
+      },
+      {
+        class_assignment_id: "draft",
+        student_id: "s2",
+        status: "passed",
+        score: 10,
+      },
+    ],
+    [
+      { class_assignment_id: "a1", student_id: "s1" },
+      { class_assignment_id: "draft", student_id: "s2" },
+    ],
+  );
+
+  assert.equal(report.assignmentCount, 2);
+  assert.equal(report.submittedCount, 1);
+  assert.equal(report.completionRate, 25);
+  assert.deepEqual(
+    report.students.map(
+      ({ id, opened, submitted, passed, evaluated, progress }) => ({
+        id,
+        opened,
+        submitted,
+        passed,
+        evaluated,
+        progress,
+      }),
+    ),
+    [
+      {
+        id: "s1",
+        opened: 1,
+        submitted: 1,
+        passed: 1,
+        evaluated: 1,
+        progress: 50,
+      },
+      {
+        id: "s2",
+        opened: 0,
+        submitted: 0,
+        passed: 0,
+        evaluated: 0,
+        progress: 0,
+      },
+    ],
   );
 });

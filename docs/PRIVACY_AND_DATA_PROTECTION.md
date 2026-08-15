@@ -66,6 +66,15 @@ può richiedere il dettaglio di altri studenti dall'interfaccia. L'istituto deve
 definire tempi di conservazione e regole di accesso coerenti con quelli delle
 consegne sottostanti.
 
+## Report della classe
+
+L'overview di classe non introduce nuovi dati personali né tracciamenti. Il
+docente vede soltanto gli studenti appartenenti a una propria classe, come
+consentito dalle policy RLS. La query è limitata alla classe selezionata e usa
+solo profilo, prima apertura, stato ed eventuale punteggio: il codice sorgente
+delle consegne non viene trasferito finché il docente non apre il dettaglio del
+singolo studente.
+
 ## Requisiti prima dell'uso reale
 
 - identificare titolare, contatto privacy/DPO, finalità e basi giuridiche;

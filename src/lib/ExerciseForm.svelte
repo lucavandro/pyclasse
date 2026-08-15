@@ -230,20 +230,6 @@
         </div>
       </section>
     </div>
-    <div class="form-row">
-      <label
-        >{m.exercise_external_url()}<input
-          aria-label={m.exercise_external_url()}
-          type="url"
-          bind:value={resourceUrl}
-        /></label
-      ><label
-        >{m.exercise_resource_title()}<input
-          aria-label={m.exercise_resource_title()}
-          bind:value={resourceLabel}
-        /></label
-      >
-    </div>
     <label
       >{m.exercise_constraints()}<textarea bind:value={constraints}
       ></textarea></label
@@ -257,6 +243,21 @@
         ariaLabelledby="exercise-starter-code-label"
         allowClipboard={true}
       />
+    </div>
+    
+    <div class="form-row">
+      <label
+        >{m.exercise_external_url()}<input
+          aria-label={m.exercise_external_url()}
+          type="url"
+          bind:value={resourceUrl}
+        /></label
+      ><label
+        >{m.exercise_resource_title()}<input
+          aria-label={m.exercise_resource_title()}
+          bind:value={resourceLabel}
+        /></label
+      >
     </div>
     <fieldset class="tag-field tag-row">
       <legend>{m.exercise_tags()}</legend>

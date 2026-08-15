@@ -63,7 +63,8 @@ Il cursore di inserimento è bianco. Esecuzione, test e, soltanto in Code now,
 download `.py` e salvataggio sono controlli compatti nell'intestazione
 dell'output; ogni pulsante con sola icona richiede `aria-label` e tooltip. Il
 salvataggio apre un modal essenziale con etichetta visibile e azioni distinte
-per aggiornare o creare una copia.
+per aggiornare o creare una copia. Prima dell'esecuzione, la console mostra una
+breve indicazione che invita a premere **Run**, non un generico stato di pronto.
 
 Code now mostra sopra l'editor una barra compatta con nome e stato del progetto.
 Il giallo segnala modifiche non salvate ed è sempre accompagnato da testo. Il

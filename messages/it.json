@@ -181,7 +181,7 @@
   "exercise_no_constraints": "Nessun vincolo aggiuntivo.",
   "exercise_no_tests": "Nessun test pubblico.",
   "exercise_open_editor": "Apri editor",
-  "editor_ready_output": "Pronto.",
+  "editor_ready_output": "Premi Run per eseguire il codice.",
   "editor_running_tests": "Esecuzione test…",
   "editor_running": "Esecuzione…",
   "editor_timeout": "Esecuzione interrotta dopo 8 secondi.",

@@ -181,7 +181,7 @@
   "exercise_no_constraints": "No additional constraints.",
   "exercise_no_tests": "No public tests.",
   "exercise_open_editor": "Open editor",
-  "editor_ready_output": "Ready.",
+  "editor_ready_output": "Press Run to execute the code.",
   "editor_running_tests": "Running tests…",
   "editor_running": "Running…",
   "editor_timeout": "Execution stopped after 8 seconds.",

@@ -43,6 +43,20 @@ Sono pulsanti compatti con icona, nome accessibile e tooltip nativo. In Code now
 anche il download `.py` e il salvataggio si trovano nello stesso gruppo; il
 download non compare negli editor degli esercizi.
 
+### EDITOR-003 — Blocco dell'incolla negli esercizi studente
+
+Nell'editor di un esercizio il profilo studente non può incollare codice. Il
+blocco viene applicato dall'editor all'evento di incolla ed è dichiarato in base
+al ruolo; Code now e gli editor riservati al docente mantengono la clipboard
+disponibile.
+
+### EDITOR-004 — Indicazione iniziale di esecuzione
+
+Prima della prima esecuzione, e dopo l'apertura di un nuovo progetto, la console
+di ogni editor che esegue codice indica sinteticamente di premere **Run** per
+avviare il programma. Lo stato viene sostituito dall'output o dai messaggi di
+esecuzione non appena viene avviato il codice.
+
 ### CODE-NOW-001 — Raccolta personale
 
 Docente e studenti possono salvare codice tramite un modal accessibile. Per un

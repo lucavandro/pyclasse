@@ -312,7 +312,24 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     ).toBeVisible();
     await expect(page).toHaveURL(/\/exercises\/[0-9a-f-]+$/i);
     await page.getByRole("tab", { name: "Editor e codice" }).click();
+    await expect(
+      page.getByText("Premi Run per eseguire il codice.", { exact: true }),
+    ).toBeVisible();
     const studentCode = page.locator(".cm-content");
+    const pasteBlocked = await page
+      .getByLabel("Editor Python")
+      .evaluate((editor) => {
+        const clipboardData = new DataTransfer();
+        clipboardData.setData("text/plain", 'print("codice incollato")');
+        const event = new ClipboardEvent("paste", {
+          bubbles: true,
+          cancelable: true,
+          clipboardData,
+        });
+        return !editor.dispatchEvent(event);
+      });
+    expect(pasteBlocked).toBe(true);
+    await expect(studentCode).not.toContainText("codice incollato");
     await studentCode.fill("def answer():\n    return 42");
     await expect(page.locator(".cm-content span").first()).toBeVisible();
     const syntaxColors = await page
@@ -351,6 +368,11 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     const studentPage = await studentContext.newPage();
     await login(teacherPage, teacher);
     await teacherPage.getByRole("button", { name: "Code now" }).click();
+    await expect(
+      teacherPage.getByText("Premi Run per eseguire il codice.", {
+        exact: true,
+      }),
+    ).toBeVisible();
     await teacherPage
       .getByLabel("Editor Code now")
       .fill('print("codice condiviso dal docente")');

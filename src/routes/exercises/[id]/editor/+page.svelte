@@ -224,6 +224,7 @@
     {#key editorVersion}<PythonEditor
         bind:value={code}
         ariaLabel={m.editor_python_aria()}
+        allowClipboard={session.profile?.role !== "student"}
       />{/key}
     <div class="console">
       <header>

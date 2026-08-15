@@ -74,16 +74,39 @@ test("schema Supabase abilita RLS e protegge bozze e prerequisiti", async () => 
   );
 });
 
-test("editor applica blocco clipboard, watchdog e Pyodide self-hosted", async () => {
-  const [editor, workbench, codeNow, worker] = await Promise.all([
-    read("src/lib/PythonEditor.svelte"),
-    read("src/routes/exercises/[id]/editor/+page.svelte"),
-    read("src/routes/code-now/+page.svelte"),
-    read("public/pyodide-worker.js"),
-  ]);
+test("editor applica blocco clipboard, guida Run, watchdog e Pyodide self-hosted", async () => {
+  const [editor, workbench, codeNow, worker, italian, english] =
+    await Promise.all([
+      read("src/lib/PythonEditor.svelte"),
+      read("src/routes/exercises/[id]/editor/+page.svelte"),
+      read("src/routes/code-now/+page.svelte"),
+      read("public/pyodide-worker.js"),
+      read("messages/it.json"),
+      read("messages/en.json"),
+    ]);
   assert.match(editor, /copy[\s\S]*preventDefault/);
   assert.match(editor, /cut[\s\S]*preventDefault/);
   assert.match(editor, /paste[\s\S]*preventDefault/);
+  assert.match(
+    workbench,
+    /allowClipboard=\{session\.profile\?\.role !== "student"\}/,
+  );
+  assert.equal(
+    JSON.parse(italian).editor_ready_output,
+    "Premi Run per eseguire il codice.",
+  );
+  assert.equal(
+    JSON.parse(english).editor_ready_output,
+    "Press Run to execute the code.",
+  );
+  assert.match(
+    workbench,
+    /output = \$state<string>\(m\.editor_ready_output\(\)\)/,
+  );
+  assert.match(
+    codeNow,
+    /output = \$state<string>\(m\.editor_ready_output\(\)\)/,
+  );
   assert.match(editor, /python\(\)/);
   assert.match(editor, /HighlightStyle\.define/);
   assert.match(editor, /syntaxHighlighting\(pythonHighlightStyle\)/);

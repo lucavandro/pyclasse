@@ -30,6 +30,12 @@ non rivela se l'indirizzo è registrato; i link mancanti, scaduti o non validi
 non consentono la modifica. Dopo l'aggiornamento la sessione viene chiusa e
 l'utente accede nuovamente con la nuova password.
 
+### LOGIN-004 — Testi localizzati non personalizzabili
+
+Titolo, sottotitolo e ogni altro testo della pagina di accesso provengono dai
+cataloghi Paraglide versionati. Non sono modificabili dalle impostazioni e non
+sono conservati né esposti dal database.
+
 ### I18N-001 — Interfaccia localizzabile
 
 L'intera interfaccia usa cataloghi Paraglide tipizzati. Il selettore lingua è
@@ -164,14 +170,15 @@ registrato, cercandolo tramite email dalla pagina della classe. La chiamata usa
 la funzione protetta già disponibile nel database e non rende consultabile un
 elenco globale di account.
 
-## Impostazioni docente
+## Home docente
 
-### SETTINGS-001 — Testi effettivamente presenti
+### DASHBOARD-001 — Avvio della lezione
 
-La personalizzazione mostra soltanto testi effettivamente visibili nella
-schermata di accesso e ne offre un’anteprima italiana e inglese. Campi senza un
-riscontro nell’interfaccia e preferenze non applicate non devono comparire come
-modificabili.
+All'apertura il docente trova scorciatoie visibili per avviare Code now, creare
+e assegnare un esercizio e aprire il monitoraggio. La stessa pagina riepiloga
+classi attive, studenti iscritti, attività pubblicate, consegne ancora da
+valutare, scadenze future e stato sintetico delle classi. Questi riepiloghi sono
+riservati al docente e non modificano la home studente.
 
 ## Prestazioni e sicurezza
 

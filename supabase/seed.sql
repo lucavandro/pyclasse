@@ -45,13 +45,6 @@ set
   school_name = 'Istituto PyClasse'
 where singleton = true;
 
-insert into public.app_branding_translations (locale, title, subtitle)
-values
-  ('it', 'Il laboratorio Python della tua classe.', 'Crea esercizi, segui i progressi e accompagna ogni studente nel suo percorso.'),
-  ('en', 'The Python lab for your classroom.', 'Create exercises, follow progress and support every student on their path.')
-on conflict (locale) do update
-set title = excluded.title, subtitle = excluded.subtitle;
-
 insert into public.classes (id, teacher_id, name, subject, join_code, created_at)
 values
   ('30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '3A Informatica', 'Informatica', 'PY3A26', now() - interval '45 days'),

@@ -15,19 +15,17 @@ disponibile sia prima sia dopo l'autenticazione; il middleware aggiorna
 `<html lang>` e `dir`. Le rotte applicative non includono un prefisso di lingua,
 perciò i collegamenti esistenti e i flussi privati restano stabili.
 
-Il docente personalizza titolo e sottotitolo della pagina di accesso per ogni
-locale configurato. `app_branding_translations` conserva una riga per lingua;
-RLS consente la modifica soltanto al docente. Prima del login la funzione
-`get_public_branding(target_locale)` restituisce esclusivamente locale, titolo e
-sottotitolo, usando l'italiano come fallback. Email del docente e altre
-impostazioni non vengono esposte agli utenti anonimi.
+Anche titolo e sottotitolo della pagina di accesso appartengono ai cataloghi
+Paraglide. Non sono personalizzabili dal docente e non vengono letti dal
+database: la pagina pubblica usa direttamente i messaggi del locale corrente,
+riducendo sia lo stato applicativo sia la superficie anonima esposta.
 
 ### Aggiungere una lingua
 
 1. aggiungere il codice lingua a `project.inlang/settings.json`;
 2. creare `messages/<locale>.json` con le stesse chiavi del catalogo italiano;
-3. eseguire l'app o la build per rigenerare `src/lib/paraglide`;
-4. inserire dal pannello Impostazioni il branding del nuovo locale.
+3. tradurre anche tutti i messaggi `auth_*` della pagina di accesso;
+4. eseguire l'app o la build per rigenerare `src/lib/paraglide`.
 
 `tests/i18n.test.mjs` impedisce cataloghi con chiavi mancanti e il ritorno di
 rilevamento, formattazione o colonne Supabase legate a una lingua specifica.
@@ -99,7 +97,7 @@ Ogni esercizio può avere una risorsa esterna opzionale, per esempio una pagina 
 
 I test unitari verificano cataloghi, integrazione Paraglide, normalizzazione tag,
 limiti delle scale di voto e tutte le diramazioni del blocco propedeutico. I test
-del database verificano schema, fallback pubblico, vincoli e policy; gli E2E
+del database verificano schema, vincoli e policy; gli E2E
 coprono il cambio lingua e i flussi reali con Supabase locale.
 
 ## Monitoraggio in tempo reale

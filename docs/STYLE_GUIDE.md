@@ -39,6 +39,14 @@ Verde, giallo e rosso sono riservati rispettivamente a successo, attenzione ed e
 
 La schermata di accesso usa su desktop due metà verticali della stessa larghezza: il pannello editoriale occupa la metà sinistra e il form resta centrato nella metà destra. Sotto i 900 px il pannello editoriale viene rimosso e l’accesso usa tutta la larghezza disponibile. Il marchio PyClasse compare una sola volta nell'angolo superiore sinistro della pagina e resta visibile anche su mobile; il pannello editoriale e la card di autenticazione non devono duplicare logo o nome. Il selettore della lingua appartiene al footer della card, dopo le informazioni su privacy e sicurezza: deve avere un’etichetta visibile e non può essere sovrapposto o posizionato in modo assoluto sopra i contenuti.
 
+### Home docente
+
+L'avvio della lezione occupa il primo pannello dopo il saluto e concentra le
+scorciatoie operative. I conteggi immediatamente successivi restano compatti;
+scadenze e classi usano righe navigabili, non una griglia di card decorative.
+Sotto 1050 px le sezioni diventano verticali e sotto 720 px anche il pannello di
+avvio dispone le azioni su una colonna.
+
 ### Drawer
 
 Il drawer desktop misura 272 px e può ridursi a 82 px. Ogni voce comprende icona, etichetta accessibile e stato attivo con accento blu. Il profilo è separato dalla navigazione. Sotto 800 px il drawer diventa un pannello fuori canvas con sfondo oscurato e controllo di chiusura esplicito.

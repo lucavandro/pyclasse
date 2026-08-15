@@ -106,11 +106,6 @@ export type Settings = {
   teacher_email: string | null;
   school_name: string;
 };
-export type BrandingTranslation = {
-  locale: string;
-  title: string;
-  subtitle: string;
-};
 export type Workspace = {
   profile: Profile;
   settings: Settings | null;

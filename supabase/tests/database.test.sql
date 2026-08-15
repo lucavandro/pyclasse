@@ -1,6 +1,6 @@
 begin;
 
-select plan(88);
+select plan(82);
 
 select has_table('public', 'profiles', 'profiles table exists');
 select has_table('public', 'app_settings', 'app_settings table exists');
@@ -172,10 +172,7 @@ select ok(
 );
 select has_column('public', 'class_assignments', 'position', 'assignments store learning-path order');
 select has_column('public', 'submissions', 'score', 'submissions store nullable scores');
-select has_table('public', 'app_branding_translations', 'branding translations use a locale-independent table');
-select has_column('public', 'app_branding_translations', 'locale', 'branding translations identify their locale');
-select has_column('public', 'app_branding_translations', 'title', 'branding translations store the login title');
-select has_column('public', 'app_branding_translations', 'subtitle', 'branding translations store the login subtitle');
+select hasnt_table('public', 'app_branding_translations', 'login copy is not stored in the database');
 select ok(
   not exists (
     select 1 from information_schema.columns
@@ -186,19 +183,7 @@ select ok(
   ),
   'settings no longer add one column per locale'
 );
-select has_function('public', 'get_public_branding', array['text'], 'localized public branding function exists');
-select ok(
-  has_function_privilege('anon', 'public.get_public_branding(text)', 'EXECUTE'),
-  'anonymous users can read only public login branding through the function'
-);
-select ok(
-  (select relrowsecurity from pg_class where oid = 'public.app_branding_translations'::regclass),
-  'branding translations enforce row level security'
-);
-select ok(
-  not has_table_privilege('anon', 'public.app_branding_translations', 'SELECT'),
-  'anonymous users cannot read the branding table directly'
-);
+select hasnt_function('public', 'get_public_branding', array['text'], 'the anonymous login branding function was removed');
 select has_index('public', 'exercises', 'exercises_tags_idx', 'exercise tags have a GIN index');
 select has_index('public', 'class_assignments', 'class_assignments_class_position_idx', 'learning-path lookup is indexed');
 select has_function('public', 'student_can_submit_to_assignment', array['uuid'], 'prerequisite submission guard exists');

@@ -2,12 +2,6 @@
   import { supabase, signInWithGoogle } from "$lib/supabase";
   import LocaleSelector from "$lib/LocaleSelector.svelte";
   import { m } from "$lib/paraglide/messages.js";
-  import { getLocale } from "$lib/paraglide/runtime.js";
-  type Branding = {
-    locale: string;
-    title: string;
-    subtitle: string;
-  };
   let mode = $state<"login" | "register" | "recover">("login");
   let method = $state<"password" | "otp">("password");
   let name = $state(""),
@@ -18,15 +12,8 @@
     busy = $state(false),
     error = $state(""),
     status = $state("");
-  let branding = $state<Branding | null>(null);
   const otpEnabled = import.meta.env.NEXT_PUBLIC_AUTH_EMAIL_OTP === "true";
   const googleEnabled = import.meta.env.NEXT_PUBLIC_AUTH_GOOGLE === "true";
-  $effect(() => {
-    if (supabase)
-      void supabase
-        .rpc("get_public_branding", { target_locale: getLocale() })
-        .then(({ data }) => (branding = (data?.[0] ?? data) as Branding));
-  });
   function friendlyAuthError(cause: unknown) {
     const message =
       cause && typeof cause === "object" && "message" in cause
@@ -107,12 +94,8 @@
   <section class="auth-hero" aria-labelledby="auth-hero-title">
     <div class="hero-copy">
       <p class="eyebrow">{m.auth_hero_eyebrow()}</p>
-      <h1 id="auth-hero-title">
-        {branding?.title || m.auth_default_title()}
-      </h1>
-      <p>
-        {branding?.subtitle || m.auth_default_subtitle()}
-      </p>
+      <h1 id="auth-hero-title">{m.auth_hero_title()}</h1>
+      <p>{m.auth_hero_subtitle()}</p>
       <ul class="trust-row" aria-label={m.auth_benefits()}>
         <li>{m.auth_protected_space()}</li>
         <li>{m.auth_python_browser()}</li>

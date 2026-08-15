@@ -16,7 +16,7 @@ applicano gli stessi file in ordine.
 
 ## Modello dati
 
-`profiles` separa docente e studenti; `classes` e `class_members` gestiscono l'appartenenza; `exercises` contiene la traccia canonica; `class_assignments` aggiunge classe, ordine, scadenza e scala di voto opzionale (`10`, `100` o `NULL`); `tests` contiene i casi visibili; `submissions` contiene bozze, consegne, esiti e attribuzione dell'ultimo aggiornamento; `editor_sessions` conserva soltanto la presenza editor temporanea e il codice condivisibile durante Code now; `code_now_settings` conserva il solo interruttore globale di disponibilità e il relativo timestamp; `code_snippets` contiene i codici personali salvati dall'utente. `app_branding_translations` conserva esclusivamente il testo pubblico personalizzabile della pagina di accesso, una riga per locale.
+`profiles` separa docente e studenti; `classes` e `class_members` gestiscono l'appartenenza; `exercises` contiene la traccia canonica; `class_assignments` aggiunge classe, ordine, scadenza e scala di voto opzionale (`10`, `100` o `NULL`); `tests` contiene i casi visibili; `submissions` contiene bozze, consegne, esiti e attribuzione dell'ultimo aggiornamento; `editor_sessions` conserva soltanto la presenza editor temporanea e il codice condivisibile durante Code now; `code_now_settings` conserva il solo interruttore globale di disponibilità e il relativo timestamp; `code_snippets` contiene i codici personali salvati dall'utente. I testi dell'interfaccia, inclusa la pagina di accesso, restano nei cataloghi Paraglide e non fanno parte del modello dati.
 
 Le migrazioni incrementali sono l'unica fonte autorevole dello schema. Un'installazione pulita le applica tutte in ordine e non carica identità o dati didattici fittizi.
 
@@ -59,3 +59,7 @@ proprietà docente includono sempre anche la verifica del ruolo nel database.
 L'elenco dei report delle classi legge soltanto classi e appartenenze; il
 dettaglio carica profili, assegnazioni, aperture e riepiloghi delle consegne
 filtrati per la classe scelta.
+La home docente legge soltanto identificativi e metadati necessari a contare
+classi, iscritti, attività e consegne da valutare; non scarica il codice degli
+studenti. La home studente resta un ramo separato e non rende disponibili i
+riepiloghi aggregati del docente.

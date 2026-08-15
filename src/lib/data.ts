@@ -2,7 +2,6 @@ import { supabase } from "$lib/supabase";
 import type {
   Assignment,
   AssignmentView,
-  BrandingTranslation,
   Classroom,
   CodeNowSettings,
   CodeSnippet,
@@ -113,9 +112,11 @@ export const getExercise = async (id: string) => {
 
 export async function getDashboard() {
   return Promise.all([
-    rows<Classroom>("classes", "id"),
-    rows<Assignment>("class_assignments", "id"),
-    rows<Submission>("submissions", "id,status"),
+    rows<Classroom>("classes", classColumns),
+    rows<Membership>("class_members", "class_id,student_id,joined_at"),
+    rows<Exercise>("exercises", "id,title"),
+    rows<Assignment>("class_assignments", assignmentColumns),
+    rows<Submission>("submissions", submissionSummaryColumns),
   ]);
 }
 
@@ -296,16 +297,4 @@ export async function getCodeNowSettings(): Promise<CodeNowSettings | null> {
     .maybeSingle();
   if (result.error) throw result.error;
   return result.data as CodeNowSettings | null;
-}
-
-export async function getBrandingTranslations(): Promise<
-  BrandingTranslation[]
-> {
-  if (!supabase) return [];
-  const result = await supabase
-    .from("app_branding_translations")
-    .select("locale,title,subtitle")
-    .order("locale");
-  if (result.error) throw result.error;
-  return result.data as BrandingTranslation[];
 }

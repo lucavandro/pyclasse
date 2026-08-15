@@ -284,20 +284,32 @@ test("le operazioni docente verificano ruolo e proprietÃ  nel database", async
 });
 
 test("autenticazione supporta password, recupero, OTP e Google", async () => {
-  const [auth, resetPassword, layout, client, config] = await Promise.all([
-    read("src/lib/Auth.svelte"),
-    read("src/routes/auth/reset-password/+page.svelte"),
-    read("src/routes/+layout.svelte"),
-    read("src/lib/supabase.ts"),
-    read("supabase/config.toml"),
-  ]);
+  const [auth, resetPassword, layout, client, config, brandingRemoval] =
+    await Promise.all([
+      read("src/lib/Auth.svelte"),
+      read("src/routes/auth/reset-password/+page.svelte"),
+      read("src/routes/+layout.svelte"),
+      read("src/lib/supabase.ts"),
+      read("supabase/config.toml"),
+      read("supabase/migrations/20260815000000_remove_login_branding.sql"),
+    ]);
   assert.match(auth, /signInWithPassword/);
   assert.match(auth, /resetPasswordForEmail/);
   assert.match(auth, /\/auth\/reset-password/);
   assert.match(auth, /m\.auth_recovery_sent\(\)/);
   assert.match(auth, /signInWithOtp/);
   assert.match(auth, /verifyOtp/);
-  assert.match(auth, /get_public_branding/);
+  assert.match(auth, /m\.auth_hero_title\(\)/);
+  assert.match(auth, /m\.auth_hero_subtitle\(\)/);
+  assert.doesNotMatch(auth, /get_public_branding|app_branding_translations/);
+  assert.match(
+    brandingRemoval,
+    /drop function if exists public\.get_public_branding\(text\)/i,
+  );
+  assert.match(
+    brandingRemoval,
+    /drop table if exists public\.app_branding_translations/i,
+  );
   assert.equal(
     auth.match(/src="\/favicon\.svg"/g)?.length,
     1,
@@ -334,7 +346,26 @@ test("privacy, monitoraggio e presenza restano espliciti", async () => {
   assert.match(presenceMigration, /interval '25 seconds'/);
   assert.doesNotMatch(settings, /localStorage/);
   assert.doesNotMatch(settings, /bind:value=\{schoolName\}/);
-  assert.match(settings, /m\.settings_login_preview\(\)/);
+  assert.doesNotMatch(
+    settings,
+    /branding|settings_login_preview|app_branding_translations/i,
+  );
+});
+
+test("la home docente espone avvio lezione e segnali operativi", async () => {
+  const [dashboard, data] = await Promise.all([
+    read("src/routes/+page.svelte"),
+    read("src/lib/data.ts"),
+  ]);
+  assert.match(dashboard, /href="\/code-now"/);
+  assert.match(dashboard, /href="\/exercises\/new"/);
+  assert.match(dashboard, /href="\/monitor"/);
+  assert.match(dashboard, /m\.dashboard_upcoming_deadlines\(\)/);
+  assert.match(dashboard, /submission\.status === "submitted"/);
+  assert.match(
+    data,
+    /getDashboard[\s\S]*class_members[\s\S]*exercises[\s\S]*class_assignments[\s\S]*submissions/,
+  );
 });
 
 test("sistema visivo usa palette del logo e CSS locale alle rotte", async () => {

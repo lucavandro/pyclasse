@@ -133,9 +133,14 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
   test("il docente crea classe ed esercizio persistenti", async ({ page }) => {
     await register(page, teacher);
     await expect(
-      page.getByRole("heading", { name: "Stato delle consegne" }),
+      page.getByRole("heading", { name: "Pronto per la lezione?" }),
     ).toBeVisible();
-    await expect(page.getByText("DATI DELLE CONSEGNE")).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Avvia Code now" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Crea e assegna un esercizio" }),
+    ).toBeVisible();
     await page.getByRole("button", { name: "Classi" }).click();
     await page.getByRole("button", { name: "Nuova classe" }).click();
     await page.getByLabel("Nome").fill("Classe E2E");
@@ -306,35 +311,26 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await expect(
       page.getByRole("heading", { name: "Esercizio importato E2E" }),
     ).toBeVisible();
+    await page.getByRole("button", { name: "Home" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Prossime scadenze" }),
+    ).toBeVisible();
+    await expect(page.getByText("Risposta universale")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Le tue classi" }),
+    ).toBeVisible();
+    await expect(page.getByText("Classe E2E", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Impostazioni" }).click();
     const studioLink = page.getByRole("link", {
       name: "Apri amministrazione Supabase",
     });
     await expect(studioLink).toBeVisible();
     await expect(studioLink).toHaveAttribute("target", "_blank");
-    const loginBranding = page.getByRole("group", {
-      name: "Testi della pagina di accesso",
-    });
-    await loginBranding
-      .getByRole("textbox", { name: "Titolo (italiano)", exact: true })
-      .fill("Impara Python con Classe E2E");
-    await loginBranding
-      .getByRole("textbox", {
-        name: "Sottotitolo (italiano)",
-        exact: true,
-      })
-      .fill("Un ambiente personalizzato dal docente per la propria classe.");
-    await expect(
-      page
-        .getByLabel("Anteprima pagina di accesso")
-        .getByText("Impara Python con Classe E2E"),
-    ).toBeVisible();
+    await expect(page.getByText("Personalizzazione")).toHaveCount(0);
+    await expect(page.getByText("Testi della pagina di accesso")).toHaveCount(
+      0,
+    );
     await expect(page.getByLabel("Nome scuola")).toHaveCount(0);
-    await expect(
-      loginBranding.getByRole("textbox", {
-        name: "Sottotitolo (italiano)",
-      }),
-    ).toHaveAttribute("maxlength", "240");
     const administration = page.locator(".administration-settings");
     await expect(administration).toContainText("Amministrazione tecnica");
     await expect(
@@ -345,7 +341,9 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await page.getByRole("button", { name: "Salva impostazioni" }).click();
     await page.getByRole("button", { name: "Esci dall'account" }).click();
     await expect(
-      page.getByRole("heading", { name: "Impara Python con Classe E2E" }),
+      page.getByRole("heading", {
+        name: "Il laboratorio Python della tua classe.",
+      }),
     ).toBeVisible();
   });
 

@@ -71,4 +71,7 @@ test("il frontend non conserva rilevamento o formattazione locale hard-coded", a
   assert.doesNotMatch(source, /locale\s*===\s*["'](?:it|en)["']/);
   assert.doesNotMatch(source, /toLocale(?:DateString|String)\(["']it-IT["']/);
   assert.doesNotMatch(source, /login_(?:title|subtitle)_(?:it|en)/);
+  assert.doesNotMatch(source, /get_public_branding|app_branding_translations/);
+  assert.match(source, /m\.auth_hero_title\(\)/);
+  assert.match(source, /m\.auth_hero_subtitle\(\)/);
 });

@@ -156,6 +156,13 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
       .fill(
         "## Obiettivo\nImplementa `answer()` in modo che restituisca **42**.",
       );
+    const markdownPreview = page.getByRole("region", {
+      name: "Anteprima traccia",
+    });
+    await expect(
+      markdownPreview.getByRole("heading", { name: "Obiettivo" }),
+    ).toBeVisible();
+    await expect(markdownPreview.locator("strong")).toHaveText("42");
     await page
       .getByLabel("Link risorsa esterna")
       .fill("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
@@ -163,13 +170,25 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await page
       .getByLabel("Codice iniziale")
       .fill("def answer():\n    return 42");
-    await page.getByLabel("Tag").fill("funzioni, base, funzioni");
+    const tagInput = page.getByLabel("Nuovo tag");
+    await tagInput.fill("Funzioni");
+    await tagInput.press("Enter");
+    await tagInput.fill("base");
+    await page.getByRole("button", { name: "Aggiungi tag" }).click();
+    await tagInput.fill("funzioni");
+    await tagInput.press("Enter");
+    await expect(
+      page.getByRole("button", { name: "Rimuovi tag funzioni" }),
+    ).toHaveCount(1);
+    await expect(
+      page.getByRole("button", { name: "Rimuovi tag base" }),
+    ).toHaveCount(1);
     await expect(page.getByLabel("Esercizio propedeutico")).toBeChecked();
     await expect(page.locator(".prerequisite-control")).toContainText(
       "finché lo studente non consegna",
     );
     await expect(page.locator(".verification-card")).toHaveCount(2);
-    await page.getByRole("button", { name: "Aggiungi" }).click();
+    await page.getByRole("button", { name: "Aggiungi", exact: true }).click();
     await page.getByLabel("Input test 1").fill("answer()");
     await page.getByLabel("Output test 1").fill("42");
     await page
@@ -190,6 +209,16 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await page.getByRole("button", { name: "Salva esercizio" }).click();
     await expect(page.getByText("Risposta universale")).toBeVisible();
     await expect(page.getByText("Classe E2E", { exact: true })).toBeVisible();
+    await page.getByRole("link", { name: "Modifica" }).click();
+    await expect(
+      page
+        .getByRole("region", { name: "Anteprima traccia" })
+        .getByRole("heading", { name: "Obiettivo" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Rimuovi tag funzioni" }),
+    ).toBeVisible();
+    await page.goBack();
     await expect(page.getByText("Voto /10")).toHaveCount(0);
     await page.getByLabel("Cerca esercizio per nome").fill("universale");
     await expect(page.getByText("Risposta universale")).toBeVisible();

@@ -73,11 +73,20 @@ versione precedente cancelli il lavoro in corso.
 
 ## Tag e filtro
 
-Il docente inserisce tag separati da virgola. Prima del salvataggio vengono rimossi spazi, duplicati e differenze fra maiuscole/minuscole. PostgreSQL usa un array `text[]` indicizzato GIN e il repository consente il filtro per tag.
+Il docente inserisce un tag alla volta e lo conferma con Invio o con il pulsante
+dedicato. I tag aggiunti sono mostrati come chip rimovibili, così l'elenco resta
+visibile e modificabile senza ricordare una sintassi di separazione. Prima del
+salvataggio vengono rimossi spazi, duplicati e differenze fra
+maiuscole/minuscole. PostgreSQL usa un array `text[]` indicizzato GIN e il
+repository consente il filtro per tag.
 
 ## Tracce Markdown e risorse esterne
 
-La traccia dell'esercizio è salvata come Markdown e resa agli studenti con supporto GitHub Flavored Markdown: titoli, enfasi, elenchi, tabelle, citazioni, link e blocchi di codice. L'HTML incorporato viene ignorato, evitando l'esecuzione di markup o script inseriti nella traccia.
+La traccia dell'esercizio è salvata come Markdown. Durante la creazione e la
+modifica, il docente vede un'anteprima aggiornata mentre scrive, generata dallo
+stesso renderer sicuro usato nell'area studente. Sono supportati titoli, enfasi,
+elenchi, tabelle, citazioni, link e blocchi di codice. L'HTML incorporato viene
+ignorato, evitando l'esecuzione di markup o script inseriti nella traccia.
 
 Ogni esercizio può avere una risorsa esterna opzionale, per esempio una pagina web o un video YouTube. Sono ammessi esclusivamente URL HTTPS. Il collegamento si apre in una nuova scheda con `noopener noreferrer`; i contenuti YouTube non vengono caricati automaticamente, evitando richieste a terze parti prima dell'azione esplicita dello studente.
 

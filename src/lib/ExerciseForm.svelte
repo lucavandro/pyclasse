@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import Markdown from "$lib/Markdown.svelte";
   import { supabase } from "$lib/supabase";
   import { getClasses, getExercise } from "$lib/data";
   import { session } from "$lib/session.svelte";
@@ -12,7 +13,8 @@
     resourceLabel = $state(""),
     constraints = $state(""),
     starterCode = $state<string>(m.exercise_starter_code_default()),
-    tags = $state(""),
+    tags = $state<string[]>([]),
+    tagInput = $state(""),
     maxPoints = $state(100),
     isPrerequisite = $state(true),
     verificationMode = $state<"tests" | "ai">("tests"),
@@ -45,7 +47,7 @@
         resourceLabel = d.exercise.resource_label || "";
         constraints = d.exercise.constraints;
         starterCode = d.exercise.starter_code;
-        tags = d.exercise.tags.join(", ");
+        tags = [...d.exercise.tags];
         maxPoints = d.exercise.max_points;
         isPrerequisite = d.exercise.is_prerequisite;
         verificationMode = d.exercise.verification_mode;
@@ -62,6 +64,15 @@
       }
     })();
   });
+  const normalizeTag = (value: string) => value.trim().toLowerCase();
+  function addTag() {
+    const tag = normalizeTag(tagInput);
+    if (tag && !tags.includes(tag)) tags = [...tags, tag];
+    tagInput = "";
+  }
+  function removeTag(tag: string) {
+    tags = tags.filter((item) => item !== tag);
+  }
   async function save() {
     if (!supabase || !session.profile) return;
     busy = true;
@@ -78,14 +89,7 @@
       verification_mode: verificationMode,
       max_points: maxPoints,
       is_prerequisite: isPrerequisite,
-      tags: [
-        ...new Set(
-          tags
-            .split(",")
-            .map((x) => x.trim().toLowerCase())
-            .filter(Boolean),
-        ),
-      ],
+      tags: [...new Set([...tags, normalizeTag(tagInput)].filter(Boolean))],
     };
     const r = id
       ? await supabase
@@ -200,13 +204,31 @@
         maxlength="160"
         required
       /></label
-    ><label
-      >{m.exercise_markdown_prompt()}<textarea
-        aria-label={m.exercise_markdown_prompt()}
-        bind:value={description}
-        required
-      ></textarea></label
     >
+    <div class="prompt-editor">
+      <label
+        >{m.exercise_markdown_prompt()}<textarea
+          aria-label={m.exercise_markdown_prompt()}
+          bind:value={description}
+          required
+        ></textarea></label
+      >
+      <section
+        class="markdown-preview"
+        aria-labelledby="exercise-markdown-preview-title"
+      >
+        <h3 id="exercise-markdown-preview-title">
+          {m.exercise_markdown_preview()}
+        </h3>
+        <div class="markdown-preview-content">
+          {#if description.trim()}
+            <Markdown source={description} />
+          {:else}
+            <p>{m.exercise_markdown_preview_empty()}</p>
+          {/if}
+        </div>
+      </section>
+    </div>
     <div class="form-row">
       <label
         >{m.exercise_external_url()}<input
@@ -232,13 +254,48 @@
       ></textarea></label
     >
     <div class="form-row">
+      <fieldset class="tag-field">
+        <legend>{m.exercise_tags()}</legend>
+        <label for="exercise-tag-input">{m.exercise_tag_input()}</label>
+        <div class="tag-entry">
+          <input
+            id="exercise-tag-input"
+            aria-describedby="exercise-tags-help"
+            placeholder={m.exercise_tags_placeholder()}
+            bind:value={tagInput}
+            onkeydown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                addTag();
+              }
+            }}
+          />
+          <button
+            type="button"
+            class="secondary"
+            disabled={!tagInput.trim()}
+            onclick={addTag}>{m.exercise_tag_add()}</button
+          >
+        </div>
+        <small id="exercise-tags-help">{m.exercise_tags_help()}</small>
+        {#if tags.length}
+          <div class="tag-list" aria-live="polite">
+            {#each tags as tag}
+              <span class="tag tag-chip">
+                #{tag}
+                <button
+                  type="button"
+                  class="tag-remove"
+                  aria-label={m.exercise_tag_remove({ tag })}
+                  title={m.exercise_tag_remove({ tag })}
+                  onclick={() => removeTag(tag)}>×</button
+                >
+              </span>
+            {/each}
+          </div>
+        {/if}
+      </fieldset>
       <label
-        >{m.exercise_tags()}<input
-          aria-label={m.exercise_tags()}
-          placeholder={m.exercise_tags_placeholder()}
-          bind:value={tags}
-        /></label
-      ><label
         >{m.exercise_max_points()}<input
           type="number"
           min="1"
@@ -325,6 +382,83 @@
 </form>
 
 <style>
+  .prompt-editor {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+    align-items: stretch;
+  }
+  .prompt-editor textarea {
+    min-height: 18rem;
+    height: 100%;
+  }
+  .markdown-preview {
+    min-width: 0;
+    border: var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    background: var(--color-surface-subtle);
+  }
+  .markdown-preview h3 {
+    margin-bottom: var(--space-4);
+    color: var(--color-muted);
+    font-size: var(--font-size-sm);
+    letter-spacing: 0;
+  }
+  .markdown-preview-content {
+    min-height: 14rem;
+    overflow-wrap: anywhere;
+  }
+  .markdown-preview-content > p {
+    color: var(--color-subtle);
+  }
+  .tag-field {
+    display: grid;
+    gap: var(--space-2);
+  }
+  .tag-field legend,
+  .tag-field label {
+    color: var(--color-foreground);
+    font-size: var(--font-size-sm);
+    font-weight: 620;
+  }
+  .tag-field label {
+    color: var(--color-muted);
+    font-weight: 500;
+  }
+  .tag-entry {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2);
+  }
+  .tag-list {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    margin-top: var(--space-1);
+  }
+  .tag-chip {
+    min-height: var(--control-min-height);
+    padding: 0 0 0 var(--space-3);
+    font-size: var(--font-size-sm);
+  }
+  .tag-remove {
+    width: var(--control-min-height);
+    min-width: var(--control-min-height);
+    min-height: var(--control-min-height);
+    border: 0;
+    border-radius: inherit;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    box-shadow: none;
+    font-size: var(--font-size-lg);
+  }
+  .tag-remove:hover:not(:disabled) {
+    border: 0;
+    background: var(--color-surface-hover);
+    transform: none;
+  }
   .code {
     font-family: var(--font-code);
   }
@@ -375,9 +509,13 @@
     justify-self: end;
   }
   @media (max-width: 650px) {
+    .prompt-editor,
     .verification-grid,
     .test-row,
     .assignment {
+      grid-template-columns: 1fr;
+    }
+    .tag-entry {
       grid-template-columns: 1fr;
     }
   }

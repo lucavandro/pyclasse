@@ -186,6 +186,22 @@ test("Markdown rifiuta HTML grezzo e isola link esterni", async () => {
   assert.match(markdown, /protocol\s*===\s*["']https:/);
 });
 
+test("il modulo esercizio offre anteprima Markdown e tag interattivi", async () => {
+  const [form, newPage, editPage] = await Promise.all([
+    read("src/lib/ExerciseForm.svelte"),
+    read("src/routes/exercises/new/+page.svelte"),
+    read("src/routes/exercises/[id]/edit/+page.svelte"),
+  ]);
+  assert.match(form, /import Markdown from ["']\$lib\/Markdown\.svelte["']/);
+  assert.match(form, /<Markdown source=\{description\}/);
+  assert.match(form, /m\.exercise_markdown_preview\(\)/);
+  assert.match(form, /event\.key === ["']Enter["']/);
+  assert.match(form, /onclick=\{addTag\}/);
+  assert.match(form, /m\.exercise_tag_remove\(\{ tag \}\)/);
+  assert.match(newPage, /<ExerciseForm\s*\/>/);
+  assert.match(editPage, /<ExerciseForm id=\{page\.params\.id\}\s*\/>/);
+});
+
 test("dati sono letti da Supabase per dominio e mai incorporati nella UI", async () => {
   const data = await read("src/lib/data.ts");
   for (const table of [

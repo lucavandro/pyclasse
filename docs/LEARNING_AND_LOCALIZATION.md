@@ -88,6 +88,11 @@ stesso renderer sicuro usato nell'area studente. Sono supportati titoli, enfasi,
 elenchi, tabelle, citazioni, link e blocchi di codice. L'HTML incorporato viene
 ignorato, evitando l'esecuzione di markup o script inseriti nella traccia.
 
+Il codice iniziale viene composto con lo stesso editor Python usato nelle aree
+di esecuzione: mostra i numeri di riga, applica syntax highlighting locale e
+consente al docente le normali operazioni di copia e incolla. Tag e punti
+massimi occupano righe distinte per mantenere chiara la gerarchia del modulo.
+
 Ogni esercizio può avere una risorsa esterna opzionale, per esempio una pagina web o un video YouTube. Sono ammessi esclusivamente URL HTTPS. Il collegamento si apre in una nuova scheda con `noopener noreferrer`; i contenuti YouTube non vengono caricati automaticamente, evitando richieste a terze parti prima dell'azione esplicita dello studente.
 
 ## Copertura automatica

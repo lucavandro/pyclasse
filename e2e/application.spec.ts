@@ -170,6 +170,18 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await page
       .getByLabel("Codice iniziale")
       .fill("def answer():\n    return 42");
+    const starterCodeEditor = page.locator(".starter-code-field");
+    await expect(starterCodeEditor.locator(".cm-lineNumbers")).toBeVisible();
+    await expect(
+      starterCodeEditor.locator(".cm-gutterElement").filter({ hasText: "2" }),
+    ).toBeVisible();
+    const tagBounds = await page.locator(".tag-row").boundingBox();
+    const pointsBounds = await page.locator(".points-row").boundingBox();
+    expect(tagBounds).not.toBeNull();
+    expect(pointsBounds).not.toBeNull();
+    expect(pointsBounds!.y).toBeGreaterThan(
+      tagBounds!.y + tagBounds!.height - 1,
+    );
     const tagInput = page.getByLabel("Nuovo tag");
     await tagInput.fill("Funzioni");
     await tagInput.press("Enter");
@@ -217,6 +229,12 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Rimuovi tag funzioni" }),
+    ).toBeVisible();
+    await expect(page.getByLabel("Codice iniziale")).toContainText(
+      "def answer():",
+    );
+    await expect(
+      page.locator(".starter-code-field .cm-lineNumbers"),
     ).toBeVisible();
     await page.goBack();
     await expect(page.getByText("Voto /10")).toHaveCount(0);

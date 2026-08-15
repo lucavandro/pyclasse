@@ -4,16 +4,18 @@
   let {
     value = $bindable(""),
     ariaLabel = m.editor_python_aria(),
+    ariaLabelledby,
     allowClipboard = false,
     onChange,
   }: {
     value?: string;
     ariaLabel?: string;
+    ariaLabelledby?: string;
     allowClipboard?: boolean;
     onChange?: (value: string) => void;
   } = $props();
   let host: HTMLDivElement;
-  let view: any;
+  let view = $state.raw<any>();
   let applying = false;
   onMount(() => {
     let active = true;
@@ -65,7 +67,11 @@
               python(),
               syntaxHighlighting(pythonHighlightStyle),
               keymap.of([...defaultKeymap, ...historyKeymap]),
-              EditorView.contentAttributes.of({ "aria-label": ariaLabel }),
+              EditorView.contentAttributes.of(
+                ariaLabelledby
+                  ? { "aria-labelledby": ariaLabelledby }
+                  : { "aria-label": ariaLabel },
+              ),
               EditorView.domEventHandlers({
                 copy: (e) => {
                   if (!allowClipboard) e.preventDefault();

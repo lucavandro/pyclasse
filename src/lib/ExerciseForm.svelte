@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import Markdown from "$lib/Markdown.svelte";
+  import PythonEditor from "$lib/PythonEditor.svelte";
   import { supabase } from "$lib/supabase";
   import { getClasses, getExercise } from "$lib/data";
   import { session } from "$lib/session.svelte";
@@ -246,63 +247,65 @@
     <label
       >{m.exercise_constraints()}<textarea bind:value={constraints}
       ></textarea></label
-    ><label
-      >{m.exercise_starter_code()}<textarea
-        aria-label={m.exercise_starter_code()}
-        class="code"
-        bind:value={starterCode}
-      ></textarea></label
     >
-    <div class="form-row">
-      <fieldset class="tag-field">
-        <legend>{m.exercise_tags()}</legend>
-        <label for="exercise-tag-input">{m.exercise_tag_input()}</label>
-        <div class="tag-entry">
-          <input
-            id="exercise-tag-input"
-            aria-describedby="exercise-tags-help"
-            placeholder={m.exercise_tags_placeholder()}
-            bind:value={tagInput}
-            onkeydown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                addTag();
-              }
-            }}
-          />
-          <button
-            type="button"
-            class="secondary"
-            disabled={!tagInput.trim()}
-            onclick={addTag}>{m.exercise_tag_add()}</button
-          >
-        </div>
-        <small id="exercise-tags-help">{m.exercise_tags_help()}</small>
-        {#if tags.length}
-          <div class="tag-list" aria-live="polite">
-            {#each tags as tag}
-              <span class="tag tag-chip">
-                #{tag}
-                <button
-                  type="button"
-                  class="tag-remove"
-                  aria-label={m.exercise_tag_remove({ tag })}
-                  title={m.exercise_tag_remove({ tag })}
-                  onclick={() => removeTag(tag)}>×</button
-                >
-              </span>
-            {/each}
-          </div>
-        {/if}
-      </fieldset>
-      <label
-        >{m.exercise_max_points()}<input
-          type="number"
-          min="1"
-          bind:value={maxPoints}
-        /></label
-      >
+    <div class="starter-code-field">
+      <span id="exercise-starter-code-label" class="field-label">
+        {m.exercise_starter_code()}
+      </span>
+      <PythonEditor
+        bind:value={starterCode}
+        ariaLabelledby="exercise-starter-code-label"
+        allowClipboard={true}
+      />
     </div>
+    <fieldset class="tag-field tag-row">
+      <legend>{m.exercise_tags()}</legend>
+      <label for="exercise-tag-input">{m.exercise_tag_input()}</label>
+      <div class="tag-entry">
+        <input
+          id="exercise-tag-input"
+          aria-describedby="exercise-tags-help"
+          placeholder={m.exercise_tags_placeholder()}
+          bind:value={tagInput}
+          onkeydown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              addTag();
+            }
+          }}
+        />
+        <button
+          type="button"
+          class="secondary"
+          disabled={!tagInput.trim()}
+          onclick={addTag}>{m.exercise_tag_add()}</button
+        >
+      </div>
+      <small id="exercise-tags-help">{m.exercise_tags_help()}</small>
+      {#if tags.length}
+        <div class="tag-list" aria-live="polite">
+          {#each tags as tag}
+            <span class="tag tag-chip">
+              #{tag}
+              <button
+                type="button"
+                class="tag-remove"
+                aria-label={m.exercise_tag_remove({ tag })}
+                title={m.exercise_tag_remove({ tag })}
+                onclick={() => removeTag(tag)}>×</button
+              >
+            </span>
+          {/each}
+        </div>
+      {/if}
+    </fieldset>
+    <label class="points-row"
+      >{m.exercise_max_points()}<input
+        type="number"
+        min="1"
+        bind:value={maxPoints}
+      /></label
+    >
     <label class="prerequisite-control"
       ><input
         type="checkbox"
@@ -412,10 +415,18 @@
   .markdown-preview-content > p {
     color: var(--color-subtle);
   }
+  .starter-code-field,
   .tag-field {
     display: grid;
     gap: var(--space-2);
   }
+  .starter-code-field {
+    min-width: 0;
+  }
+  .starter-code-field :global(.editor) {
+    border-radius: var(--radius-md);
+  }
+  .field-label,
   .tag-field legend,
   .tag-field label {
     color: var(--color-foreground);
@@ -458,9 +469,6 @@
     border: 0;
     background: var(--color-surface-hover);
     transform: none;
-  }
-  .code {
-    font-family: var(--font-code);
   }
   .prerequisite-control {
     grid-template-columns: auto 1fr;

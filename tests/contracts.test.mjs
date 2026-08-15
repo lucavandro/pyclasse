@@ -87,6 +87,7 @@ test("editor applica blocco clipboard, guida Run, watchdog e Pyodide self-hosted
   assert.match(editor, /copy[\s\S]*preventDefault/);
   assert.match(editor, /cut[\s\S]*preventDefault/);
   assert.match(editor, /paste[\s\S]*preventDefault/);
+  assert.match(editor, /view\s*=\s*\$state\.raw/);
   assert.match(
     workbench,
     /allowClipboard=\{session\.profile\?\.role !== "student"\}/,
@@ -193,11 +194,20 @@ test("il modulo esercizio offre anteprima Markdown e tag interattivi", async () 
     read("src/routes/exercises/[id]/edit/+page.svelte"),
   ]);
   assert.match(form, /import Markdown from ["']\$lib\/Markdown\.svelte["']/);
+  assert.match(
+    form,
+    /import PythonEditor from ["']\$lib\/PythonEditor\.svelte["']/,
+  );
   assert.match(form, /<Markdown source=\{description\}/);
+  assert.match(form, /<PythonEditor[\s\S]*bind:value=\{starterCode\}/);
+  assert.match(form, /ariaLabelledby="exercise-starter-code-label"/);
+  assert.match(form, /allowClipboard=\{true\}/);
   assert.match(form, /m\.exercise_markdown_preview\(\)/);
   assert.match(form, /event\.key === ["']Enter["']/);
   assert.match(form, /onclick=\{addTag\}/);
   assert.match(form, /m\.exercise_tag_remove\(\{ tag \}\)/);
+  assert.match(form, /class="tag-field tag-row"/);
+  assert.match(form, /class="points-row"/);
   assert.match(newPage, /<ExerciseForm\s*\/>/);
   assert.match(editPage, /<ExerciseForm id=\{page\.params\.id\}\s*\/>/);
 });

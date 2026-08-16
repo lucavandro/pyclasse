@@ -49,7 +49,7 @@ avvio dispone le azioni su una colonna.
 
 ### Drawer
 
-Il drawer desktop misura 272 px e può ridursi a 82 px. Ogni voce comprende icona, etichetta accessibile e stato attivo con accento blu. Il profilo è separato dalla navigazione. Sotto 800 px il drawer diventa un pannello fuori canvas con sfondo oscurato e controllo di chiusura esplicito.
+Il drawer desktop misura 272 px e può ridursi a 82 px. Ogni voce comprende icona, etichetta accessibile e stato attivo con accento blu. Il profilo è separato dalla navigazione. Il controllo per comprimere o espandere mostra soltanto l'icona, conserva etichetta accessibile e tooltip e rimane ancorato alla stessa posizione inferiore in entrambi gli stati. Sotto 800 px il drawer diventa un pannello fuori canvas con sfondo oscurato e controllo di chiusura esplicito.
 
 ### Tab
 

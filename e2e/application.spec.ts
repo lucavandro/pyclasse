@@ -704,11 +704,23 @@ test.describe.serial("flusso applicativo con dati Supabase", () => {
     await expect(
       teacherPage.getByLabel("Filtra report per stato"),
     ).toBeVisible();
-    await teacherPage.getByRole("button", { name: "Comprimi menu" }).click();
+    const collapseControl = teacherPage.getByRole("button", {
+      name: "Comprimi menu",
+    });
+    await expect(collapseControl).toHaveText("");
+    const expandedCollapseBox = await collapseControl.boundingBox();
+    expect(expandedCollapseBox).not.toBeNull();
+    await collapseControl.click();
     await expect(teacherPage.locator("main.app-shell")).toHaveClass(
       /sidebar-collapsed/,
     );
-    await teacherPage.getByRole("button", { name: "Espandi menu" }).click();
+    const expandControl = teacherPage.getByRole("button", {
+      name: "Espandi menu",
+    });
+    const collapsedExpandBox = await expandControl.boundingBox();
+    expect(collapsedExpandBox).not.toBeNull();
+    expect(collapsedExpandBox!.y).toBeCloseTo(expandedCollapseBox!.y, 0);
+    await expandControl.click();
     await teacherPage
       .getByRole("button", { name: "Monitoraggio", exact: true })
       .click();

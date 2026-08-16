@@ -89,8 +89,9 @@
     <button
       class="collapse quiet"
       aria-label={collapsed ? m.nav_expand() : m.nav_collapse()}
+      title={collapsed ? m.nav_expand() : m.nav_collapse()}
       onclick={() => (collapsed = !collapsed)}
-      ><Icon name="collapse" size={18} /><span>{m.nav_collapse()}</span></button
+      ><Icon name="collapse" size={18} /></button
     >
   </aside>
   {#if mobile}<button
@@ -243,8 +244,10 @@
     padding: 0;
   }
   .collapse {
+    flex: 0 0 var(--control-min-height);
     width: 100%;
-    justify-content: flex-start;
+    justify-content: center;
+    padding: 0;
     color: var(--color-muted);
   }
   .shell-language {
@@ -266,16 +269,14 @@
   .sidebar-collapsed .brand-copy,
   .sidebar-collapsed .nav-text,
   .sidebar-collapsed .nav-label,
-  .sidebar-collapsed .account-copy,
-  .sidebar-collapsed .collapse span {
+  .sidebar-collapsed .account-copy {
     display: none;
   }
   .sidebar-collapsed .shell-language {
     display: none;
   }
   .sidebar-collapsed .logo,
-  .sidebar-collapsed .sidebar nav a,
-  .sidebar-collapsed .collapse {
+  .sidebar-collapsed .sidebar nav a {
     justify-content: center;
   }
   .sidebar-collapsed .sidebar nav a.active {
@@ -283,6 +284,7 @@
   }
   .sidebar-collapsed .account {
     flex-direction: column;
+    margin-top: auto;
     padding: 0.5rem 0.25rem;
   }
   .mobile-toggle,
@@ -330,20 +332,19 @@
     .sidebar-collapsed .brand-copy,
     .sidebar-collapsed .nav-text,
     .sidebar-collapsed .nav-label,
-    .sidebar-collapsed .account-copy,
-    .sidebar-collapsed .collapse span {
+    .sidebar-collapsed .account-copy {
       display: initial;
     }
     .sidebar-collapsed .shell-language {
       display: block;
     }
     .sidebar-collapsed .logo,
-    .sidebar-collapsed .sidebar nav a,
-    .sidebar-collapsed .collapse {
+    .sidebar-collapsed .sidebar nav a {
       justify-content: flex-start;
     }
     .sidebar-collapsed .account {
       flex-direction: row;
+      margin-top: var(--space-3);
     }
   }
 </style>

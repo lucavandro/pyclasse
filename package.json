@@ -38,7 +38,7 @@
     "@inlang/paraglide-js": "^2.23.1",
     "@lezer/highlight": "^1.2.1",
     "@supabase/supabase-js": "^2.111.0",
-    "marked": "^16.2.1",
+    "marked": "^18.0.9",
     "postcss": "^8.5.25",
     "pyodide": "^314.0.3",
     "remark-gfm": "^4.0.1"
